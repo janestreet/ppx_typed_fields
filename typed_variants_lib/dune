@@ -1,0 +1,4 @@
+(library (name typed_variants_lib)
+ (public_name ppx_typed_fields.typed_variants_lib)
+ (libraries base typed_fields_lib sexplib0)
+ (preprocess (pps ppx_sexp_conv ppx_enumerate ppx_compare)))
