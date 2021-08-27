@@ -817,7 +817,6 @@ module Gen_anonymous_struct = struct
     let loc_ghoster =
       object
         inherit Ast_traverse.map as super
-
         method! location loc = super#location { loc with loc_ghost = true }
       end
     in

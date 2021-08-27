@@ -620,5 +620,5 @@ let gen_str
     pstr_module (module_binding ~name:(Some "Deep" |> Located.mk) ~expr:module_expr)
   in
   let full_depth = Specific_generator.full_depth_module ~loc ~elements_to_convert in
-  deep_module :: shallow_module @ full_depth
+  (deep_module :: shallow_module) @ full_depth
 ;;
