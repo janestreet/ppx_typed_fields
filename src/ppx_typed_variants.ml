@@ -495,10 +495,10 @@ let identify_type_case ~loc td =
     td.ptype_params |> List.map ~f:(fun (type_, _) -> type_, (NoVariance, NoInjectivity))
   in
   match td.ptype_kind, td.ptype_manifest with
-  | Ptype_variant [], None ->
+  | Ptype_variant [], _ ->
     raise_if_opaque_attribute_is_seen td;
     Nothing ((), params)
-  | Ptype_variant constructor_declarations, None ->
+  | Ptype_variant constructor_declarations, _ ->
     raise_if_opaque_attribute_is_seen td;
     Variant
       ( List.map constructor_declarations ~f:(fun cd ->

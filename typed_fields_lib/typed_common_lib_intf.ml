@@ -4,8 +4,7 @@
 
     Each of them have many signature fields in common. In order to facilitate
     operations on both of them generically, this file contains the signature with
-    the intersections of typed fields and typed variants.
-*)
+    the intersections of typed fields and typed variants. *)
 
 open Base
 
@@ -19,8 +18,7 @@ module type S = sig
   val name : 'a t -> string
 
   (** The path of a field, e.g. ["rgb"] from the example above.
-      The list will have multiple elements if the field is a subproduct.
-  *)
+      The list will have multiple elements if the field is a subproduct.  *)
   val path : 'a t -> string list
 
   val __ord : 'a t -> int list
