@@ -60,7 +60,7 @@ let constructor_declarations
     names of the fields, e.g. ["name1"; "name2"]*)
 let names_list
       (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
+      (module _ : Product_kind_intf.S with type t = a)
       ~loc
       ~elements_to_convert:_
   =

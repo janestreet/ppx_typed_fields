@@ -21,7 +21,7 @@ depends: [
   "sexplib"
   "sexplib0"
   "dune"          {>= "2.0.0"}
-  "ppxlib"        {= "0.22.0"}
+  "ppxlib"        {>= "0.23.0"}
 ]
 synopsis: "GADT-based field accessors and utilities"
 description: "
