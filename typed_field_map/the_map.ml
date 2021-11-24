@@ -5,7 +5,7 @@ module Make_plain (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
   module Key_mod = struct
     include Key
 
-    let to_type_id = Type_ids.to_type_id
+    let type_id = Type_ids.type_id
     let sexp_of_t _ t = Packed.sexp_of_t { f = T t }
   end
 

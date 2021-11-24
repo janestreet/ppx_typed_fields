@@ -17,7 +17,7 @@ module Nothing = struct
   let create : type a. a t -> a -> derived_on = unreachable_code
 
   module Type_ids = struct
-    let to_type_id : type a. a t -> a Type_equal.Id.t = unreachable_code
+    let type_id : type a. a t -> a Type_equal.Id.t = unreachable_code
   end
 
   module Packed = struct

@@ -47,7 +47,7 @@ let create_function_body ~loc ~constructor_declarations:_ =
 
 let type_ids ~loc:_ ~elements_to_convert:_ ~core_type_params:_ = []
 
-let to_type_id_function_body ~loc ~elements_to_convert:_ =
+let type_id_function_body ~loc ~elements_to_convert:_ =
   let open (val Ast_builder.make loc) in
   [%expr unreachable_code]
 ;;

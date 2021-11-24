@@ -430,7 +430,7 @@ let type_ids ~loc ~elements_to_convert ~core_type_params =
         ;;])
 ;;
 
-let to_type_id_function_body ~loc ~elements_to_convert =
+let type_id_function_body ~loc ~elements_to_convert =
   let open (val Ast_builder.make loc) in
   let cases =
     List.map elements_to_convert ~f:(fun (element, _) ->
@@ -446,10 +446,10 @@ let to_type_id_function_body ~loc ~elements_to_convert =
         | Single_value_constructor { granularity = Polymorphic_deep; _ } ->
           let subvariant_name = generate_subvariant_name element in
           let type_ids_name = subvariant_name ^ "_type_ids" in
-          let to_type_id_function =
-            pexp_ident (Ldot (Lident type_ids_name, "to_type_id") |> Located.mk)
+          let type_id_function =
+            pexp_ident (Ldot (Lident type_ids_name, "type_id") |> Located.mk)
           in
-          [%expr [%e to_type_id_function] subvariant]
+          [%expr [%e type_id_function] subvariant]
         | _ ->
           let type_id = Located.mk (Lident (variant_name |> String.lowercase)) in
           pexp_ident type_id

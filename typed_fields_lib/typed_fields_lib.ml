@@ -19,7 +19,7 @@ module Unit = struct
   let create ({ f = _ } : creator) : derived_on = ()
 
   module Type_ids = struct
-    let to_type_id : type a. a t -> a Type_equal.Id.t = unreachable_code
+    let type_id : type a. a t -> a Type_equal.Id.t = unreachable_code
   end
 
   module Packed = struct
@@ -69,7 +69,7 @@ module Singleton (T : T) = struct
       Type_equal.Id.create ~name:"this" (fun _ -> Sexp.Atom "<opaque>")
     ;;
 
-    let to_type_id (type a) (T : a t) : a Type_equal.Id.t = type_id
+    let type_id (type a) (T : a t) : a Type_equal.Id.t = type_id
   end
 
   module Packed = struct
@@ -104,7 +104,7 @@ module Singleton1 (T1 : T1) = struct
       Type_equal.Id.create ~name:"this" (fun _ -> Sexp.Atom "<opaque>")
     ;;
 
-    let to_type_id (type a) (T : (Type_id_T1.t, a) t) : a Type_equal.Id.t = type_id
+    let type_id (type a) (T : (Type_id_T1.t, a) t) : a Type_equal.Id.t = type_id
   end
 
   module Packed = struct
@@ -145,7 +145,7 @@ module Singleton2 (T2 : T2) = struct
       Type_equal.Id.create ~name:"this" (fun _ -> Sexp.Atom "<opaque>")
     ;;
 
-    let to_type_id (type a) (T : (Typed_id_T1.t, Type_id_T2.t, a) t) : a Type_equal.Id.t =
+    let type_id (type a) (T : (Typed_id_T1.t, Type_id_T2.t, a) t) : a Type_equal.Id.t =
       type_id
     ;;
   end
@@ -188,7 +188,7 @@ module Singleton3 (T3 : T3) = struct
       Type_equal.Id.create ~name:"this" (fun _ -> Sexp.Atom "<opaque>")
     ;;
 
-    let to_type_id (type a) (T : (Type_id_T1.t, Type_id_T2.t, Type_id_T3.t, a) t)
+    let type_id (type a) (T : (Type_id_T1.t, Type_id_T2.t, Type_id_T3.t, a) t)
       : a Type_equal.Id.t
       =
       type_id
@@ -254,7 +254,7 @@ struct
       Type_equal.Id.create ~name:"this" (fun _ -> Sexp.Atom "<opaque>")
     ;;
 
-    let to_type_id
+    let type_id
           (type a)
           (T : (Type_id_T1.t, Type_id_T2.t, Type_id_T3.t, Type_id_T4.t, a) t)
       : a Type_equal.Id.t
@@ -332,7 +332,7 @@ struct
       Type_equal.Id.create ~name:"this" (fun _ -> Sexp.Atom "<opaque>")
     ;;
 
-    let to_type_id
+    let type_id
           (type a)
           (T : (Type_id_T1.t, Type_id_T2.t, Type_id_T3.t, Type_id_T4.t, Type_id_T5.t, a) t)
       : a Type_equal.Id.t

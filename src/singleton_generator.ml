@@ -28,8 +28,8 @@ let type_ids ~loc ~number_of_parameters ~unique_id =
       (Ldot (Ldot (Ldot (Lident "Base", "Type_equal"), "Id"), "t") |> Located.mk)
       [ ptyp_constr (Lident derived_on_name |> Located.mk) functor_param_constrs ]
   in
-  let to_type_id =
-    let pattern = ppat_var (Located.mk "to_type_id") in
+  let type_id =
+    let pattern = ppat_var (Located.mk "type_id") in
     let expression =
       let expression =
         let pattern =
@@ -60,7 +60,7 @@ let type_ids ~loc ~number_of_parameters ~unique_id =
         let type_id : [%t type_equal_type] =
           Base.Type_equal.Id.create ~name:"this" (fun _ -> Sexplib.Sexp.Atom "<opaque>")
         ;;]
-      ; to_type_id
+      ; type_id
       ]
   in
   let expr =

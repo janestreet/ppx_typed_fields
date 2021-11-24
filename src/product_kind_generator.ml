@@ -461,14 +461,14 @@ let type_ids
 ;;
 
 (**
-   Generates body for the to_type id function
+   Generates body for the [type_id] function
    For example:
 
    match t with
    | Constr1 -> constr1
    | Name -> name
 *)
-let to_type_id_function_body
+let type_id_function_body
       (type a)
       (module Specific_implementation : Product_kind_intf.S with type t = a)
       ~loc
@@ -499,12 +499,11 @@ let to_type_id_function_body
           let subproduct_module_typed_field_name =
             [%string "%{subproduct_module_name}_type_ids"]
           in
-          let subproduct_to_type_id_function_expression =
+          let subproduct_type_id_function_expression =
             pexp_ident
-              (Ldot (Lident subproduct_module_typed_field_name, "to_type_id")
-               |> Located.mk)
+              (Ldot (Lident subproduct_module_typed_field_name, "type_id") |> Located.mk)
           in
-          [%expr [%e subproduct_to_type_id_function_expression] subproduct]
+          [%expr [%e subproduct_type_id_function_expression] subproduct]
       in
       case ~lhs:pattern ~guard:None ~rhs)
   in

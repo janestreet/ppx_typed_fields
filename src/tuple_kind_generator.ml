@@ -71,8 +71,8 @@ let subproduct_type_id_modules ~loc ~elements_to_convert ~core_type_params =
     ~core_type_params
 ;;
 
-let to_type_id_function_body ~loc ~elements_to_convert =
-  Product_kind_generator.to_type_id_function_body
+let type_id_function_body ~loc ~elements_to_convert =
+  Product_kind_generator.type_id_function_body
     (module Tuple_generator)
     ~loc
     ~elements_to_convert

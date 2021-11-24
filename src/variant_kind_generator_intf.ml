@@ -184,14 +184,14 @@ module type S = sig
     -> structure_item list
 
   (**
-     Generates body for the to_type id function
+     Generates body for the [type_id] function
      For example:
 
      match t with
      | Constr1 -> constr1
      | Name -> name
   *)
-  val to_type_id_function_body
+  val type_id_function_body
     :  loc:location
     -> elements_to_convert:(supported_constructor_declaration * granularity) list
     -> expression

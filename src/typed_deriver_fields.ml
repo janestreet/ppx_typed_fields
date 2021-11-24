@@ -88,7 +88,7 @@ let gen_partial_sig ~loc ~params =
   in
   let type_ids =
     let signature =
-      let to_type_id_type =
+      let type_id_type =
         let t_type =
           ptyp_constr
             (Lident "t" |> Located.mk)
@@ -106,7 +106,7 @@ let gen_partial_sig ~loc ~params =
                (Ldot (Ldot (Ldot (Lident "Base", "Type_equal"), "Id"), "t") |> Located.mk)
                [ unique_parameter_type_var ])
       in
-      pmty_signature [ [%sigi: val to_type_id : [%t to_type_id_type]] ]
+      pmty_signature [ [%sigi: val type_id : [%t type_id_type]] ]
     in
     let number_of_parameters = List.length core_type_params in
     let signature_with_functors =
@@ -426,9 +426,9 @@ let generate_str_body
         ~elements_to_convert
         ~core_type_params
     in
-    let to_type_id =
+    let type_id =
       let function_body =
-        Specific_generator.to_type_id_function_body ~loc ~elements_to_convert
+        Specific_generator.type_id_function_body ~loc ~elements_to_convert
       in
       let type_equal_t =
         List.fold
@@ -439,7 +439,7 @@ let generate_str_body
       in
       generate_new_typed_function
         ~loc
-        ~function_name:"to_type_id"
+        ~function_name:"type_id"
         ~core_type_params:
           (List.init (List.length core_type_params) ~f:(fun index ->
              ptyp_constr
@@ -458,7 +458,7 @@ let generate_str_body
     let functor_expression =
       List.foldi
         core_type_params
-        ~init:(pmod_structure (type_ids @ subproduct_type_id_modules @ [ to_type_id ]))
+        ~init:(pmod_structure (type_ids @ subproduct_type_id_modules @ [ type_id ]))
         ~f:(fun index acc _ ->
           pmod_functor
             (Named

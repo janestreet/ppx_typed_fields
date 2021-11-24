@@ -24,7 +24,7 @@ module type S = sig
   val __ord : 'a t -> int list
 
   module Type_ids : sig
-    val to_type_id : 'a t -> 'a Type_equal.Id.t
+    val type_id : 'a t -> 'a Type_equal.Id.t
   end
 
   (** Packed is useful for making collections of 'a t's with different 'a's. *)
@@ -48,7 +48,7 @@ module type S1 = sig
 
   (** The name of the field, e.g. "rgb" from the example at the top of the page. *)
   module Type_ids (T : T) : sig
-    val to_type_id : (T.t, 'a) t -> 'a Type_equal.Id.t
+    val type_id : (T.t, 'a) t -> 'a Type_equal.Id.t
   end
 
   (** Packed is useful for making collections of 'a t's with different 'a's. *)
@@ -75,7 +75,7 @@ module type S2 = sig
 
   (** The name of the field, e.g. "rgb" from the example at the top of the page. *)
   module Type_ids (T1 : T) (T2 : T) : sig
-    val to_type_id : (T1.t, T2.t, 'a) t -> 'a Type_equal.Id.t
+    val type_id : (T1.t, T2.t, 'a) t -> 'a Type_equal.Id.t
   end
 
   (** Packed is useful for making collections of 'a t's with different 'a's. *)
@@ -102,7 +102,7 @@ module type S3 = sig
 
   (** The name of the field, e.g. "rgb" from the example at the top of the page. *)
   module Type_ids (T1 : T) (T2 : T) (T3 : T) : sig
-    val to_type_id : (T1.t, T2.t, T3.t, 'a) t -> 'a Type_equal.Id.t
+    val type_id : (T1.t, T2.t, T3.t, 'a) t -> 'a Type_equal.Id.t
   end
 
   (** Packed is useful for making collections of 'a t's with different 'a's. *)
@@ -131,7 +131,7 @@ module type S4 = sig
 
   (** The name of the field, e.g. "rgb" from the example at the top of the page. *)
   module Type_ids (T1 : T) (T2 : T) (T3 : T) (T4 : T) : sig
-    val to_type_id : (T1.t, T2.t, T3.t, T4.t, 'a) t -> 'a Type_equal.Id.t
+    val type_id : (T1.t, T2.t, T3.t, T4.t, 'a) t -> 'a Type_equal.Id.t
   end
 
   (** Packed is useful for making collections of 'a t's with different 'a's. *)
@@ -162,7 +162,7 @@ module type S5 = sig
 
   (** The name of the field, e.g. "rgb" from the example at the top of the page. *)
   module Type_ids (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) : sig
-    val to_type_id : (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) t -> 'a Type_equal.Id.t
+    val type_id : (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) t -> 'a Type_equal.Id.t
   end
 
   (** Packed is useful for making collections of 'a t's with different 'a's. *)
