@@ -1,3 +1,3 @@
 (library (name typed_field_map)
  (public_name ppx_typed_fields.typed_field_map)
- (libraries core_kernel.core typed_fields_lib) (preprocess (pps ppx_jane)))
+ (libraries core typed_fields_lib) (preprocess (pps ppx_jane)))
