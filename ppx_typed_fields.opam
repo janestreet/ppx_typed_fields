@@ -12,7 +12,7 @@ build: [
 depends: [
   "ocaml" {>= "4.09.0"}
   "base"
-  "core_kernel"
+  "core"
   "ppx_compare"
   "ppx_enumerate"
   "ppx_jane"
