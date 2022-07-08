@@ -55,8 +55,9 @@ let generate_constructor_declarations ~loc ~elements_to_convert ~core_type_param
         ~args
         ~res:
           (Some
-             (ptyp_constr (Located.mk (Lident "t")) (core_type_params @ [ last_type ])))
-    ))
+             (ptyp_constr
+                (Located.mk (Lident internal_gadt_name))
+                (core_type_params @ [ last_type ]))) ))
 ;;
 
 (* Disables unused variable warning. *)
@@ -918,11 +919,13 @@ let generate_base_module_type_for_singleton ~loc ~minimum_needed_parameters ~cty
       ~args:(Pcstr_tuple [])
       ~res:(Some (ptyp_constr (Lident "t" |> Located.mk) (core_type_params @ [ ctype ])))
   in
+  let t_params =
+    minimum_needed_parameters @ [ ptyp_var unique_id, (NoVariance, NoInjectivity) ]
+  in
   let t_type_declaration =
     type_declaration
       ~name:("t" |> Located.mk)
-      ~params:
-        (minimum_needed_parameters @ [ ptyp_var unique_id, (NoVariance, NoInjectivity) ])
+      ~params:t_params
       ~cstrs:[]
       ~kind:(Ptype_variant [ constructor ])
       ~private_:Public
@@ -941,10 +944,11 @@ let generate_base_module_expr_for_singleton_for_any_arity
       ~ctype
   =
   let open (val Ast_builder.make loc) in
-  let core_type_params = List.map minimum_needed_parameters ~f:(fun (f, _) -> f) in
+  let core_type_params = List.map minimum_needed_parameters ~f:fst in
   let unique_id = generate_unique_id core_type_params in
   let ({ upper
        ; t_type_declaration
+       ; internal_gadt_declaration
        ; upper_rename
        ; names
        ; name
@@ -1041,6 +1045,7 @@ let generate_base_module_expr_for_singleton_for_any_arity
   pmod_structure
     [ upper
     ; t_type_declaration
+    ; internal_gadt_declaration
     ; upper_rename
     ; name
     ; path

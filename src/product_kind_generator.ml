@@ -48,7 +48,7 @@ let constructor_declarations
         ~res:
           (Some
              (ptyp_constr
-                (Located.mk (Lident "t"))
+                (Located.mk (Lident internal_gadt_name))
                 (core_type_params
                  @ [ (match granularity with
                    | Shallow -> Specific_implementation.to_type element
@@ -1046,11 +1046,13 @@ let generate_base_module_type_for_singleton ~loc ~minimum_needed_parameters ~cty
       ~args:(Pcstr_tuple [])
       ~res:(Some (ptyp_constr (Lident "t" |> Located.mk) (core_type_params @ [ ctype ])))
   in
+  let t_params =
+    minimum_needed_parameters @ [ ptyp_var unique_id, (NoVariance, NoInjectivity) ]
+  in
   let t_type_declaration =
     type_declaration
       ~name:("t" |> Located.mk)
-      ~params:
-        (minimum_needed_parameters @ [ ptyp_var unique_id, (NoVariance, NoInjectivity) ])
+      ~params:t_params
       ~cstrs:[]
       ~kind:(Ptype_variant [ constructor ])
       ~private_:Public
@@ -1073,6 +1075,7 @@ let generate_base_module_expr_for_singleton_for_any_parameter_length
   let unique_id = generate_unique_id core_type_params in
   let ({ upper
        ; t_type_declaration
+       ; internal_gadt_declaration
        ; upper_rename
        ; names
        ; name
@@ -1097,6 +1100,7 @@ let generate_base_module_expr_for_singleton_for_any_parameter_length
         ~unique_parameter_id:unique_id
         ~core_type_params
         ~params:minimum_needed_parameters
+        ~t_name:internal_gadt_name
     in
     pstr_type Recursive [ td ]
   in
@@ -1179,6 +1183,7 @@ let generate_base_module_expr_for_singleton_for_any_parameter_length
   pmod_structure
     [ upper
     ; t_type_declaration
+    ; internal_gadt_declaration
     ; upper_rename
     ; creator_type
     ; name

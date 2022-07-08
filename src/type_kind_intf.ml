@@ -1,6 +1,8 @@
 open Base
 open Ppxlib
 
+let internal_gadt_name = "typed__t"
+
 type granularity =
   | Shallow
   | Deep of
@@ -20,6 +22,7 @@ type 'a gen_t_result =
   { gadt_t : type_declaration
   ; upper : type_declaration
   ; constructor_declarations : (('a * granularity) * constructor_declaration) list
+  ; internal_gadt_rename : type_declaration
   }
 
 let generate_core_type_params params =
@@ -70,7 +73,13 @@ let disable_warning_32 ~loc =
     ~payload:(PStr [ pstr_eval (estring "-32") [] ])
 ;;
 
-let generate_creator_type_declaration ~loc ~unique_parameter_id ~core_type_params ~params =
+let generate_creator_type_declaration
+      ~loc
+      ~unique_parameter_id
+      ~core_type_params
+      ~params
+      ~t_name
+  =
   let open (val Ast_builder.make loc) in
   let creator_function_type =
     ptyp_poly
@@ -78,7 +87,7 @@ let generate_creator_type_declaration ~loc ~unique_parameter_id ~core_type_param
       (ptyp_arrow
          Nolabel
          (ptyp_constr
-            (Located.mk (Lident "t"))
+            (Located.mk (Lident t_name))
             (core_type_params @ [ ptyp_var unique_parameter_id ]))
          (ptyp_var unique_parameter_id))
   in

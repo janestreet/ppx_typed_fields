@@ -18,12 +18,6 @@ val gen_t
   -> upper_name:label
   -> 'a Type_kind_intf.gen_t_result
 
-(* Generates type ('t1, 't2, 't3, ..., 'result) t *)
-val gen_sig_t
-  :  loc:location
-  -> params:(core_type * (variance * injectivity)) list
-  -> signature_item
-
 (* Generates a signature for an opaque type. (e.g. type ('a, 'b, 'c) inner_weird)
    The parameter name is the name of the type (e.g. inner weird), and the
    params are the type parameters of the type (e.g. ('a, 'b, 'c))

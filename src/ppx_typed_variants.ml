@@ -648,7 +648,9 @@ module Gen_sig = struct
              ~params)
       , [] )
     | Variant (constructors, params) ->
-      let ({ gadt_t = typ; upper; _ } : supported_constructor_declaration gen_t_result) =
+      let ({ gadt_t = typ; upper; internal_gadt_rename; constructor_declarations = _ }
+           : supported_constructor_declaration gen_t_result)
+        =
         Generic_generator.gen_t
           ~loc
           ~original_type:(Some (generate_manifest_type_constr ~loc ~name ~params))
@@ -661,7 +663,10 @@ module Gen_sig = struct
       in
       let type_ =
         pmty_signature
-          ([ psig_type Nonrecursive [ upper ]; psig_type Recursive [ typ ] ]
+          ([ psig_type Nonrecursive [ upper ]
+           ; psig_type Recursive [ typ ]
+           ; psig_type Nonrecursive [ internal_gadt_rename ]
+           ]
            @ Typed_deriver_variants.generate_include_signature ~loc ~params)
       in
       Some type_, generate_singleton_signatures ~loc ~td_case:unstripped_td_case

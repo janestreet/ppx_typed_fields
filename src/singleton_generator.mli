@@ -5,6 +5,7 @@ type common_items =
   { upper : structure_item
   ; upper_rename : structure_item
   ; t_type_declaration : structure_item
+  ; internal_gadt_declaration : structure_item
   ; names : structure_item
   ; name : structure_item
   ; path : structure_item

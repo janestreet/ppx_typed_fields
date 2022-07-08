@@ -533,7 +533,9 @@ module Gen_sig = struct
     let open (val Ast_builder.make loc) in
     match identify_type_case ~remove_attributes:true td with
     | Unit (_, params) ->
-      let ({ gadt_t = typ; upper; _ } : core_type gen_t_result) =
+      let ({ gadt_t = typ; upper; constructor_declarations = _; internal_gadt_rename }
+           : core_type gen_t_result)
+        =
         Generic_generator.gen_t
           ~loc
           ~original_type:(Some (generate_manifest_type_constr ~loc ~name ~params))
@@ -545,11 +547,16 @@ module Gen_sig = struct
       in
       ( Some
           (pmty_signature
-             ([ psig_type Nonrecursive [ upper ]; psig_type Recursive [ typ ] ]
+             ([ psig_type Nonrecursive [ upper ]
+              ; psig_type Recursive [ typ ]
+              ; psig_type Nonrecursive [ internal_gadt_rename ]
+              ]
               @ Typed_deriver_fields.generate_include_signature ~loc ~params))
       , [] )
     | Tuple (tuple_types, params) ->
-      let ({ gadt_t = typ; upper; _ } : core_type gen_t_result) =
+      let ({ gadt_t = typ; upper; constructor_declarations = _; internal_gadt_rename }
+           : core_type gen_t_result)
+        =
         Generic_generator.gen_t
           ~loc
           ~original_type:(Some (generate_manifest_type_constr ~loc ~name ~params))
@@ -567,7 +574,10 @@ module Gen_sig = struct
       in
       ( Some
           (pmty_signature
-             ([ psig_type Nonrecursive [ upper ]; psig_type Recursive [ typ ] ]
+             ([ psig_type Nonrecursive [ upper ]
+              ; psig_type Recursive [ typ ]
+              ; psig_type Nonrecursive [ internal_gadt_rename ]
+              ]
               @ Typed_deriver_fields.generate_include_signature ~loc ~params))
       , get_singleton_modules singleton_modules )
     | Opaque (true, params) ->
@@ -580,7 +590,9 @@ module Gen_sig = struct
              ~params)
       , [] )
     | Record (fields, params) ->
-      let ({ gadt_t = typ; upper; _ } : label_declaration gen_t_result) =
+      let ({ gadt_t = typ; upper; constructor_declarations = _; internal_gadt_rename }
+           : label_declaration gen_t_result)
+        =
         Generic_generator.gen_t
           ~loc
           ~original_type:(Some (generate_manifest_type_constr ~loc ~name ~params))
@@ -598,7 +610,10 @@ module Gen_sig = struct
       in
       ( Some
           (pmty_signature
-             ([ psig_type Nonrecursive [ upper ]; psig_type Recursive [ typ ] ]
+             ([ psig_type Nonrecursive [ upper ]
+              ; psig_type Recursive [ typ ]
+              ; psig_type Nonrecursive [ internal_gadt_rename ]
+              ]
               @ Typed_deriver_fields.generate_include_signature ~loc ~params))
       , get_singleton_modules singleton_modules )
     | Unknown | Opaque (false, _) -> None, []

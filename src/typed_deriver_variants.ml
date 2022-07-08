@@ -320,6 +320,120 @@ let generate_anonymous_record_type_declarations ~loc ~elements_to_convert =
       Some td)
 ;;
 
+module Name_and_arity = struct
+  module T = struct
+    type t =
+      { name : string
+      ; arity : int
+      }
+    [@@deriving compare, sexp]
+  end
+
+  include T
+  include Comparator.Make (T)
+end
+
+let sanitize_type_declarations ~loc (type_declarations : type_declaration list) =
+  let names_taken_by_constructors =
+    List.fold
+      type_declarations
+      ~init:(Set.empty (module String))
+      ~f:(fun acc td -> Set.add acc td.ptype_name.txt)
+  in
+  let types_that_need_a_different_name =
+    let find_duplicates =
+      object
+        inherit [Set.M(Name_and_arity).t] Ast_traverse.fold as super
+
+        method! core_type ctype acc =
+          let acc =
+            match ctype.ptyp_desc with
+            | Ptyp_constr ({ txt = Lident name; _ }, ctype_list)
+              when Set.mem names_taken_by_constructors name ->
+              let arity = List.length ctype_list in
+              Set.add acc { name; arity }
+            | _ -> acc
+          in
+          super#core_type ctype acc
+      end
+    in
+    List.fold
+      type_declarations
+      ~init:(Set.empty (module Name_and_arity))
+      ~f:(fun acc td -> find_duplicates#type_declaration td acc)
+  in
+  let all_taken_names =
+    let find_all_taken_names =
+      object
+        inherit [Set.M(String).t] Ast_traverse.fold as super
+        method! string s acc = super#string s (Set.add acc s)
+      end
+    in
+    List.fold
+      type_declarations
+      ~init:(Set.empty (module String))
+      ~f:(fun acc type_declaration ->
+        find_all_taken_names#type_declaration type_declaration acc)
+  in
+  let rec find_safe_name name taken_names =
+    match Set.mem taken_names name with
+    | true -> find_safe_name (name ^ "_") taken_names
+    | false -> name
+  in
+  let unsafe_name_to_safe_name, _ =
+    Set.fold
+      types_that_need_a_different_name
+      ~init:(Map.empty (module Name_and_arity), all_taken_names)
+      ~f:(fun (mapping, taken) ({ name; _ } as key) ->
+        let safe_name = find_safe_name name taken in
+        let mapping' = Map.set mapping ~key ~data:safe_name in
+        let taken' = Set.add taken safe_name in
+        mapping', taken')
+  in
+  let open (val Ast_builder.make loc) in
+  let rename_type_declarations =
+    Map.fold unsafe_name_to_safe_name ~init:[] ~f:(fun ~key ~data:safe_name acc ->
+      let params =
+        List.init key.arity ~f:(fun i ->
+          ptyp_var ("t" ^ Int.to_string i), (NoVariance, NoInjectivity))
+      in
+      let manifest =
+        ptyp_constr (Lident key.name |> Located.mk) (List.map params ~f:fst)
+      in
+      let new_td =
+        type_declaration
+          ~name:(Located.mk safe_name)
+          ~params
+          ~cstrs:[]
+          ~kind:Ptype_abstract
+          ~private_:Public
+          ~manifest:(Some manifest)
+      in
+      new_td :: acc)
+  in
+  let type_declarations_with_updated_names =
+    let update_names =
+      object
+        inherit Ast_traverse.map as super
+
+        method! core_type ctype =
+          let ctype =
+            match ctype.ptyp_desc with
+            | Ptyp_constr ({ txt = Lident name; loc }, ctype_list) ->
+              let arity = List.length ctype_list in
+              (match Map.find unsafe_name_to_safe_name { name; arity } with
+               | None -> ctype
+               | Some name -> ptyp_constr { txt = Lident name; loc } ctype_list)
+            | _ -> ctype
+          in
+          super#core_type ctype
+      end
+    in
+    List.map type_declarations ~f:update_names#type_declaration
+  in
+  rename_type_declarations @ type_declarations_with_updated_names
+;;
+
 (**
    Generates the anonymous records and gives them a concrete name. e.g.
 
@@ -331,8 +445,9 @@ let generate_anonymous_record_type_declarations ~loc ~elements_to_convert =
 *)
 let generate_anonymous_records_sig ~loc ~elements_to_convert =
   let open (val Ast_builder.make loc) in
-  generate_anonymous_record_type_declarations ~loc ~elements_to_convert
-  |> List.map ~f:(fun td -> psig_type Recursive [ td ])
+  let tds = generate_anonymous_record_type_declarations ~loc ~elements_to_convert in
+  let sanitized = sanitize_type_declarations ~loc tds in
+  List.map sanitized ~f:(fun td -> psig_type Recursive [ td ])
 ;;
 
 (**
@@ -346,8 +461,9 @@ let generate_anonymous_records_sig ~loc ~elements_to_convert =
 *)
 let generate_anonymous_records_str ~loc ~elements_to_convert =
   let open (val Ast_builder.make loc) in
-  generate_anonymous_record_type_declarations ~loc ~elements_to_convert
-  |> List.map ~f:(fun td -> pstr_type Recursive [ td ])
+  let tds = generate_anonymous_record_type_declarations ~loc ~elements_to_convert in
+  let sanitized = sanitize_type_declarations ~loc tds in
+  List.map sanitized ~f:(fun td -> pstr_type Recursive [ td ])
 ;;
 
 (** Generates a list of type declarations for for each tuple in the constructor. *)
@@ -403,8 +519,9 @@ let generate_tuple_type_declarations ~loc ~elements_to_convert =
 *)
 let generate_tuples_sig ~loc ~elements_to_convert =
   let open (val Ast_builder.make loc) in
-  generate_tuple_type_declarations ~loc ~elements_to_convert
-  |> List.map ~f:(fun td -> psig_type Recursive [ td ])
+  let tds = generate_tuple_type_declarations ~loc ~elements_to_convert in
+  let sanitized = sanitize_type_declarations ~loc tds in
+  List.map sanitized ~f:(fun td -> psig_type Recursive [ td ])
 ;;
 
 (**
@@ -420,8 +537,9 @@ let generate_tuples_sig ~loc ~elements_to_convert =
 *)
 let generate_tuples_str ~loc ~elements_to_convert =
   let open (val Ast_builder.make loc) in
-  generate_tuple_type_declarations ~loc ~elements_to_convert
-  |> List.map ~f:(fun td -> pstr_type Recursive [ td ])
+  let tds = generate_tuple_type_declarations ~loc ~elements_to_convert in
+  let sanitized = sanitize_type_declarations ~loc tds in
+  List.map sanitized ~f:(fun td -> pstr_type Recursive [ td ])
 ;;
 
 let generate_str_body
@@ -436,7 +554,7 @@ let generate_str_body
   let elements_to_convert =
     List.map elements_to_convert ~f:(fun el -> el, Type_kind_intf.Shallow)
   in
-  let ({ gadt_t = t; upper; constructor_declarations }
+  let ({ gadt_t = t; upper; constructor_declarations; internal_gadt_rename }
        : supported_constructor_declaration gen_t_result)
     =
     Generic_generator.gen_t
@@ -467,7 +585,7 @@ let generate_str_body
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
-      ~name_of_first_parameter:"t"
+      ~name_of_first_parameter:internal_gadt_name
   in
   let path =
     let function_body = Specific_generator.path_function_body ~loc ~elements_to_convert in
@@ -484,7 +602,7 @@ let generate_str_body
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
-      ~name_of_first_parameter:"t"
+      ~name_of_first_parameter:internal_gadt_name
   in
   let ord =
     let function_body = Specific_generator.ord_function_body ~loc ~elements_to_convert in
@@ -501,7 +619,7 @@ let generate_str_body
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
-      ~name_of_first_parameter:"t"
+      ~name_of_first_parameter:internal_gadt_name
   in
   let constr_variant_type =
     ptyp_constr
@@ -534,7 +652,7 @@ let generate_str_body
            var_variant_type
            (ptyp_constr (Lident "option" |> Located.mk) [ ptyp_var unique_parameter_id ]))
       ~function_body
-      ~name_of_first_parameter:"t"
+      ~name_of_first_parameter:internal_gadt_name
   in
   let create =
     let function_body =
@@ -552,7 +670,7 @@ let generate_str_body
            constr_variant_type)
       ~var_arrow_type:(ptyp_arrow Nolabel (ptyp_var unique_parameter_id) var_variant_type)
       ~function_body
-      ~name_of_first_parameter:"t"
+      ~name_of_first_parameter:internal_gadt_name
   in
   let type_ids =
     let type_ids =
@@ -584,7 +702,7 @@ let generate_str_body
              type_equal_t
              [ ptyp_constr (Lident unique_parameter_id |> Located.mk) [] ])
         ~var_arrow_type:(ptyp_constr type_equal_t [ ptyp_var unique_parameter_id ])
-        ~name_of_first_parameter:"t"
+        ~name_of_first_parameter:internal_gadt_name
     in
     let number_of_parameters = List.length core_type_params in
     let functor_expression =
@@ -601,7 +719,7 @@ let generate_str_body
     [%stri module Type_ids = [%m functor_expression]]
   in
   let t_params = core_type_params @ [ ptyp_var unique_parameter_id ] in
-  let t_type_constr = ptyp_constr (Lident "t" |> Located.mk) t_params in
+  let t_type_constr = ptyp_constr (Lident internal_gadt_name |> Located.mk) t_params in
   let field_type = ptyp_constr (Lident "field" |> Located.mk) t_params in
   let packed =
     let packed_field =
@@ -704,9 +822,10 @@ let generate_str_body
     in
     pstr_type Recursive [ td ]
   in
+  let internal_gadt_rename = pstr_type Recursive [ internal_gadt_rename ] in
   [ upper; t; upper_rename ]
   @ Specific_generator.extra_structure_items_to_insert loc
-  @ [ path; name; ord; get; create; type_ids; packed; which; names ]
+  @ [ path; name; ord; get; create; type_ids; packed; which; names; internal_gadt_rename ]
 ;;
 
 let generate_anonymous_record_str ~loc td_case =

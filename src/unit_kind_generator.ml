@@ -8,7 +8,7 @@ let extra_structure_items_to_insert loc =
   let open (val Ast_builder.make loc) in
   [ [%stri
     let unreachable_code = function
-      | (_ : _ t) -> .
+      | (_ : _ typed__t) -> .
     ;;]
   ]
 ;;

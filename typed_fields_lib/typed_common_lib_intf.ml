@@ -1,4 +1,4 @@
-(** [@@deriving typed_variants] and [@@deriving typed_variants] will derive a module that
+(** [@@deriving typed_fields] and [@@deriving typed_variants] will derive a module that
     satisfies Typed_fields_lib.S (or S1, S2, etc) or Typed_variants_lib.S (or S1, S2, etc)
     respectively.
 

@@ -1,11 +1,13 @@
 open Base
 open Import
 open Ppxlib
+open Type_kind_intf
 
 type common_items =
   { upper : structure_item
   ; upper_rename : structure_item
   ; t_type_declaration : structure_item
+  ; internal_gadt_declaration : structure_item
   ; names : structure_item
   ; name : structure_item
   ; path : structure_item
@@ -154,16 +156,32 @@ let common ~loc ~minimum_needed_parameters ~core_type_params ~ctype ~unique_id =
       ~args:(Pcstr_tuple [])
       ~res:(Some (ptyp_constr (Lident "t" |> Located.mk) (core_type_params @ [ ctype ])))
   in
+  let t_params =
+    minimum_needed_parameters @ [ ptyp_var unique_id, (NoVariance, NoInjectivity) ]
+  in
   let t_type_declaration =
     let td =
       type_declaration
         ~name:("t" |> Located.mk)
-        ~params:
-          (minimum_needed_parameters @ [ ptyp_var unique_id, (NoVariance, NoInjectivity) ])
+        ~params:t_params
         ~cstrs:[]
         ~kind:(Ptype_variant [ constructor ])
         ~private_:Public
         ~manifest:None
+    in
+    pstr_type Recursive [ td ]
+  in
+  let internal_gadt_declaration =
+    let core_type_params = List.map t_params ~f:fst in
+    let type_ = ptyp_constr (Lident "t" |> Located.mk) core_type_params in
+    let td =
+      type_declaration
+        ~name:(internal_gadt_name |> Located.mk)
+        ~params:t_params
+        ~cstrs:[]
+        ~kind:Ptype_abstract
+        ~private_:Public
+        ~manifest:(Some type_)
     in
     pstr_type Recursive [ td ]
   in
@@ -189,5 +207,15 @@ let common ~loc ~minimum_needed_parameters ~core_type_params ~ctype ~unique_id =
     type_ids ~loc ~number_of_parameters:(List.length minimum_needed_parameters) ~unique_id
   in
   let packed = packed ~loc ~core_type_params ~unique_id ~minimum_needed_parameters in
-  { upper; t_type_declaration; upper_rename; name; path; ord; type_ids; packed; names }
+  { upper
+  ; t_type_declaration
+  ; internal_gadt_declaration
+  ; upper_rename
+  ; name
+  ; path
+  ; ord
+  ; type_ids
+  ; packed
+  ; names
+  }
 ;;
