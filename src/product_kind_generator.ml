@@ -543,8 +543,11 @@ let all_body
               (Ldot (Ldot (Lident subproduct_module_name, "Packed"), "all") |> Located.mk)
           in
           [%expr
-            Base.List.map [%e subproduct_packed_all] ~f:(fun { f = T subproduct } ->
-              { f = T [%e constructor_expression] })])
+            Base.List.map [%e subproduct_packed_all] ~f:(fun { f = subproduct } ->
+              { f =
+                  (let (T subproduct) = subproduct in
+                   T [%e constructor_expression])
+              })])
   in
   [%expr Base.List.concat [%e elist packed_fields]]
 ;;
@@ -584,10 +587,9 @@ let pack_body
                (pexp_construct
                   (Lident constructor_name |> Located.mk)
                   inner_constructor))
-          |> wrap_t_struct_around_expression ~loc
         in
         match granularity with
-        | Shallow -> bottom_constructor_with_record
+        | Shallow -> wrap_t_struct_around_expression ~loc bottom_constructor_with_record
         | Deep _ ->
           let parameter_module_name =
             generate_subproduct_module_name
@@ -601,8 +603,11 @@ let pack_body
                |> Located.mk)
           in
           [%expr
-            let { f = T subproduct } = [%e pack_function_ident] subproduct in
-            [%e bottom_constructor_with_record]]
+            let subproduct = [%e pack_function_ident] subproduct in
+            { f =
+                (let { f = T subproduct } = subproduct in
+                 [%e bottom_constructor_with_record])
+            }]
       in
       case ~lhs ~guard:None ~rhs)
   in
@@ -729,11 +734,14 @@ let t_of_sexp_body
               (Some (pexp_ident (Lident "subproduct_constructor" |> Located.mk)))
           in
           [%expr
-            let { f = T subproduct_constructor } =
+            let subproduct_constructor =
               [%e subproduct_t_of_sexp_function_expression]
                 (Typed_fields_lib.Private.list_to_sexp subproduct_sexp_list)
             in
-            { f = T [%e nested_constructor] }]
+            { f =
+                (let { f = T subproduct_constructor } = subproduct_constructor in
+                 T [%e nested_constructor])
+            }]
       in
       case ~lhs:pattern ~guard:None ~rhs)
   in

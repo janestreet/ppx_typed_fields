@@ -518,8 +518,11 @@ let all_body ~loc ~constructor_declarations =
             (Some [%expr subvariant])
         in
         [%expr
-          Base.List.map [%e all_expr] ~f:(fun { f = T subvariant } ->
-            { f = T [%e inner_constructor] })]
+          Base.List.map [%e all_expr] ~f:(fun { f = subvariant } ->
+            { f =
+                (let (T subvariant) = subvariant in
+                 T [%e inner_constructor])
+            })]
       | _ ->
         [%expr
           [ { f =
@@ -564,8 +567,11 @@ let pack_body ~loc ~elements_to_convert =
               (Some [%expr subvariant])
           in
           [%expr
-            let { f = T subvariant } = [%e pack_function] subvariant in
-            { f = T [%e inner_constructor] }]
+            let subvariant = [%e pack_function] subvariant in
+            { f =
+                (let { f = T subvariant } = subvariant in
+                 T [%e inner_constructor])
+            }]
         | _ ->
           pexp_construct
             (Lident "T" |> Located.mk)
@@ -610,11 +616,14 @@ let t_of_sexp_body ~loc ~elements_to_convert =
               (Some [%expr subvariant_constructor])
           in
           [%expr
-            let { f = T subvariant_constructor } =
+            let subvariant_constructor =
               [%e t_of_sexp_function]
                 (Typed_fields_lib.Private.list_to_sexp subvariant_sexp_list)
             in
-            { f = T [%e inner_constructor] }]
+            { f =
+                (let { f = T subvariant_constructor } = subvariant_constructor in
+                 T [%e inner_constructor])
+            }]
         | _ ->
           [%expr { f = T [%e pexp_construct (Located.mk (Lident constructor)) None] }]
       in
@@ -656,8 +665,11 @@ let which_function_body ~loc ~elements_to_convert ~number_of_params:_ =
               (Some [%expr subvariant_constructor])
           in
           [%expr
-            let { f = T subvariant_constructor } = [%e which_function] contents in
-            { f = T [%e inner_constructor] }]
+            let subvariant_constructor = [%e which_function] contents in
+            { f =
+                (let { f = T subvariant_constructor } = subvariant_constructor in
+                 T [%e inner_constructor])
+            }]
         | _ ->
           [%expr { f = T [%e pexp_construct (Lident variant_name |> Located.mk) None] }]
       in
