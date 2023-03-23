@@ -297,8 +297,8 @@ let generate_anonymous_record_type_declarations ~loc ~elements_to_convert =
   let open (val Ast_builder.make loc) in
   List.filter_map elements_to_convert ~f:(fun element ->
     match element with
-    | Single_value_constructor _ | Tuple_values_constructor _ | No_values_constructor _
-      -> None
+    | Single_value_constructor _ | Tuple_values_constructor _ | No_values_constructor _ ->
+      None
     | Anonymous_record_constructor
         { constructor_name
         ; minimum_needed_parameters

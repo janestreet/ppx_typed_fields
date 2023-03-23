@@ -252,8 +252,8 @@ let is_valid_subproduct_tree types_that_are_currently_being_defined td =
        | Some _ when has_skipped ->
          Location.raise_errorf
            ~loc:ctype.ptyp_loc
-           "typed_fields's suproducts' type's parent must be either another subproduct or \
-            the top-level type deriving typed fields."
+           "typed_fields's suproducts' type's parent must be either another subproduct \
+            or the top-level type deriving typed fields."
        | Some _ ->
          List.for_all tuple_types ~f:(fun ctype ->
            valid_use_of_subproducts ~ctype ~has_skipped:false ~ignore_current_type:false)

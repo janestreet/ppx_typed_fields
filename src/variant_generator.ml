@@ -320,9 +320,7 @@ let create_function_body ~loc ~constructor_declarations =
         Lident (supported_constructor_name element |> String.capitalize) |> Located.mk
       in
       let lhs =
-        ppat_construct
-          variant_ident
-          (generate_subvariant_pattern_if_needed ~loc element)
+        ppat_construct variant_ident (generate_subvariant_pattern_if_needed ~loc element)
       in
       let rhs =
         match element with
@@ -509,8 +507,7 @@ let all_body ~loc ~constructor_declarations =
       | Single_value_constructor { granularity = Polymorphic_deep; _ } ->
         let subvariant_name = generate_subvariant_name element in
         let all_expr =
-          pexp_ident
-            (Ldot (Ldot (Lident subvariant_name, "Packed"), "all") |> Located.mk)
+          pexp_ident (Ldot (Ldot (Lident subvariant_name, "Packed"), "all") |> Located.mk)
         in
         let inner_constructor =
           pexp_construct
@@ -656,9 +653,7 @@ let which_function_body ~loc ~elements_to_convert ~number_of_params:_ =
         match element with
         | Single_value_constructor { granularity = Constr_deep _; _ }
         | Single_value_constructor { granularity = Polymorphic_deep; _ } ->
-          let which_function =
-            generate_subvariant_function ~loc ~element ~name:"which"
-          in
+          let which_function = generate_subvariant_function ~loc ~element ~name:"which" in
           let inner_constructor =
             pexp_construct
               (Lident variant_name |> Located.mk)

@@ -69,8 +69,7 @@ let type_ids ~loc ~number_of_parameters ~unique_id =
     List.fold_right functor_param_names ~init:initial_expr ~f:(fun name acc ->
       pmod_functor
         (Named
-           ( Some name |> Located.mk
-           , pmty_ident (Ldot (Lident "Base", "T") |> Located.mk) ))
+           (Some name |> Located.mk, pmty_ident (Ldot (Lident "Base", "T") |> Located.mk)))
         acc)
   in
   pstr_module (module_binding ~name:(Some "Type_ids" |> Located.mk) ~expr)

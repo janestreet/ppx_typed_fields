@@ -377,10 +377,7 @@ let subproduct_type_id_modules
     | Type_kind_intf.Deep { minimum_needed_parameter_ids; _ } ->
       Some
         (let subproduct_module_name =
-           generate_subproduct_module_name
-             (module Specific_implementation)
-             index
-             element
+           generate_subproduct_module_name (module Specific_implementation) index element
          in
          let module_name = [%string "%{subproduct_module_name}_type_ids"] in
          let type_ = Specific_implementation.to_type element in
@@ -491,10 +488,7 @@ let type_id_function_body
         | Type_kind_intf.Shallow -> pexp_ident type_id
         | Type_kind_intf.Deep _ ->
           let subproduct_module_name =
-            generate_subproduct_module_name
-              (module Specific_implementation)
-              index
-              element
+            generate_subproduct_module_name (module Specific_implementation) index element
           in
           let subproduct_module_typed_field_name =
             [%string "%{subproduct_module_name}_type_ids"]
@@ -584,23 +578,17 @@ let pack_body
           pexp_construct
             (Lident "T" |> Located.mk)
             (Some
-               (pexp_construct
-                  (Lident constructor_name |> Located.mk)
-                  inner_constructor))
+               (pexp_construct (Lident constructor_name |> Located.mk) inner_constructor))
         in
         match granularity with
         | Shallow -> wrap_t_struct_around_expression ~loc bottom_constructor_with_record
         | Deep _ ->
           let parameter_module_name =
-            generate_subproduct_module_name
-              (module Specific_implementation)
-              index
-              element
+            generate_subproduct_module_name (module Specific_implementation) index element
           in
           let pack_function_ident =
             pexp_ident
-              (Ldot (Ldot (Lident parameter_module_name, "Packed"), "pack")
-               |> Located.mk)
+              (Ldot (Ldot (Lident parameter_module_name, "Packed"), "pack") |> Located.mk)
           in
           [%expr
             let subproduct = [%e pack_function_ident] subproduct in
@@ -641,9 +629,7 @@ let sexp_of_t_body
       let pattern =
         [%pat?
                { f =
-                   T
-                     [%p
-                       ppat_construct (Located.mk (Lident variant_name)) constructor_option]
+                   T [%p ppat_construct (Located.mk (Lident variant_name)) constructor_option]
                }]
       in
       let rhs =
@@ -654,10 +640,7 @@ let sexp_of_t_body
             Specific_implementation.name index element |> String.capitalize |> estring
           in
           let subproduct_module_name =
-            generate_subproduct_module_name
-              (module Specific_implementation)
-              index
-              element
+            generate_subproduct_module_name (module Specific_implementation) index element
           in
           let sexp_of_t_subproduct_function =
             pexp_ident
@@ -666,8 +649,7 @@ let sexp_of_t_body
           in
           let subproduct_pack_subproductor_function =
             pexp_ident
-              (Ldot (Ldot (Lident subproduct_module_name, "Packed"), "pack")
-               |> Located.mk)
+              (Ldot (Ldot (Lident subproduct_module_name, "Packed"), "pack") |> Located.mk)
           in
           [%expr
             Sexplib.Sexp.List
@@ -697,9 +679,7 @@ let t_of_sexp_body
   let open (val Ast_builder.make loc) in
   let cases =
     List.mapi elements_to_convert ~f:(fun index (element, granularity) ->
-      let constructor =
-        Specific_implementation.name index element |> String.capitalize
-      in
+      let constructor = Specific_implementation.name index element |> String.capitalize in
       let acceptable_sexp_atoms = [ constructor; constructor |> String.uncapitalize ] in
       let pattern =
         let sexp_pattern =
@@ -718,10 +698,7 @@ let t_of_sexp_body
           [%expr { f = T [%e pexp_construct (Located.mk (Lident constructor)) None] }]
         | Type_kind_intf.Deep _ ->
           let subproduct_module_name =
-            generate_subproduct_module_name
-              (module Specific_implementation)
-              index
-              element
+            generate_subproduct_module_name (module Specific_implementation) index element
           in
           let subproduct_t_of_sexp_function_expression =
             pexp_ident
@@ -908,8 +885,7 @@ let generate_parameter_modules
         | Lapply (a, b) -> Lapply (a, generate_ident b)
       in
       Some (None, generate_ident ident, index, element)
-    | ( Type_kind_intf.Deep
-          { minimum_needed_parameters; original_type_with_attributes; _ }
+    | ( Type_kind_intf.Deep { minimum_needed_parameters; original_type_with_attributes; _ }
       , _ ) ->
       let extension_anonymous_module =
         pmod_extension
@@ -963,8 +939,7 @@ let full_depth_module
               ~element:original_element
           in
           Some
-            (pstr_module
-               (module_binding ~name:(Some module_name |> Located.mk) ~expr))
+            (pstr_module (module_binding ~name:(Some module_name |> Located.mk) ~expr))
       in
       expr, ident)
   in

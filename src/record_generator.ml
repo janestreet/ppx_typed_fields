@@ -62,8 +62,7 @@ let create_expression ~loc ~constructor_declarations =
             in
             pexp_ident (Ldot (Lident subproduct_module_name, "create") |> Located.mk)
           in
-          [%expr
-            [%e subproduct_function] { f = (fun x -> f [%e constructor_expression]) }]
+          [%expr [%e subproduct_function] { f = (fun x -> f [%e constructor_expression]) }]
       in
       pexp_let Nonrecursive [ value_binding ~pat:(pvar pld_name.txt) ~expr ] acc)
 ;;
