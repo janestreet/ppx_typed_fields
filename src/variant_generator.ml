@@ -309,7 +309,15 @@ let get_function_body ~loc ~elements_to_convert =
   let catch_all = case ~lhs:[%pat? _] ~guard:None ~rhs:[%expr None] in
   let cases = cases @ [ catch_all ] in
   let function_body = [%expr fun t variant -> [%e pexp_match match_expression cases]] in
-  { function_body with pexp_attributes = [ disable_warning_11 ~loc ] }
+  (* Preserve attributes that the parser inserts on [function_body]. Jane Street's
+     compiler encodes changes to the parsetree via attributes, so we don't want to drop
+     these. Ppxlib and Jane Street's compiler logically treat later-occurring attributes
+     as "outer", so to get the new attribute to be the outermost one, we append it to the
+     end of the list.
+  *)
+  { function_body with
+    pexp_attributes = function_body.pexp_attributes @ [ disable_warning_11 ~loc ]
+  }
 ;;
 
 let create_function_body ~loc ~constructor_declarations =
@@ -372,7 +380,13 @@ let create_function_body ~loc ~constructor_declarations =
   let body =
     [%expr fun t value -> [%e pexp_match (pexp_ident (Located.mk (Lident "t"))) cases]]
   in
-  { body with pexp_attributes = [ disable_warning_27 ~loc ] }
+  (* Preserve attributes that the parser inserts on [body]. Jane Street's compiler
+     encodes changes to the parsetree via attributes, so we don't want to drop these.
+     Ppxlib and Jane Street's compiler logically treat later-occurring attributes
+     as "outer", so to get the new attribute to be the outermost one, we append
+     it to the end of the list.
+  *)
+  { body with pexp_attributes = body.pexp_attributes @ [ disable_warning_27 ~loc ] }
 ;;
 
 let type_ids ~loc ~elements_to_convert ~core_type_params =
