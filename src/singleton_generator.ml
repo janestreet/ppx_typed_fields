@@ -59,9 +59,9 @@ let type_ids ~loc ~number_of_parameters ~unique_id =
   let initial_expr =
     pmod_structure
       [ [%stri
-        let type_id : [%t type_equal_type] =
-          Base.Type_equal.Id.create ~name:"this" (fun _ -> Sexplib.Sexp.Atom "<opaque>")
-        ;;]
+          let type_id : [%t type_equal_type] =
+            Base.Type_equal.Id.create ~name:"this" (fun _ -> Sexplib.Sexp.Atom "<opaque>")
+          ;;]
       ; type_id
       ]
   in

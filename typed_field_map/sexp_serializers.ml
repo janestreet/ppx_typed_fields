@@ -60,17 +60,17 @@ module Make (Map : The_map_intf.S_plain) = struct
       Map.create
         { Map.f =
             (fun f ->
-               match Optional_map.find map_with_parsed_results f with
-               | None ->
-                 (match default.f f with
-                  | Some data -> data
-                  | None ->
-                    let missing_field = Typed_field.name f in
-                    raise_s
-                      [%message
-                        "Cannot deserialize typed_field_map. Reason: missing field:"
-                          (missing_field : string)])
-               | Some data -> data)
+              match Optional_map.find map_with_parsed_results f with
+              | None ->
+                (match default.f f with
+                 | Some data -> data
+                 | None ->
+                   let missing_field = Typed_field.name f in
+                   raise_s
+                     [%message
+                       "Cannot deserialize typed_field_map. Reason: missing field:"
+                         (missing_field : string)])
+              | Some data -> data)
         }
   ;;
 end

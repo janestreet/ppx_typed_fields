@@ -649,7 +649,7 @@ module Gen_sig = struct
       , [] )
     | Variant (constructors, params) ->
       let ({ gadt_t = typ; upper; internal_gadt_rename; constructor_declarations = _ }
-           : supported_constructor_declaration gen_t_result)
+            : supported_constructor_declaration gen_t_result)
         =
         Generic_generator.gen_t
           ~loc

@@ -85,8 +85,8 @@ module Singleton3 (T3 : T3) = struct
 end
 
 module Singleton4 (T4 : sig
-    type ('a, 'b, 'c, 'd) t
-  end) =
+  type ('a, 'b, 'c, 'd) t
+end) =
 struct
   include Typed_fields_lib.Singleton4 (T4)
 
@@ -104,8 +104,8 @@ struct
 end
 
 module Singleton5 (T5 : sig
-    type ('a, 'b, 'c, 'd, 'e) t
-  end) =
+  type ('a, 'b, 'c, 'd, 'e) t
+end) =
 struct
   include Typed_fields_lib.Singleton5 (T5)
 

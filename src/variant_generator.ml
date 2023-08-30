@@ -425,17 +425,17 @@ let type_ids ~loc ~elements_to_convert ~core_type_params =
           (List.sort ~compare:Int.compare minimum_needed_parameter_ids)
           ~init:functor_name
           ~f:(fun acc param ->
-            let param_str =
-              pmod_ident (Lident [%string "T%{(param + 1)#Int}"] |> Located.mk)
-            in
-            pmod_apply acc param_str)
+          let param_str =
+            pmod_ident (Lident [%string "T%{(param + 1)#Int}"] |> Located.mk)
+          in
+          pmod_apply acc param_str)
       in
       pstr_module (module_binding ~name ~expr)
     | _ ->
       [%stri
         let ([%p pvar (supported_constructor_name element |> String.lowercase)] :
-               [%t mapper#core_type (supported_constructor_type element)]
-                 Base.Type_equal.Id.t)
+              [%t mapper#core_type (supported_constructor_type element)]
+              Base.Type_equal.Id.t)
           =
           Base.Type_equal.Id.create
             ~name:[%e estring (supported_constructor_name element |> String.lowercase)]
@@ -479,13 +479,13 @@ let sexp_of_t_body ~loc ~elements_to_convert =
       let variant_name = supported_constructor_name element |> String.capitalize in
       let pattern =
         [%pat?
-               { f =
-                   T
-                     [%p
-                       ppat_construct
-                         (Located.mk (Lident variant_name))
-                         (generate_subvariant_pattern_if_needed ~loc element)]
-               }]
+          { f =
+              T
+                [%p
+                  ppat_construct
+                    (Located.mk (Lident variant_name))
+                    (generate_subvariant_pattern_if_needed ~loc element)]
+          }]
       in
       let rhs =
         match element with
@@ -703,10 +703,10 @@ let disable_warning_32 ~loc =
    e.g. (Name_subvariant : <type>) (Name2_subvariant : <type>) = <inital_expression>
 *)
 let generic_generate_functor
-      ~loc
-      ~elements_to_convert
-      ~functor_creation_function
-      ~initial_expression
+  ~loc
+  ~elements_to_convert
+  ~functor_creation_function
+  ~initial_expression
   =
   let open (val Ast_builder.make loc) in
   let subproduct_elements =
@@ -723,42 +723,42 @@ let generic_generate_functor
     subproduct_elements
     ~init:initial_expression
     ~f:(fun functor_parameter acc ->
-      let manifest_type, params =
-        match functor_parameter with
-        | `Constr (_, ident, params) ->
-          let clean_params =
-            List.init (List.length params) ~f:(fun i ->
-              ptyp_var [%string "t%{(i + 1)#Int}"], (NoVariance, NoInjectivity))
-          in
-          ( Some (ptyp_constr ident (List.map clean_params ~f:(fun (f, _) -> f)))
-          , clean_params )
-        | `Poly (element, minimum_needed_parameters) ->
-          Some (supported_constructor_type element), minimum_needed_parameters
-      in
-      let module_type =
-        let module_type =
-          Generic_generator.opaque_signature
-            (module Typed_deriver_variants)
-            ~loc
-            ~manifest_type
-            ~original_kind:Ptype_abstract
-            ~params
+    let manifest_type, params =
+      match functor_parameter with
+      | `Constr (_, ident, params) ->
+        let clean_params =
+          List.init (List.length params) ~f:(fun i ->
+            ptyp_var [%string "t%{(i + 1)#Int}"], (NoVariance, NoInjectivity))
         in
-        { module_type with pmty_attributes = [ disable_warning_32 ~loc ] }
+        ( Some (ptyp_constr ident (List.map clean_params ~f:(fun (f, _) -> f)))
+        , clean_params )
+      | `Poly (element, minimum_needed_parameters) ->
+        Some (supported_constructor_type element), minimum_needed_parameters
+    in
+    let module_type =
+      let module_type =
+        Generic_generator.opaque_signature
+          (module Typed_deriver_variants)
+          ~loc
+          ~manifest_type
+          ~original_kind:Ptype_abstract
+          ~params
       in
-      let element =
-        match functor_parameter with
-        | `Constr (element, _, _) | `Poly (element, _) -> element
-      in
-      functor_creation_function
-        (Named
-           ( Some
-               (supported_constructor_name element
-                |> String.capitalize
-                |> Variant_kind_generator_intf.append_functor_parameter)
-             |> Located.mk
-           , module_type ))
-        acc)
+      { module_type with pmty_attributes = [ disable_warning_32 ~loc ] }
+    in
+    let element =
+      match functor_parameter with
+      | `Constr (element, _, _) | `Poly (element, _) -> element
+    in
+    functor_creation_function
+      (Named
+         ( Some
+             (supported_constructor_name element
+              |> String.capitalize
+              |> Variant_kind_generator_intf.append_functor_parameter)
+           |> Located.mk
+         , module_type ))
+      acc)
 ;;
 
 (**
@@ -960,9 +960,9 @@ let generate_base_module_type_for_singleton ~loc ~minimum_needed_parameters ~cty
 ;;
 
 let generate_base_module_expr_for_singleton_for_any_arity
-      ~loc
-      ~minimum_needed_parameters
-      ~ctype
+  ~loc
+  ~minimum_needed_parameters
+  ~ctype
   =
   let open (val Ast_builder.make loc) in
   let core_type_params = List.map minimum_needed_parameters ~f:fst in
@@ -978,7 +978,7 @@ let generate_base_module_expr_for_singleton_for_any_arity
        ; type_ids
        ; packed
        }
-       : Singleton_generator.common_items)
+        : Singleton_generator.common_items)
     =
     Singleton_generator.common
       ~loc

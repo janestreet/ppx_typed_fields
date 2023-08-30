@@ -210,8 +210,8 @@ module Singleton3 (T3 : T3) = struct
 end
 
 module Singleton4 (T4 : sig
-    type ('a, 'b, 'c, 'd) t
-  end) =
+  type ('a, 'b, 'c, 'd) t
+end) =
 struct
   type nonrec ('t1, 't2, 't3, 't4) derived_on = ('t1, 't2, 't3, 't4) T4.t
 
@@ -226,19 +226,19 @@ struct
   let __ord _ = [ 0 ]
 
   let get
-        (type t1 t2 t3 t4 a)
-        (T : (t1, t2, t3, t4, a) t)
-        (t : (t1, t2, t3, t4) derived_on)
+    (type t1 t2 t3 t4 a)
+    (T : (t1, t2, t3, t4, a) t)
+    (t : (t1, t2, t3, t4) derived_on)
     : a
     =
     t
   ;;
 
   let set
-        (type t1 t2 t3 t4 a)
-        (T : (t1, t2, t3, t4, a) t)
-        (_ : (t1, t2, t3, t4) derived_on)
-        (t : a)
+    (type t1 t2 t3 t4 a)
+    (T : (t1, t2, t3, t4, a) t)
+    (_ : (t1, t2, t3, t4) derived_on)
+    (t : a)
     : (t1, t2, t3, t4) derived_on
     =
     t
@@ -255,8 +255,8 @@ struct
     ;;
 
     let type_id
-          (type a)
-          (T : (Type_id_T1.t, Type_id_T2.t, Type_id_T3.t, Type_id_T4.t, a) t)
+      (type a)
+      (T : (Type_id_T1.t, Type_id_T2.t, Type_id_T3.t, Type_id_T4.t, a) t)
       : a Type_equal.Id.t
       =
       type_id
@@ -281,8 +281,8 @@ struct
 end
 
 module Singleton5 (T5 : sig
-    type ('a, 'b, 'c, 'd, 'e) t
-  end) =
+  type ('a, 'b, 'c, 'd, 'e) t
+end) =
 struct
   type nonrec ('t1, 't2, 't3, 't4, 't5) derived_on = ('t1, 't2, 't3, 't4, 't5) T5.t
 
@@ -298,19 +298,19 @@ struct
   let __ord _ = [ 0 ]
 
   let get
-        (type t1 t2 t3 t4 t5 a)
-        (T : (t1, t2, t3, t4, t5, a) t)
-        (t : (t1, t2, t3, t4, t5) derived_on)
+    (type t1 t2 t3 t4 t5 a)
+    (T : (t1, t2, t3, t4, t5, a) t)
+    (t : (t1, t2, t3, t4, t5) derived_on)
     : a
     =
     t
   ;;
 
   let set
-        (type t1 t2 t3 t4 t5 a)
-        (T : (t1, t2, t3, t4, t5, a) t)
-        (_ : (t1, t2, t3, t4, t5) derived_on)
-        (t : a)
+    (type t1 t2 t3 t4 t5 a)
+    (T : (t1, t2, t3, t4, t5, a) t)
+    (_ : (t1, t2, t3, t4, t5) derived_on)
+    (t : a)
     : (t1, t2, t3, t4, t5) derived_on
     =
     t
@@ -319,22 +319,22 @@ struct
   let create { f } = f T
 
   module Type_ids
-      (Type_id_T1 : T)
-      (Type_id_T2 : T)
-      (Type_id_T3 : T)
-      (Type_id_T4 : T)
-      (Type_id_T5 : T) =
+    (Type_id_T1 : T)
+    (Type_id_T2 : T)
+    (Type_id_T3 : T)
+    (Type_id_T4 : T)
+    (Type_id_T5 : T) =
   struct
     let type_id
       : (Type_id_T1.t, Type_id_T2.t, Type_id_T3.t, Type_id_T4.t, Type_id_T5.t) T5.t
-          Type_equal.Id.t
+      Type_equal.Id.t
       =
       Type_equal.Id.create ~name:"this" (fun _ -> Sexp.Atom "<opaque>")
     ;;
 
     let type_id
-          (type a)
-          (T : (Type_id_T1.t, Type_id_T2.t, Type_id_T3.t, Type_id_T4.t, Type_id_T5.t, a) t)
+      (type a)
+      (T : (Type_id_T1.t, Type_id_T2.t, Type_id_T3.t, Type_id_T4.t, Type_id_T5.t, a) t)
       : a Type_equal.Id.t
       =
       type_id

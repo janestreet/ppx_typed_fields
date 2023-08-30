@@ -18,10 +18,10 @@ let generate_arrow_type ~loc ~types_before_last ~last_type =
 ;;
 
 let generate_packed_field_type_declaration
-      ~loc
-      ~params
-      ~unique_parameter_id
-      ~t_type_constr
+  ~loc
+  ~params
+  ~unique_parameter_id
+  ~t_type_constr
   =
   let open (val Ast_builder.make loc) in
   let field_params =
@@ -98,14 +98,14 @@ let disable_warning_37 ~loc =
    e.g. let name : type a_. ('a, a_) t -> string = fun x -> match x with ...
 *)
 let generate_new_typed_function
-      ~loc
-      ~function_name
-      ~core_type_params
-      ~unique_parameter_id
-      ~var_arrow_type
-      ~constr_arrow_type
-      ~function_body
-      ~name_of_first_parameter
+  ~loc
+  ~function_name
+  ~core_type_params
+  ~unique_parameter_id
+  ~var_arrow_type
+  ~constr_arrow_type
+  ~function_body
+  ~name_of_first_parameter
   =
   let open (val Ast_builder.make loc) in
   let parameter_names =

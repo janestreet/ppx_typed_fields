@@ -74,11 +74,11 @@ let disable_warning_32 ~loc =
 ;;
 
 let generate_creator_type_declaration
-      ~loc
-      ~unique_parameter_id
-      ~core_type_params
-      ~params
-      ~t_name
+  ~loc
+  ~unique_parameter_id
+  ~core_type_params
+  ~params
+  ~t_name
   =
   let open (val Ast_builder.make loc) in
   let creator_function_type =

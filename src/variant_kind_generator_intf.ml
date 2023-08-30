@@ -163,7 +163,7 @@ module type S = sig
     :  loc:location
     -> constructor_declarations:
          ((supported_constructor_declaration * granularity) * constructor_declaration)
-           list
+         list
     -> expression
 
   (**
@@ -205,7 +205,7 @@ module type S = sig
     :  loc:location
     -> constructor_declarations:
          ((supported_constructor_declaration * granularity) * constructor_declaration)
-           list
+         list
     -> expression
 
   val pack_body

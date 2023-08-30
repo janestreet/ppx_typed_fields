@@ -7,11 +7,11 @@ type t
 
 (** Generates the GADT constructors used in the type t. *)
 let constructor_declarations
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~(elements_to_convert : (a * Type_kind_intf.granularity) list)
-      ~core_type_params
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~(elements_to_convert : (a * Type_kind_intf.granularity) list)
+  ~core_type_params
   =
   let open (val Ast_builder.make loc) in
   let unique_parameter_name = Type_kind_intf.generate_unique_id core_type_params in
@@ -51,18 +51,18 @@ let constructor_declarations
                 (Located.mk (Lident internal_gadt_name))
                 (core_type_params
                  @ [ (match granularity with
-                   | Shallow -> Specific_implementation.to_type element
-                   | Deep _ -> ptyp_var unique_parameter_name)
-                 ]))) ))
+                      | Shallow -> Specific_implementation.to_type element
+                      | Deep _ -> ptyp_var unique_parameter_name)
+                   ]))) ))
 ;;
 
 (** Generates an expression containing the names of the
     names of the fields, e.g. ["name1"; "name2"]*)
 let names_list
-      (type a)
-      (module _ : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert:_
+  (type a)
+  (module _ : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert:_
   =
   let open (val Ast_builder.make loc) in
   [%expr Base.List.map Packed.all ~f:(fun { f = T f } -> name f)]
@@ -86,10 +86,10 @@ let generate_contructor_payload ~loc = function
    (e.g.  "Name_subproduct")
 *)
 let generate_subproduct_module_name
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      index
-      element
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  index
+  element
   =
   Specific_implementation.name index element
   |> String.capitalize
@@ -102,12 +102,12 @@ let generate_subproduct_module_name
    (e.g.  "Name_subproduct.path")
 *)
 let generate_subproduct_function
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~index
-      ~element
-      ~name
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~index
+  ~element
+  ~name
   =
   let open (val Ast_builder.make loc) in
   let subproduct_module_name =
@@ -133,10 +133,10 @@ let name_function_body ~loc = [%expr fun x -> Base.List.last_exn (path x)]
     | Name subproduct -> "name" :: Name_subproduct.path subproduct
 *)
 let path_function_body
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
   =
   let open (val Ast_builder.make loc) in
   let patterns =
@@ -180,10 +180,10 @@ let path_function_body
     | Name subproduct -> 1 :: Name_subproduct.__ord subproduct
 *)
 let ord_function_body
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
   =
   let open (val Ast_builder.make loc) in
   let patterns =
@@ -224,10 +224,10 @@ let ord_function_body
     | Name -> record.name
 *)
 let get_function_body
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
   =
   let open (val Ast_builder.make loc) in
   let cases =
@@ -278,10 +278,10 @@ let get_function_body
     | Name -> {record with name = value}
 *)
 let set_function_body
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
   =
   let open (val Ast_builder.make loc) in
   let cases =
@@ -345,10 +345,10 @@ let set_function_body
    {constr1 ; name}
 *)
 let create_function_body
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~constructor_declarations
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~constructor_declarations
   =
   Specific_implementation.create_expression ~loc ~constructor_declarations
 ;;
@@ -364,11 +364,11 @@ let create_function_body
    ]
 *)
 let subproduct_type_id_modules
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
-      ~core_type_params
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
+  ~core_type_params
   =
   let open (val Ast_builder.make loc) in
   List.filter_mapi elements_to_convert ~f:(fun index (element, granularity) ->
@@ -410,9 +410,9 @@ let subproduct_type_id_modules
                (List.sort minimum_needed_parameter_ids ~compare:Int.compare)
                ~init:initial_ident
                ~f:(fun acc id ->
-                 pmod_apply
-                   acc
-                   (pmod_ident (Lident [%string "T%{(id + 1)#Int}"] |> Located.mk)))
+               pmod_apply
+                 acc
+                 (pmod_ident (Lident [%string "T%{(id + 1)#Int}"] |> Located.mk)))
          in
          pstr_module
            (module_binding
@@ -432,11 +432,11 @@ let subproduct_type_id_modules
    ]
 *)
 let type_ids
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
-      ~core_type_params
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
+  ~core_type_params
   =
   let open (val Ast_builder.make loc) in
   let param_name_to_index = generate_param_name_to_index ~core_type_params in
@@ -448,8 +448,8 @@ let type_ids
       Some
         [%stri
           let ([%p pvar (Specific_implementation.name index element)] :
-                 [%t mapper#core_type (Specific_implementation.to_type element)]
-                   Base.Type_equal.Id.t)
+                [%t mapper#core_type (Specific_implementation.to_type element)]
+                Base.Type_equal.Id.t)
             =
             Base.Type_equal.Id.create
               ~name:[%e estring (Specific_implementation.name index element)]
@@ -466,10 +466,10 @@ let type_ids
    | Name -> name
 *)
 let type_id_function_body
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
   =
   let open (val Ast_builder.make loc) in
   let cases =
@@ -510,38 +510,38 @@ let type_id_function_body
    [T Constr1 ; T Name]
 *)
 let all_body
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~constructor_declarations
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~constructor_declarations
   =
   let open (val Ast_builder.make loc) in
   let packed_fields =
     List.mapi
       constructor_declarations
       ~f:(fun index ((element, granularity), constructor) ->
-        match granularity with
-        | Type_kind_intf.Shallow -> [%expr [ { f = T [%e econstruct constructor None] } ]]
-        | Type_kind_intf.Deep _ ->
-          let subproduct_module_name =
-            generate_subproduct_module_name (module Specific_implementation) index element
-          in
-          let constructor_expression =
-            pexp_construct
-              (Lident (Specific_implementation.name index element |> String.capitalize)
-               |> Located.mk)
-              (Some (Lident "subproduct" |> Located.mk |> pexp_ident))
-          in
-          let subproduct_packed_all =
-            pexp_ident
-              (Ldot (Ldot (Lident subproduct_module_name, "Packed"), "all") |> Located.mk)
-          in
-          [%expr
-            Base.List.map [%e subproduct_packed_all] ~f:(fun { f = subproduct } ->
-              { f =
-                  (let (T subproduct) = subproduct in
-                   T [%e constructor_expression])
-              })])
+      match granularity with
+      | Type_kind_intf.Shallow -> [%expr [ { f = T [%e econstruct constructor None] } ]]
+      | Type_kind_intf.Deep _ ->
+        let subproduct_module_name =
+          generate_subproduct_module_name (module Specific_implementation) index element
+        in
+        let constructor_expression =
+          pexp_construct
+            (Lident (Specific_implementation.name index element |> String.capitalize)
+             |> Located.mk)
+            (Some (Lident "subproduct" |> Located.mk |> pexp_ident))
+        in
+        let subproduct_packed_all =
+          pexp_ident
+            (Ldot (Ldot (Lident subproduct_module_name, "Packed"), "all") |> Located.mk)
+        in
+        [%expr
+          Base.List.map [%e subproduct_packed_all] ~f:(fun { f = subproduct } ->
+            { f =
+                (let (T subproduct) = subproduct in
+                 T [%e constructor_expression])
+            })])
   in
   [%expr Base.List.concat [%e elist packed_fields]]
 ;;
@@ -552,10 +552,10 @@ let wrap_t_struct_around_expression ~loc expression =
 ;;
 
 let pack_body
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
   =
   let open (val Ast_builder.make loc) in
   let cases =
@@ -610,10 +610,10 @@ let pack_body
    | ...
 *)
 let sexp_of_t_body
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
   =
   let open (val Ast_builder.make loc) in
   let cases =
@@ -628,9 +628,9 @@ let sexp_of_t_body
       in
       let pattern =
         [%pat?
-               { f =
-                   T [%p ppat_construct (Located.mk (Lident variant_name)) constructor_option]
-               }]
+          { f =
+              T [%p ppat_construct (Located.mk (Lident variant_name)) constructor_option]
+          }]
       in
       let rhs =
         match granularity with
@@ -671,10 +671,10 @@ let sexp_of_t_body
    | ...
 *)
 let t_of_sexp_body
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
   =
   let open (val Ast_builder.make loc) in
   let cases =
@@ -743,12 +743,12 @@ let disable_warning_32 ~loc =
    e.g. (Name_subproduct : <type>) (Name2_subproduct : <type>) = <inital_expression>
 *)
 let generic_generate_functor
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
-      ~functor_creation_function
-      ~initial_expression
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
+  ~functor_creation_function
+  ~initial_expression
   =
   let open (val Ast_builder.make loc) in
   let subproduct_elements =
@@ -762,38 +762,38 @@ let generic_generate_functor
     subproduct_elements
     ~init:initial_expression
     ~f:(fun (element, original_index, minimum_needed_parameters) acc ->
-      let type_ = Specific_implementation.to_type element in
-      let manifest_type, params =
-        match type_.ptyp_desc with
-        | Ptyp_constr (ident, params) ->
-          let clean_params =
-            List.init (List.length params) ~f:(fun i ->
-              ptyp_var [%string "t%{(i + 1)#Int}"], (NoVariance, NoInjectivity))
-          in
-          ( Some (ptyp_constr ident (List.map clean_params ~f:(fun (f, _) -> f)))
-          , clean_params )
-        | _ -> Some type_, minimum_needed_parameters
-      in
-      let module_type =
-        let module_type =
-          Generic_generator.opaque_signature
-            (module Typed_deriver_fields)
-            ~loc
-            ~manifest_type
-            ~original_kind:Ptype_abstract
-            ~params
+    let type_ = Specific_implementation.to_type element in
+    let manifest_type, params =
+      match type_.ptyp_desc with
+      | Ptyp_constr (ident, params) ->
+        let clean_params =
+          List.init (List.length params) ~f:(fun i ->
+            ptyp_var [%string "t%{(i + 1)#Int}"], (NoVariance, NoInjectivity))
         in
-        { module_type with pmty_attributes = [ disable_warning_32 ~loc ] }
+        ( Some (ptyp_constr ident (List.map clean_params ~f:(fun (f, _) -> f)))
+        , clean_params )
+      | _ -> Some type_, minimum_needed_parameters
+    in
+    let module_type =
+      let module_type =
+        Generic_generator.opaque_signature
+          (module Typed_deriver_fields)
+          ~loc
+          ~manifest_type
+          ~original_kind:Ptype_abstract
+          ~params
       in
-      functor_creation_function
-        (Named
-           ( Some
-               (Specific_implementation.name original_index element
-                |> String.capitalize
-                |> Type_kind_intf.append_functor_parameter)
-             |> Located.mk
-           , module_type ))
-        acc)
+      { module_type with pmty_attributes = [ disable_warning_32 ~loc ] }
+    in
+    functor_creation_function
+      (Named
+         ( Some
+             (Specific_implementation.name original_index element
+              |> String.capitalize
+              |> Type_kind_intf.append_functor_parameter)
+           |> Located.mk
+         , module_type ))
+      acc)
 ;;
 
 (**
@@ -805,11 +805,11 @@ let generic_generate_functor
    (Constr1: <type of constr1's typed fields>) = <base_module_type>
 *)
 let deep_functor_signature
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
-      ~base_module_type
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
+  ~base_module_type
   =
   let open (val Ast_builder.make loc) in
   let deep_module_type_with_functors =
@@ -835,11 +835,11 @@ let deep_functor_signature
    (Constr1: <type of constr1's typed fields>) = <module_expression>
 *)
 let deep_functor_structure
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
-      ~module_expression
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
+  ~module_expression
   =
   let open (val Ast_builder.make loc) in
   let deep_module_expression_with_functors =
@@ -854,20 +854,20 @@ let deep_functor_structure
 ;;
 
 let subproduct_module_name
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~index
-      ~element
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~index
+  ~element
   =
   let element_name = Specific_implementation.name index element |> String.capitalize in
   [%string "%{element_name}_subproduct"]
 ;;
 
 let generate_parameter_modules
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
   =
   let open (val Ast_builder.make loc) in
   List.filter_mapi elements_to_convert ~f:(fun index (element, granularity) ->
@@ -919,29 +919,29 @@ let generate_parameter_modules
    ]
 *)
 let full_depth_module
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
   =
   let open (val Ast_builder.make loc) in
   let parameter_modules =
     generate_parameter_modules (module Specific_implementation) ~loc ~elements_to_convert
     |> List.map ~f:(fun (expr, ident, original_index, original_element) ->
-      let expr =
-        match expr with
-        | None -> None
-        | Some expr ->
-          let module_name =
-            subproduct_module_name
-              (module Specific_implementation)
-              ~index:original_index
-              ~element:original_element
-          in
-          Some
-            (pstr_module (module_binding ~name:(Some module_name |> Located.mk) ~expr))
-      in
-      expr, ident)
+         let expr =
+           match expr with
+           | None -> None
+           | Some expr ->
+             let module_name =
+               subproduct_module_name
+                 (module Specific_implementation)
+                 ~index:original_index
+                 ~element:original_element
+             in
+             Some
+               (pstr_module (module_binding ~name:(Some module_name |> Located.mk) ~expr))
+         in
+         expr, ident)
   in
   let deep_functor_application =
     List.fold
@@ -969,32 +969,32 @@ let full_depth_module
    ]
 *)
 let full_depth_signature
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
   =
   let open (val Ast_builder.make loc) in
   let parameter_modules =
     generate_parameter_modules (module Specific_implementation) ~loc ~elements_to_convert
     |> List.map ~f:(fun (expr, ident, original_index, original_element) ->
-      let module_sig_item =
-        match expr with
-        | None -> None
-        | Some expr ->
-          let module_name =
-            subproduct_module_name
-              (module Specific_implementation)
-              ~index:original_index
-              ~element:original_element
-          in
-          Some
-            (psig_module
-               (module_declaration
-                  ~name:(Some module_name |> Located.mk)
-                  ~type_:(pmty_typeof expr)))
-      in
-      module_sig_item, ident)
+         let module_sig_item =
+           match expr with
+           | None -> None
+           | Some expr ->
+             let module_name =
+               subproduct_module_name
+                 (module Specific_implementation)
+                 ~index:original_index
+                 ~element:original_element
+             in
+             Some
+               (psig_module
+                  (module_declaration
+                     ~name:(Some module_name |> Located.mk)
+                     ~type_:(pmty_typeof expr)))
+         in
+         module_sig_item, ident)
   in
   let deep_functor_application =
     List.fold
@@ -1049,9 +1049,9 @@ let generate_base_module_type_for_singleton ~loc ~minimum_needed_parameters ~cty
 ;;
 
 let generate_base_module_expr_for_singleton_for_any_parameter_length
-      ~loc
-      ~minimum_needed_parameters
-      ~ctype
+  ~loc
+  ~minimum_needed_parameters
+  ~ctype
   =
   let open (val Ast_builder.make loc) in
   let core_type_params = List.map minimum_needed_parameters ~f:(fun (f, _) -> f) in
@@ -1067,7 +1067,7 @@ let generate_base_module_expr_for_singleton_for_any_parameter_length
        ; type_ids
        ; packed
        }
-       : Singleton_generator.common_items)
+        : Singleton_generator.common_items)
     =
     Singleton_generator.common
       ~loc
@@ -1211,11 +1211,11 @@ let generate_base_module_expr_for_singleton ~loc ~minimum_needed_parameters ~cty
 ;;
 
 let singleton_label_name
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~index
-      ~element
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~index
+  ~element
   =
   let open (val Ast_builder.make loc) in
   let label =
@@ -1249,10 +1249,10 @@ let generate_clean_params ~loc ~params =
     ]
 *)
 let singleton_modules_signatures
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
   =
   let open (val Ast_builder.make loc) in
   List.filter_mapi elements_to_convert ~f:(fun index (element, granularity) ->
@@ -1295,10 +1295,10 @@ let singleton_modules_signatures
     ]
 *)
 let singleton_modules_structures
-      (type a)
-      (module Specific_implementation : Product_kind_intf.S with type t = a)
-      ~loc
-      ~elements_to_convert
+  (type a)
+  (module Specific_implementation : Product_kind_intf.S with type t = a)
+  ~loc
+  ~elements_to_convert
   =
   let open (val Ast_builder.make loc) in
   List.filter_mapi elements_to_convert ~f:(fun index (element, granularity) ->

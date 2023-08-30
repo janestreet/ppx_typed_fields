@@ -84,16 +84,16 @@ module Make (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
       t.base
       |> Base.to_alist
       |> List.map ~f:(function T (key, a) ->
-        A.map a ~f:(fun a -> Id_map.Packed.T (key, a)))
+           A.map a ~f:(fun a -> Id_map.Packed.T (key, a)))
       |> A.all
       |> A.map ~f:(fun all ->
-        let map = Id_map.of_alist_exn all in
-        create { f = (fun k -> Id_map.find map k) })
+           let map = Id_map.of_alist_exn all in
+           create { f = (fun k -> Id_map.find map k) })
     ;;
 
     module To_other_map
-        (A : S_for_other_map)
-        (M : S_plain with type 'a Key.t = 'a Key.t and type 'a Data.t = 'a A.s) =
+      (A : S_for_other_map)
+      (M : S_plain with type 'a Key.t = 'a Key.t and type 'a Data.t = 'a A.s) =
     struct
       module Inner =
         Make_plain
@@ -106,11 +106,11 @@ module Make (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
         t.base
         |> Base.to_alist
         |> List.map ~f:(function T (key, a) ->
-          A.map (A.translate a) ~f:(fun a -> Inner.Packed.T (key, a)))
+             A.map (A.translate a) ~f:(fun a -> Inner.Packed.T (key, a)))
         |> A.all
         |> A.map ~f:(fun alist ->
-          let m = Inner.of_alist_exn alist in
-          M.create { f = (fun k -> Inner.find m k) })
+             let m = Inner.of_alist_exn alist in
+             M.create { f = (fun k -> Inner.find m k) })
       ;;
     end
   end
@@ -122,8 +122,8 @@ module Make (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
       t.base
       |> Base.to_alist
       |> List.map ~f:(function T (k, v) ->
-        let sexp_of_a = sexpers.container (sexpers.individual k) v in
-        Sexp.List [ Key.Packed.sexp_of_t { f = T k }; sexp_of_a ])
+           let sexp_of_a = sexpers.container (sexpers.individual k) v in
+           Sexp.List [ Key.Packed.sexp_of_t { f = T k }; sexp_of_a ])
       |> Sexp.List
   ;;
 end

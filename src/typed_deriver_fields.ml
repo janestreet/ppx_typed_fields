@@ -198,27 +198,27 @@ let generate_include_signature_for_opaque ~loc ~params =
     [ [%sigi: include Typed_fields_lib.S1 with type 't1 derived_on := 't1 derived_on] ]
   | 2 ->
     [ [%sigi:
-      include
-        Typed_fields_lib.S2 with type ('t1, 't2) derived_on := ('t1, 't2) derived_on]
+        include
+          Typed_fields_lib.S2 with type ('t1, 't2) derived_on := ('t1, 't2) derived_on]
     ]
   | 3 ->
     [ [%sigi:
-      include
-        Typed_fields_lib.S3
-        with type ('t1, 't2, 't3) derived_on := ('t1, 't2, 't3) derived_on]
+        include
+          Typed_fields_lib.S3
+            with type ('t1, 't2, 't3) derived_on := ('t1, 't2, 't3) derived_on]
     ]
   | 4 ->
     [ [%sigi:
-      include
-        Typed_fields_lib.S4
-        with type ('t1, 't2, 't3, 't4) derived_on := ('t1, 't2, 't3, 't4) derived_on]
+        include
+          Typed_fields_lib.S4
+            with type ('t1, 't2, 't3, 't4) derived_on := ('t1, 't2, 't3, 't4) derived_on]
     ]
   | 5 ->
     [ [%sigi:
-      include
-        Typed_fields_lib.S5
-        with type ('t1, 't2, 't3, 't4, 't5) derived_on :=
-          ('t1, 't2, 't3, 't4, 't5) derived_on]
+        include
+          Typed_fields_lib.S5
+            with type ('t1, 't2, 't3, 't4, 't5) derived_on :=
+              ('t1, 't2, 't3, 't4, 't5) derived_on]
     ]
   | _ -> gen_sig_t ~loc ~params @ gen_partial_sig ~loc ~params ~t_name:"t"
 ;;
@@ -228,60 +228,60 @@ let generate_include_signature ~loc ~params =
   match List.length params with
   | 0 ->
     [ [%sigi:
-      include
-        Typed_fields_lib.S with type 'a t := 'a t and type derived_on := derived_on]
+        include
+          Typed_fields_lib.S with type 'a t := 'a t and type derived_on := derived_on]
     ]
   | 1 ->
     [ [%sigi:
-      include
-        Typed_fields_lib.S1
-        with type ('t1, 'a) t := ('t1, 'a) t
-         and type 't1 derived_on := 't1 derived_on]
+        include
+          Typed_fields_lib.S1
+            with type ('t1, 'a) t := ('t1, 'a) t
+             and type 't1 derived_on := 't1 derived_on]
     ]
   | 2 ->
     [ [%sigi:
-      include
-        Typed_fields_lib.S2
-        with type ('t1, 't2, 'a) t := ('t1, 't2, 'a) t
-         and type ('t1, 't2) derived_on := ('t1, 't2) derived_on]
+        include
+          Typed_fields_lib.S2
+            with type ('t1, 't2, 'a) t := ('t1, 't2, 'a) t
+             and type ('t1, 't2) derived_on := ('t1, 't2) derived_on]
     ]
   | 3 ->
     [ [%sigi:
-      include
-        Typed_fields_lib.S3
-        with type ('t1, 't2, 't3, 'a) t := ('t1, 't2, 't3, 'a) t
-         and type ('t1, 't2, 't3) derived_on := ('t1, 't2, 't3) derived_on]
+        include
+          Typed_fields_lib.S3
+            with type ('t1, 't2, 't3, 'a) t := ('t1, 't2, 't3, 'a) t
+             and type ('t1, 't2, 't3) derived_on := ('t1, 't2, 't3) derived_on]
     ]
   | 4 ->
     [ [%sigi:
-      include
-        Typed_fields_lib.S4
-        with type ('t1, 't2, 't3, 't4, 'a) t := ('t1, 't2, 't3, 't4, 'a) t
-         and type ('t1, 't2, 't3, 't4) derived_on := ('t1, 't2, 't3, 't4) derived_on]
+        include
+          Typed_fields_lib.S4
+            with type ('t1, 't2, 't3, 't4, 'a) t := ('t1, 't2, 't3, 't4, 'a) t
+             and type ('t1, 't2, 't3, 't4) derived_on := ('t1, 't2, 't3, 't4) derived_on]
     ]
   | 5 ->
     [ [%sigi:
-      include
-        Typed_fields_lib.S5
-        with type ('t1, 't2, 't3, 't4, 't5, 'a) t := ('t1, 't2, 't3, 't4, 't5, 'a) t
-         and type ('t1, 't2, 't3, 't4, 't5) derived_on :=
-           ('t1, 't2, 't3, 't4, 't5) derived_on]
+        include
+          Typed_fields_lib.S5
+            with type ('t1, 't2, 't3, 't4, 't5, 'a) t := ('t1, 't2, 't3, 't4, 't5, 'a) t
+             and type ('t1, 't2, 't3, 't4, 't5) derived_on :=
+              ('t1, 't2, 't3, 't4, 't5) derived_on]
     ]
   | _ -> gen_partial_sig ~loc ~params ~t_name:"t"
 ;;
 
 let generate_str_body
-      (type a)
-      (module Specific_generator : Type_kind_intf.S with type t = a)
-      ~original_type
-      ~original_kind
-      ~loc
-      ~(elements_to_convert : (a * granularity) list)
-      ~params
+  (type a)
+  (module Specific_generator : Type_kind_intf.S with type t = a)
+  ~original_type
+  ~original_kind
+  ~loc
+  ~(elements_to_convert : (a * granularity) list)
+  ~params
   =
   let open (val Ast_builder.make loc) in
   let ({ gadt_t = t; upper; constructor_declarations; internal_gadt_rename }
-       : a gen_t_result)
+        : a gen_t_result)
     =
     Generic_generator.gen_t
       ~loc
@@ -592,13 +592,13 @@ let generate_str_body
    version of Deep.
 *)
 let gen_str
-      (type a)
-      (module Specific_generator : Type_kind_intf.S with type t = a)
-      ~original_type
-      ~original_kind
-      ~loc
-      ~(elements_to_convert : (a * granularity) list)
-      ~params
+  (type a)
+  (module Specific_generator : Type_kind_intf.S with type t = a)
+  ~original_type
+  ~original_kind
+  ~loc
+  ~(elements_to_convert : (a * granularity) list)
+  ~params
   =
   let open (val Ast_builder.make loc) in
   let shallow_module =

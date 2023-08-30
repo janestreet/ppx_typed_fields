@@ -173,8 +173,8 @@ end
 
 module S_of_S3 (M : S3) (T1 : T) (T2 : T) (T3 : T) :
   S
-  with type 'a t = (T1.t, T2.t, T3.t, 'a) M.t
-   and type derived_on = (T1.t, T2.t, T3.t) M.derived_on = struct
+    with type 'a t = (T1.t, T2.t, T3.t, 'a) M.t
+     and type derived_on = (T1.t, T2.t, T3.t) M.derived_on = struct
   include M
 
   type 'a t = (T1.t, T2.t, T3.t, 'a) M.t
@@ -207,8 +207,8 @@ end
 
 module S_of_S4 (M : S4) (T1 : T) (T2 : T) (T3 : T) (T4 : T) :
   S
-  with type 'a t = (T1.t, T2.t, T3.t, T4.t, 'a) M.t
-   and type derived_on = (T1.t, T2.t, T3.t, T4.t) M.derived_on = struct
+    with type 'a t = (T1.t, T2.t, T3.t, T4.t, 'a) M.t
+     and type derived_on = (T1.t, T2.t, T3.t, T4.t) M.derived_on = struct
   include M
 
   type 'a t = (T1.t, T2.t, T3.t, T4.t, 'a) M.t
@@ -243,8 +243,8 @@ end
 
 module S_of_S5 (M : S5) (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) :
   S
-  with type 'a t = (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) M.t
-   and type derived_on = (T1.t, T2.t, T3.t, T4.t, T5.t) M.derived_on = struct
+    with type 'a t = (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) M.t
+     and type derived_on = (T1.t, T2.t, T3.t, T4.t, T5.t) M.derived_on = struct
   include M
 
   type 'a t = (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) M.t
@@ -290,23 +290,23 @@ module type Typed_fields_lib = sig
 
   module S_of_S2 (M : S2) (T1 : T) (T2 : T) :
     S
-    with type 'a t = (T1.t, T2.t, 'a) M.t
-     and type derived_on = (T1.t, T2.t) M.derived_on
+      with type 'a t = (T1.t, T2.t, 'a) M.t
+       and type derived_on = (T1.t, T2.t) M.derived_on
 
   module S_of_S3 (M : S3) (T1 : T) (T2 : T) (T3 : T) :
     S
-    with type 'a t = (T1.t, T2.t, T3.t, 'a) M.t
-     and type derived_on = (T1.t, T2.t, T3.t) M.derived_on
+      with type 'a t = (T1.t, T2.t, T3.t, 'a) M.t
+       and type derived_on = (T1.t, T2.t, T3.t) M.derived_on
 
   module S_of_S4 (M : S4) (T1 : T) (T2 : T) (T3 : T) (T4 : T) :
     S
-    with type 'a t = (T1.t, T2.t, T3.t, T4.t, 'a) M.t
-     and type derived_on = (T1.t, T2.t, T3.t, T4.t) M.derived_on
+      with type 'a t = (T1.t, T2.t, T3.t, T4.t, 'a) M.t
+       and type derived_on = (T1.t, T2.t, T3.t, T4.t) M.derived_on
 
   module S_of_S5 (M : S5) (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) :
     S
-    with type 'a t = (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) M.t
-     and type derived_on = (T1.t, T2.t, T3.t, T4.t, T5.t) M.derived_on
+      with type 'a t = (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) M.t
+       and type derived_on = (T1.t, T2.t, T3.t, T4.t, T5.t) M.derived_on
 
   module Singleton (T : T) : sig
     type 'a t = T : T.t t
@@ -325,8 +325,8 @@ module type Typed_fields_lib = sig
 
     include
       S2
-      with type ('t1, 't2) derived_on = ('t1, 't2) T2.t
-       and type ('t1, 't2, 'r) t := ('t1, 't2, 'r) t
+        with type ('t1, 't2) derived_on = ('t1, 't2) T2.t
+         and type ('t1, 't2, 'r) t := ('t1, 't2, 'r) t
   end
 
   module Singleton3 (T3 : T3) : sig
@@ -334,32 +334,32 @@ module type Typed_fields_lib = sig
 
     include
       S3
-      with type ('t1, 't2, 't3) derived_on = ('t1, 't2, 't3) T3.t
-       and type ('t1, 't2, 't3, 'r) t := ('t1, 't2, 't3, 'r) t
+        with type ('t1, 't2, 't3) derived_on = ('t1, 't2, 't3) T3.t
+         and type ('t1, 't2, 't3, 'r) t := ('t1, 't2, 't3, 'r) t
   end
 
   module Singleton4 (T4 : sig
-      type ('a, 'b, 'c, 'd) t
-    end) : sig
+    type ('a, 'b, 'c, 'd) t
+  end) : sig
     type ('t1, 't2, 't3, 't4, 'r) t =
       | T : ('t1, 't2, 't3, 't4, ('t1, 't2, 't3, 't4) T4.t) t
 
     include
       S4
-      with type ('t1, 't2, 't3, 't4) derived_on = ('t1, 't2, 't3, 't4) T4.t
-       and type ('t1, 't2, 't3, 't4, 'r) t := ('t1, 't2, 't3, 't4, 'r) t
+        with type ('t1, 't2, 't3, 't4) derived_on = ('t1, 't2, 't3, 't4) T4.t
+         and type ('t1, 't2, 't3, 't4, 'r) t := ('t1, 't2, 't3, 't4, 'r) t
   end
 
   module Singleton5 (T5 : sig
-      type ('a, 'b, 'c, 'd, 'e) t
-    end) : sig
+    type ('a, 'b, 'c, 'd, 'e) t
+  end) : sig
     type ('t1, 't2, 't3, 't4, 't5, 'r) t =
       | T : ('t1, 't2, 't3, 't4, 't5, ('t1, 't2, 't3, 't4, 't5) T5.t) t
 
     include
       S5
-      with type ('t1, 't2, 't3, 't4, 't5) derived_on = ('t1, 't2, 't3, 't4, 't5) T5.t
-       and type ('t1, 't2, 't3, 't4, 't5, 'r) t := ('t1, 't2, 't3, 't4, 't5, 'r) t
+        with type ('t1, 't2, 't3, 't4, 't5) derived_on = ('t1, 't2, 't3, 't4, 't5) T5.t
+         and type ('t1, 't2, 't3, 't4, 't5, 'r) t := ('t1, 't2, 't3, 't4, 't5, 'r) t
   end
 
   (** This is a convenient module for deriving typed_fields on unit, which you can

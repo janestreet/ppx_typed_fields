@@ -534,7 +534,7 @@ module Gen_sig = struct
     match identify_type_case ~remove_attributes:true td with
     | Unit (_, params) ->
       let ({ gadt_t = typ; upper; constructor_declarations = _; internal_gadt_rename }
-           : core_type gen_t_result)
+            : core_type gen_t_result)
         =
         Generic_generator.gen_t
           ~loc
@@ -555,7 +555,7 @@ module Gen_sig = struct
       , [] )
     | Tuple (tuple_types, params) ->
       let ({ gadt_t = typ; upper; constructor_declarations = _; internal_gadt_rename }
-           : core_type gen_t_result)
+            : core_type gen_t_result)
         =
         Generic_generator.gen_t
           ~loc
@@ -591,7 +591,7 @@ module Gen_sig = struct
       , [] )
     | Record (fields, params) ->
       let ({ gadt_t = typ; upper; constructor_declarations = _; internal_gadt_rename }
-           : label_declaration gen_t_result)
+            : label_declaration gen_t_result)
         =
         Generic_generator.gen_t
           ~loc

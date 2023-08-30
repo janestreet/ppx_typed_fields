@@ -5,14 +5,14 @@ open Type_kind_intf
 
 (* Generates `type _ t = A : a |  B : b ...` type *)
 let gen_t
-      (type a)
-      ~loc
-      ~original_type
-      ~original_kind
-      ~(elements_to_convert : (a * granularity) list)
-      ~generate_constructors
-      ~params
-      ~upper_name
+  (type a)
+  ~loc
+  ~original_type
+  ~original_kind
+  ~(elements_to_convert : (a * granularity) list)
+  ~generate_constructors
+  ~params
+  ~upper_name
   =
   let open (val Ast_builder.make loc) in
   let core_type_params = List.map params ~f:(fun (core_type_, _) -> core_type_) in
@@ -60,11 +60,11 @@ let gen_t
 ;;
 
 let opaque_signature
-      (module Specific_deriver : Typed_deriver_intf.S)
-      ~loc
-      ~manifest_type
-      ~original_kind
-      ~params
+  (module Specific_deriver : Typed_deriver_intf.S)
+  ~loc
+  ~manifest_type
+  ~original_kind
+  ~params
   =
   let open (val Ast_builder.make loc) in
   let upper = upper ~loc ~manifest_type ~original_kind ~params ~name:derived_on_name in
