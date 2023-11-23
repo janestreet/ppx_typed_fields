@@ -298,8 +298,10 @@ let is_valid_subproduct_tree types_that_are_currently_being_defined td =
          attached to either the label declaration or the type of the label declaration, \
          not both. Perhaps you meant to attach the subproduct attribute on the core_type \
          somewhere deeper? "
-    | Some _, _, Ptyp_constr ({ txt = Lident name; _ }, _) ->
-      if Set.mem types_that_are_currently_being_defined name
+    | Some _, _, Ptyp_constr ({ txt = name; _ }, _) ->
+      if match name with
+         | Lident name -> Set.mem types_that_are_currently_being_defined name
+         | _ -> false
       then
         Location.raise_errorf
           ~loc:declaration.pld_type.ptyp_loc
@@ -310,8 +312,10 @@ let is_valid_subproduct_tree types_that_are_currently_being_defined td =
         ~ctype:declaration.pld_type
         ~has_skipped:false
         ~ignore_current_type:true
-    | _, Some _, Ptyp_constr ({ txt = Lident name; _ }, _) ->
-      if Set.mem types_that_are_currently_being_defined name
+    | _, Some _, Ptyp_constr ({ txt = name; _ }, _) ->
+      if match name with
+         | Lident name -> Set.mem types_that_are_currently_being_defined name
+         | _ -> false
       then
         Location.raise_errorf
           ~loc:declaration.pld_type.ptyp_loc

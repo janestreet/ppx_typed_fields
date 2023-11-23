@@ -80,7 +80,6 @@ val gen_str
 
    type ('a, 'b, 'c, 'd) packed_with_value =
    | T : ('a, 'b, 'c, 'd, 'r) t * 'r -> ('a, 'b, 'c, 'd) packed_with_value
-
 *)
 val generate_packed_with_value_type
   :  loc:location
