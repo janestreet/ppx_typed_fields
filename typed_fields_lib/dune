@@ -1,3 +1,6 @@
-(library (name typed_fields_lib)
- (public_name ppx_typed_fields.typed_fields_lib) (libraries base sexplib0)
- (preprocess (pps ppx_sexp_conv ppx_enumerate ppx_compare)))
+(library
+ (name typed_fields_lib)
+ (public_name ppx_typed_fields.typed_fields_lib)
+ (libraries base sexplib0)
+ (preprocess
+  (pps ppx_sexp_conv ppx_enumerate ppx_compare)))
