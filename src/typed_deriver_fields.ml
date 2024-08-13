@@ -78,10 +78,10 @@ let gen_partial_sig ~loc ~params ~t_name =
     in
     [%sigi: val set : [%t set_type]]
   in
+  let creator_type_constr =
+    ptyp_constr (Lident "creator" |> Located.mk) core_type_params
+  in
   let create =
-    let creator_type_constr =
-      ptyp_constr (Lident "creator" |> Located.mk) core_type_params
-    in
     let create_type =
       generate_arrow_type
         ~loc
@@ -89,6 +89,9 @@ let gen_partial_sig ~loc ~params ~t_name =
         ~last_type:record_type_constr
     in
     [%sigi: val create : [%t create_type]]
+  in
+  let create_local =
+    [%sigi: val create_local : [%t creator_type_constr] -> [%t record_type_constr]]
   in
   let type_ids =
     let signature =
@@ -181,7 +184,7 @@ let gen_partial_sig ~loc ~params ~t_name =
     in
     psig_module (module_declaration ~name:(Some "Packed" |> Located.mk) ~type_:signature)
   in
-  [ creator; name; path; ord; get; set; create; type_ids; packed; names ]
+  [ creator; name; path; ord; get; set; create; create_local; type_ids; packed; names ]
 ;;
 
 (**
@@ -205,20 +208,20 @@ let generate_include_signature_for_opaque ~loc ~params =
     [ [%sigi:
         include
           Typed_fields_lib.S3
-            with type ('t1, 't2, 't3) derived_on := ('t1, 't2, 't3) derived_on]
+          with type ('t1, 't2, 't3) derived_on := ('t1, 't2, 't3) derived_on]
     ]
   | 4 ->
     [ [%sigi:
         include
           Typed_fields_lib.S4
-            with type ('t1, 't2, 't3, 't4) derived_on := ('t1, 't2, 't3, 't4) derived_on]
+          with type ('t1, 't2, 't3, 't4) derived_on := ('t1, 't2, 't3, 't4) derived_on]
     ]
   | 5 ->
     [ [%sigi:
         include
           Typed_fields_lib.S5
-            with type ('t1, 't2, 't3, 't4, 't5) derived_on :=
-              ('t1, 't2, 't3, 't4, 't5) derived_on]
+          with type ('t1, 't2, 't3, 't4, 't5) derived_on :=
+            ('t1, 't2, 't3, 't4, 't5) derived_on]
     ]
   | _ -> gen_sig_t ~loc ~params @ gen_partial_sig ~loc ~params ~t_name:"t"
 ;;
@@ -235,37 +238,37 @@ let generate_include_signature ~loc ~params =
     [ [%sigi:
         include
           Typed_fields_lib.S1
-            with type ('t1, 'a) t := ('t1, 'a) t
-             and type 't1 derived_on := 't1 derived_on]
+          with type ('t1, 'a) t := ('t1, 'a) t
+           and type 't1 derived_on := 't1 derived_on]
     ]
   | 2 ->
     [ [%sigi:
         include
           Typed_fields_lib.S2
-            with type ('t1, 't2, 'a) t := ('t1, 't2, 'a) t
-             and type ('t1, 't2) derived_on := ('t1, 't2) derived_on]
+          with type ('t1, 't2, 'a) t := ('t1, 't2, 'a) t
+           and type ('t1, 't2) derived_on := ('t1, 't2) derived_on]
     ]
   | 3 ->
     [ [%sigi:
         include
           Typed_fields_lib.S3
-            with type ('t1, 't2, 't3, 'a) t := ('t1, 't2, 't3, 'a) t
-             and type ('t1, 't2, 't3) derived_on := ('t1, 't2, 't3) derived_on]
+          with type ('t1, 't2, 't3, 'a) t := ('t1, 't2, 't3, 'a) t
+           and type ('t1, 't2, 't3) derived_on := ('t1, 't2, 't3) derived_on]
     ]
   | 4 ->
     [ [%sigi:
         include
           Typed_fields_lib.S4
-            with type ('t1, 't2, 't3, 't4, 'a) t := ('t1, 't2, 't3, 't4, 'a) t
-             and type ('t1, 't2, 't3, 't4) derived_on := ('t1, 't2, 't3, 't4) derived_on]
+          with type ('t1, 't2, 't3, 't4, 'a) t := ('t1, 't2, 't3, 't4, 'a) t
+           and type ('t1, 't2, 't3, 't4) derived_on := ('t1, 't2, 't3, 't4) derived_on]
     ]
   | 5 ->
     [ [%sigi:
         include
           Typed_fields_lib.S5
-            with type ('t1, 't2, 't3, 't4, 't5, 'a) t := ('t1, 't2, 't3, 't4, 't5, 'a) t
-             and type ('t1, 't2, 't3, 't4, 't5) derived_on :=
-              ('t1, 't2, 't3, 't4, 't5) derived_on]
+          with type ('t1, 't2, 't3, 't4, 't5, 'a) t := ('t1, 't2, 't3, 't4, 't5, 'a) t
+           and type ('t1, 't2, 't3, 't4, 't5) derived_on :=
+            ('t1, 't2, 't3, 't4, 't5) derived_on]
     ]
   | _ -> gen_partial_sig ~loc ~params ~t_name:"t"
 ;;
@@ -410,7 +413,9 @@ let generate_str_body
       ~name_of_first_parameter:internal_gadt_name
   in
   let create =
-    let body = Specific_generator.create_function_body ~loc ~constructor_declarations in
+    let body =
+      Specific_generator.create_function_body ~loc ~constructor_declarations ~local:false
+    in
     let creator_constr_type =
       ptyp_constr (Lident "creator" |> Located.mk) core_type_params
     in
@@ -422,7 +427,32 @@ let generate_str_body
         ;;]
     | _ :: _ ->
       [%stri
-        let create ({ f } : [%t creator_constr_type]) : [%t var_record_type] = [%e body]]
+        let create ({ f = __ppx_typed_fields_creator_f } : [%t creator_constr_type])
+          : [%t var_record_type]
+          =
+          [%e body]
+        ;;]
+  in
+  let create_local =
+    let body =
+      Specific_generator.create_function_body ~loc ~constructor_declarations ~local:true
+    in
+    let creator_constr_type =
+      ptyp_constr (Lident "creator" |> Located.mk) core_type_params
+    in
+    match constructor_declarations with
+    | [] ->
+      [%stri
+        let create_local ({ f = _ } : [%t creator_constr_type]) : [%t var_record_type] =
+          [%e body]
+        ;;]
+    | _ :: _ ->
+      [%stri
+        let create_local ({ f = __ppx_typed_fields_creator_f } : [%t creator_constr_type])
+          : [%t var_record_type]
+          =
+          [%e body]
+        ;;]
   in
   let type_ids =
     let type_ids =
@@ -580,6 +610,7 @@ let generate_str_body
     ; get
     ; set
     ; create
+    ; create_local
     ; type_ids
     ; packed
     ; names

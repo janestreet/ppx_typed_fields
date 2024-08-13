@@ -44,11 +44,12 @@ let generate_packed_with_value_type ~loc ~params ~core_type_params ~unique_param
              ~name:(Located.mk "T")
              ~args:
                (Pcstr_tuple
-                  [ ptyp_constr
-                      (Lident "t" |> Located.mk)
-                      (core_type_params @ [ ptyp_var unique_parameter_id ])
-                  ; ptyp_var unique_parameter_id
-                  ])
+                  ([ ptyp_constr
+                       (Lident "t" |> Located.mk)
+                       (core_type_params @ [ ptyp_var unique_parameter_id ])
+                   ; ptyp_var unique_parameter_id
+                   ]
+                   |> List.map ~f:Ppxlib_jane.Shim.Pcstr_tuple_arg.of_core_type))
              ~res:
                (Some
                   (ptyp_constr
@@ -212,20 +213,20 @@ let generate_include_signature_for_opaque ~loc ~params =
     [ [%sigi:
         include
           Typed_variants_lib.S3
-            with type ('t1, 't2, 't3) derived_on := ('t1, 't2, 't3) derived_on]
+          with type ('t1, 't2, 't3) derived_on := ('t1, 't2, 't3) derived_on]
     ]
   | 4 ->
     [ [%sigi:
         include
           Typed_variants_lib.S4
-            with type ('t1, 't2, 't3, 't4) derived_on := ('t1, 't2, 't3, 't4) derived_on]
+          with type ('t1, 't2, 't3, 't4) derived_on := ('t1, 't2, 't3, 't4) derived_on]
     ]
   | 5 ->
     [ [%sigi:
         include
           Typed_variants_lib.S5
-            with type ('t1, 't2, 't3, 't4, 't5) derived_on :=
-              ('t1, 't2, 't3, 't4, 't5) derived_on]
+          with type ('t1, 't2, 't3, 't4, 't5) derived_on :=
+            ('t1, 't2, 't3, 't4, 't5) derived_on]
     ]
   | _ -> [ gen_sig_t ~loc ~params ] @ gen_partial_sig ~loc ~params
 ;;
@@ -242,37 +243,37 @@ let generate_include_signature ~loc ~params =
     [ [%sigi:
         include
           Typed_variants_lib.S1
-            with type ('t1, 'a) t := ('t1, 'a) t
-             and type 't1 derived_on := 't1 derived_on]
+          with type ('t1, 'a) t := ('t1, 'a) t
+           and type 't1 derived_on := 't1 derived_on]
     ]
   | 2 ->
     [ [%sigi:
         include
           Typed_variants_lib.S2
-            with type ('t1, 't2, 'a) t := ('t1, 't2, 'a) t
-             and type ('t1, 't2) derived_on := ('t1, 't2) derived_on]
+          with type ('t1, 't2, 'a) t := ('t1, 't2, 'a) t
+           and type ('t1, 't2) derived_on := ('t1, 't2) derived_on]
     ]
   | 3 ->
     [ [%sigi:
         include
           Typed_variants_lib.S3
-            with type ('t1, 't2, 't3, 'a) t := ('t1, 't2, 't3, 'a) t
-             and type ('t1, 't2, 't3) derived_on := ('t1, 't2, 't3) derived_on]
+          with type ('t1, 't2, 't3, 'a) t := ('t1, 't2, 't3, 'a) t
+           and type ('t1, 't2, 't3) derived_on := ('t1, 't2, 't3) derived_on]
     ]
   | 4 ->
     [ [%sigi:
         include
           Typed_variants_lib.S4
-            with type ('t1, 't2, 't3, 't4, 'a) t := ('t1, 't2, 't3, 't4, 'a) t
-             and type ('t1, 't2, 't3, 't4) derived_on := ('t1, 't2, 't3, 't4) derived_on]
+          with type ('t1, 't2, 't3, 't4, 'a) t := ('t1, 't2, 't3, 't4, 'a) t
+           and type ('t1, 't2, 't3, 't4) derived_on := ('t1, 't2, 't3, 't4) derived_on]
     ]
   | 5 ->
     [ [%sigi:
         include
           Typed_variants_lib.S5
-            with type ('t1, 't2, 't3, 't4, 't5, 'a) t := ('t1, 't2, 't3, 't4, 't5, 'a) t
-             and type ('t1, 't2, 't3, 't4, 't5) derived_on :=
-              ('t1, 't2, 't3, 't4, 't5) derived_on]
+          with type ('t1, 't2, 't3, 't4, 't5, 'a) t := ('t1, 't2, 't3, 't4, 't5, 'a) t
+           and type ('t1, 't2, 't3, 't4, 't5) derived_on :=
+            ('t1, 't2, 't3, 't4, 't5) derived_on]
     ]
   | _ -> gen_partial_sig ~loc ~params
 ;;
@@ -656,7 +657,7 @@ let generate_str_body
   in
   let create =
     let function_body =
-      Specific_generator.create_function_body ~loc ~constructor_declarations
+      Specific_generator.create_function_body ~loc ~constructor_declarations ~local:false
     in
     generate_new_typed_function
       ~loc

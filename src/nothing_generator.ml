@@ -40,7 +40,7 @@ let get_function_body ~loc ~elements_to_convert:_ =
   [%expr unreachable_code]
 ;;
 
-let create_function_body ~loc ~constructor_declarations:_ =
+let create_function_body ~loc ~constructor_declarations:_ ~local:_ =
   let open (val Ast_builder.make loc) in
   [%expr unreachable_code]
 ;;

@@ -35,6 +35,7 @@ let constructor_declarations
           [ ptyp_constr
               (Ldot (Lident subproduct_module_name, "t") |> Located.mk)
               (pararameters_needed @ [ ptyp_var unique_parameter_name ])
+            |> Ppxlib_jane.Shim.Pcstr_tuple_arg.of_core_type
           ]
     in
     ( (element, granularity)
@@ -349,8 +350,9 @@ let create_function_body
   (module Specific_implementation : Product_kind_intf.S with type t = a)
   ~loc
   ~constructor_declarations
+  ~local
   =
-  Specific_implementation.create_expression ~loc ~constructor_declarations
+  Specific_implementation.create_expression ~loc ~constructor_declarations ~local
 ;;
 
 (**
@@ -410,9 +412,9 @@ let subproduct_type_id_modules
                (List.sort minimum_needed_parameter_ids ~compare:Int.compare)
                ~init:initial_ident
                ~f:(fun acc id ->
-               pmod_apply
-                 acc
-                 (pmod_ident (Lident [%string "T%{(id + 1)#Int}"] |> Located.mk)))
+                 pmod_apply
+                   acc
+                   (pmod_ident (Lident [%string "T%{(id + 1)#Int}"] |> Located.mk)))
          in
          pstr_module
            (module_binding
@@ -449,7 +451,7 @@ let type_ids
         [%stri
           let ([%p pvar (Specific_implementation.name index element)] :
                 [%t mapper#core_type (Specific_implementation.to_type element)]
-                Base.Type_equal.Id.t)
+                  Base.Type_equal.Id.t)
             =
             Base.Type_equal.Id.create
               ~name:[%e estring (Specific_implementation.name index element)]
@@ -520,28 +522,28 @@ let all_body
     List.mapi
       constructor_declarations
       ~f:(fun index ((element, granularity), constructor) ->
-      match granularity with
-      | Type_kind_intf.Shallow -> [%expr [ { f = T [%e econstruct constructor None] } ]]
-      | Type_kind_intf.Deep _ ->
-        let subproduct_module_name =
-          generate_subproduct_module_name (module Specific_implementation) index element
-        in
-        let constructor_expression =
-          pexp_construct
-            (Lident (Specific_implementation.name index element |> String.capitalize)
-             |> Located.mk)
-            (Some (Lident "subproduct" |> Located.mk |> pexp_ident))
-        in
-        let subproduct_packed_all =
-          pexp_ident
-            (Ldot (Ldot (Lident subproduct_module_name, "Packed"), "all") |> Located.mk)
-        in
-        [%expr
-          Base.List.map [%e subproduct_packed_all] ~f:(fun { f = subproduct } ->
-            { f =
-                (let (T subproduct) = subproduct in
-                 T [%e constructor_expression])
-            })])
+        match granularity with
+        | Type_kind_intf.Shallow -> [%expr [ { f = T [%e econstruct constructor None] } ]]
+        | Type_kind_intf.Deep _ ->
+          let subproduct_module_name =
+            generate_subproduct_module_name (module Specific_implementation) index element
+          in
+          let constructor_expression =
+            pexp_construct
+              (Lident (Specific_implementation.name index element |> String.capitalize)
+               |> Located.mk)
+              (Some (Lident "subproduct" |> Located.mk |> pexp_ident))
+          in
+          let subproduct_packed_all =
+            pexp_ident
+              (Ldot (Ldot (Lident subproduct_module_name, "Packed"), "all") |> Located.mk)
+          in
+          [%expr
+            Base.List.map [%e subproduct_packed_all] ~f:(fun { f = subproduct } ->
+              { f =
+                  (let (T subproduct) = subproduct in
+                   T [%e constructor_expression])
+              })])
   in
   [%expr Base.List.concat [%e elist packed_fields]]
 ;;
@@ -762,38 +764,38 @@ let generic_generate_functor
     subproduct_elements
     ~init:initial_expression
     ~f:(fun (element, original_index, minimum_needed_parameters) acc ->
-    let type_ = Specific_implementation.to_type element in
-    let manifest_type, params =
-      match type_.ptyp_desc with
-      | Ptyp_constr (ident, params) ->
-        let clean_params =
-          List.init (List.length params) ~f:(fun i ->
-            ptyp_var [%string "t%{(i + 1)#Int}"], (NoVariance, NoInjectivity))
-        in
-        ( Some (ptyp_constr ident (List.map clean_params ~f:(fun (f, _) -> f)))
-        , clean_params )
-      | _ -> Some type_, minimum_needed_parameters
-    in
-    let module_type =
-      let module_type =
-        Generic_generator.opaque_signature
-          (module Typed_deriver_fields)
-          ~loc
-          ~manifest_type
-          ~original_kind:Ptype_abstract
-          ~params
+      let type_ = Specific_implementation.to_type element in
+      let manifest_type, params =
+        match type_.ptyp_desc with
+        | Ptyp_constr (ident, params) ->
+          let clean_params =
+            List.init (List.length params) ~f:(fun i ->
+              ptyp_var [%string "t%{(i + 1)#Int}"], (NoVariance, NoInjectivity))
+          in
+          ( Some (ptyp_constr ident (List.map clean_params ~f:(fun (f, _) -> f)))
+          , clean_params )
+        | _ -> Some type_, minimum_needed_parameters
       in
-      { module_type with pmty_attributes = [ disable_warning_32 ~loc ] }
-    in
-    functor_creation_function
-      (Named
-         ( Some
-             (Specific_implementation.name original_index element
-              |> String.capitalize
-              |> Type_kind_intf.append_functor_parameter)
-           |> Located.mk
-         , module_type ))
-      acc)
+      let module_type =
+        let module_type =
+          Generic_generator.opaque_signature
+            (module Typed_deriver_fields)
+            ~loc
+            ~manifest_type
+            ~original_kind:Ptype_abstract
+            ~params
+        in
+        { module_type with pmty_attributes = [ disable_warning_32 ~loc ] }
+      in
+      functor_creation_function
+        (Named
+           ( Some
+               (Specific_implementation.name original_index element
+                |> String.capitalize
+                |> Type_kind_intf.append_functor_parameter)
+             |> Located.mk
+           , module_type ))
+        acc)
 ;;
 
 (**
@@ -928,20 +930,19 @@ let full_depth_module
   let parameter_modules =
     generate_parameter_modules (module Specific_implementation) ~loc ~elements_to_convert
     |> List.map ~f:(fun (expr, ident, original_index, original_element) ->
-         let expr =
-           match expr with
-           | None -> None
-           | Some expr ->
-             let module_name =
-               subproduct_module_name
-                 (module Specific_implementation)
-                 ~index:original_index
-                 ~element:original_element
-             in
-             Some
-               (pstr_module (module_binding ~name:(Some module_name |> Located.mk) ~expr))
-         in
-         expr, ident)
+      let expr =
+        match expr with
+        | None -> None
+        | Some expr ->
+          let module_name =
+            subproduct_module_name
+              (module Specific_implementation)
+              ~index:original_index
+              ~element:original_element
+          in
+          Some (pstr_module (module_binding ~name:(Some module_name |> Located.mk) ~expr))
+      in
+      expr, ident)
   in
   let deep_functor_application =
     List.fold
@@ -978,23 +979,23 @@ let full_depth_signature
   let parameter_modules =
     generate_parameter_modules (module Specific_implementation) ~loc ~elements_to_convert
     |> List.map ~f:(fun (expr, ident, original_index, original_element) ->
-         let module_sig_item =
-           match expr with
-           | None -> None
-           | Some expr ->
-             let module_name =
-               subproduct_module_name
-                 (module Specific_implementation)
-                 ~index:original_index
-                 ~element:original_element
-             in
-             Some
-               (psig_module
-                  (module_declaration
-                     ~name:(Some module_name |> Located.mk)
-                     ~type_:(pmty_typeof expr)))
-         in
-         module_sig_item, ident)
+      let module_sig_item =
+        match expr with
+        | None -> None
+        | Some expr ->
+          let module_name =
+            subproduct_module_name
+              (module Specific_implementation)
+              ~index:original_index
+              ~element:original_element
+          in
+          Some
+            (psig_module
+               (module_declaration
+                  ~name:(Some module_name |> Located.mk)
+                  ~type_:(pmty_typeof expr)))
+      in
+      module_sig_item, ident)
   in
   let deep_functor_application =
     List.fold
@@ -1088,6 +1089,7 @@ let generate_base_module_expr_for_singleton_for_any_parameter_length
     pstr_type Recursive [ td ]
   in
   let create = [%stri let create { f } = f T] in
+  let create_local = [%stri let create_local { f } = f T] in
   let clean_param_names =
     List.init (List.length minimum_needed_parameters) ~f:(fun i ->
       [%string "t%{(i + 1)#Int}"])
@@ -1175,6 +1177,7 @@ let generate_base_module_expr_for_singleton_for_any_parameter_length
     ; get
     ; set
     ; create
+    ; create_local
     ; type_ids
     ; packed
     ; names

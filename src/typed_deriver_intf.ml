@@ -48,7 +48,9 @@ let generate_packed_t_prime_type_declaration ~loc ~params ~core_type_params ~fie
       (Ptype_variant
          [ constructor_declaration
              ~name:(Located.mk "T")
-             ~args:(Pcstr_tuple [ field_type ])
+             ~args:
+               (Pcstr_tuple
+                  [ field_type |> Ppxlib_jane.Shim.Pcstr_tuple_arg.of_core_type ])
              ~res:(Some (ptyp_constr (Lident "t'" |> Located.mk) core_type_params))
          ])
 ;;

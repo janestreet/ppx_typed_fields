@@ -34,7 +34,7 @@ let set_rhs_expression
   { rhs with pexp_attributes = [ disable_warning_23 ~loc ] }
 ;;
 
-let create_expression ~loc ~constructor_declarations =
+let create_expression ~loc ~constructor_declarations ~local =
   let open (val Ast_builder.make loc) in
   let create_record =
     pexp_record
@@ -47,22 +47,30 @@ let create_expression ~loc ~constructor_declarations =
     (List.rev constructor_declarations)
     ~init:create_record
     ~f:(fun acc (({ pld_name; _ }, granularity), constructor) ->
-    let expr =
-      match granularity with
-      | Type_kind_intf.Shallow -> [%expr f [%e econstruct constructor None]]
-      | Type_kind_intf.Deep _ ->
-        let constructor_expression =
-          pexp_construct
-            (Lident (pld_name.txt |> String.capitalize) |> Located.mk)
-            (Some (pexp_ident (Lident "x" |> Located.mk)))
-        in
-        let subproduct_function =
-          let subproduct_module_name =
-            pld_name.txt |> String.capitalize |> Type_kind_intf.append_functor_parameter
+      let expr =
+        match granularity with
+        | Type_kind_intf.Shallow ->
+          [%expr __ppx_typed_fields_creator_f [%e econstruct constructor None]]
+        | Type_kind_intf.Deep _ ->
+          let constructor_expression =
+            pexp_construct
+              (Lident (pld_name.txt |> String.capitalize) |> Located.mk)
+              (Some (pexp_ident (Lident "x" |> Located.mk)))
           in
-          pexp_ident (Ldot (Lident subproduct_module_name, "create") |> Located.mk)
-        in
-        [%expr [%e subproduct_function] { f = (fun x -> f [%e constructor_expression]) }]
-    in
-    pexp_let Nonrecursive [ value_binding ~pat:(pvar pld_name.txt) ~expr ] acc)
+          let subproduct_function =
+            let subproduct_module_name =
+              pld_name.txt |> String.capitalize |> Type_kind_intf.append_functor_parameter
+            in
+            match local with
+            | false ->
+              pexp_ident (Ldot (Lident subproduct_module_name, "create") |> Located.mk)
+            | true ->
+              pexp_ident
+                (Ldot (Lident subproduct_module_name, "create_local") |> Located.mk)
+          in
+          [%expr
+            [%e subproduct_function]
+              { f = (fun x -> __ppx_typed_fields_creator_f [%e constructor_expression]) }]
+      in
+      pexp_let Nonrecursive [ value_binding ~pat:(pvar pld_name.txt) ~expr ] acc)
 ;;

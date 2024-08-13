@@ -24,6 +24,7 @@ let generate_constructor_declarations ~loc ~elements_to_convert ~core_type_param
           [ ptyp_constr
               (Ldot (Lident subproduct_module_name, "t") |> Located.mk)
               (params @ [ ptyp_var unique_parameter_name ])
+            |> Ppxlib_jane.Shim.Pcstr_tuple_arg.of_core_type
           ]
       | Single_value_constructor
           { minimum_needed_parameters; granularity = Polymorphic_deep; _ } ->
@@ -39,6 +40,7 @@ let generate_constructor_declarations ~loc ~elements_to_convert ~core_type_param
           [ ptyp_constr
               (Ldot (Lident subproduct_module_name, "t") |> Located.mk)
               (core_type_minimum_params @ [ ptyp_var unique_parameter_name ])
+            |> Ppxlib_jane.Shim.Pcstr_tuple_arg.of_core_type
           ]
       | _ -> Pcstr_tuple []
     in
@@ -320,7 +322,7 @@ let get_function_body ~loc ~elements_to_convert =
   }
 ;;
 
-let create_function_body ~loc ~constructor_declarations =
+let create_function_body ~loc ~constructor_declarations ~local:_ =
   let open (val Ast_builder.make loc) in
   let cases =
     List.map constructor_declarations ~f:(fun ((element, _), _) ->
@@ -425,17 +427,17 @@ let type_ids ~loc ~elements_to_convert ~core_type_params =
           (List.sort ~compare:Int.compare minimum_needed_parameter_ids)
           ~init:functor_name
           ~f:(fun acc param ->
-          let param_str =
-            pmod_ident (Lident [%string "T%{(param + 1)#Int}"] |> Located.mk)
-          in
-          pmod_apply acc param_str)
+            let param_str =
+              pmod_ident (Lident [%string "T%{(param + 1)#Int}"] |> Located.mk)
+            in
+            pmod_apply acc param_str)
       in
       pstr_module (module_binding ~name ~expr)
     | _ ->
       [%stri
         let ([%p pvar (supported_constructor_name element |> String.lowercase)] :
               [%t mapper#core_type (supported_constructor_type element)]
-              Base.Type_equal.Id.t)
+                Base.Type_equal.Id.t)
           =
           Base.Type_equal.Id.create
             ~name:[%e estring (supported_constructor_name element |> String.lowercase)]
@@ -723,42 +725,42 @@ let generic_generate_functor
     subproduct_elements
     ~init:initial_expression
     ~f:(fun functor_parameter acc ->
-    let manifest_type, params =
-      match functor_parameter with
-      | `Constr (_, ident, params) ->
-        let clean_params =
-          List.init (List.length params) ~f:(fun i ->
-            ptyp_var [%string "t%{(i + 1)#Int}"], (NoVariance, NoInjectivity))
-        in
-        ( Some (ptyp_constr ident (List.map clean_params ~f:(fun (f, _) -> f)))
-        , clean_params )
-      | `Poly (element, minimum_needed_parameters) ->
-        Some (supported_constructor_type element), minimum_needed_parameters
-    in
-    let module_type =
-      let module_type =
-        Generic_generator.opaque_signature
-          (module Typed_deriver_variants)
-          ~loc
-          ~manifest_type
-          ~original_kind:Ptype_abstract
-          ~params
+      let manifest_type, params =
+        match functor_parameter with
+        | `Constr (_, ident, params) ->
+          let clean_params =
+            List.init (List.length params) ~f:(fun i ->
+              ptyp_var [%string "t%{(i + 1)#Int}"], (NoVariance, NoInjectivity))
+          in
+          ( Some (ptyp_constr ident (List.map clean_params ~f:(fun (f, _) -> f)))
+          , clean_params )
+        | `Poly (element, minimum_needed_parameters) ->
+          Some (supported_constructor_type element), minimum_needed_parameters
       in
-      { module_type with pmty_attributes = [ disable_warning_32 ~loc ] }
-    in
-    let element =
-      match functor_parameter with
-      | `Constr (element, _, _) | `Poly (element, _) -> element
-    in
-    functor_creation_function
-      (Named
-         ( Some
-             (supported_constructor_name element
-              |> String.capitalize
-              |> Variant_kind_generator_intf.append_functor_parameter)
-           |> Located.mk
-         , module_type ))
-      acc)
+      let module_type =
+        let module_type =
+          Generic_generator.opaque_signature
+            (module Typed_deriver_variants)
+            ~loc
+            ~manifest_type
+            ~original_kind:Ptype_abstract
+            ~params
+        in
+        { module_type with pmty_attributes = [ disable_warning_32 ~loc ] }
+      in
+      let element =
+        match functor_parameter with
+        | `Constr (element, _, _) | `Poly (element, _) -> element
+      in
+      functor_creation_function
+        (Named
+           ( Some
+               (supported_constructor_name element
+                |> String.capitalize
+                |> Variant_kind_generator_intf.append_functor_parameter)
+             |> Located.mk
+           , module_type ))
+        acc)
 ;;
 
 (**

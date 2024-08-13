@@ -89,6 +89,7 @@ val create_function_body
   :  (module Product_kind_intf.S with type t = 'a)
   -> loc:location
   -> constructor_declarations:(('a * granularity) * constructor_declaration) list
+  -> local:bool
   -> expression
 
 (**

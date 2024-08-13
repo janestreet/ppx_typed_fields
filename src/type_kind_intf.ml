@@ -280,6 +280,7 @@ module type S = sig
   val create_function_body
     :  loc:location
     -> constructor_declarations:((t * granularity) * constructor_declaration) list
+    -> local:bool
     -> expression
 
   (**

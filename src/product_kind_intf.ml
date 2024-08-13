@@ -48,5 +48,6 @@ module type S = sig
     :  loc:location
     -> constructor_declarations:
          ((t * Type_kind_intf.granularity) * constructor_declaration) list
+    -> local:bool
     -> expression
 end

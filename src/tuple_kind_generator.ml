@@ -48,11 +48,12 @@ let set_function_body ~loc ~elements_to_convert =
     ~elements_to_convert
 ;;
 
-let create_function_body ~loc ~constructor_declarations =
+let create_function_body ~loc ~constructor_declarations ~local =
   Product_kind_generator.create_function_body
     (module Tuple_generator)
     ~loc
     ~constructor_declarations
+    ~local
 ;;
 
 let type_ids ~loc ~elements_to_convert ~core_type_params =

@@ -17,6 +17,7 @@ module Unit = struct
   let get : type a. a t -> derived_on -> a = unreachable_code
   let set : type a. a t -> derived_on -> a -> derived_on = fun t _ _ -> unreachable_code t
   let create ({ f = _ } : creator) : derived_on = ()
+  let create_local ({ f = _ } : creator) : derived_on = ()
 
   module Type_ids = struct
     let type_id : type a. a t -> a Type_equal.Id.t = unreachable_code
@@ -63,6 +64,7 @@ module Singleton (T : T) = struct
   let get (type a) (T : a t) (t : derived_on) : a = t
   let set (type a) (T : a t) (_ : derived_on) (t : a) : derived_on = t
   let create { f } = f T
+  let create_local { f } = f T
 
   module Type_ids = struct
     let type_id : T.t Type_equal.Id.t =
@@ -98,6 +100,7 @@ module Singleton1 (T1 : T1) = struct
   let get (type t1 a) (T : (t1, a) t) (t : t1 derived_on) : a = t
   let set (type t1 a) (T : (t1, a) t) (_ : t1 derived_on) (t : a) : t1 derived_on = t
   let create { f } = f T
+  let create_local { f } = f T
 
   module Type_ids (Type_id_T1 : T) = struct
     let type_id : Type_id_T1.t T1.t Type_equal.Id.t =
@@ -139,6 +142,7 @@ module Singleton2 (T2 : T2) = struct
   ;;
 
   let create { f } = f T
+  let create_local { f } = f T
 
   module Type_ids (Typed_id_T1 : T) (Type_id_T2 : T) = struct
     let type_id : (Typed_id_T1.t, Type_id_T2.t) T2.t Type_equal.Id.t =
@@ -182,6 +186,7 @@ module Singleton3 (T3 : T3) = struct
   ;;
 
   let create { f } = f T
+  let create_local { f } = f T
 
   module Type_ids (Type_id_T1 : T) (Type_id_T2 : T) (Type_id_T3 : T) = struct
     let type_id : (Type_id_T1.t, Type_id_T2.t, Type_id_T3.t) T3.t Type_equal.Id.t =
@@ -210,8 +215,8 @@ module Singleton3 (T3 : T3) = struct
 end
 
 module Singleton4 (T4 : sig
-  type ('a, 'b, 'c, 'd) t
-end) =
+    type ('a, 'b, 'c, 'd) t
+  end) =
 struct
   type nonrec ('t1, 't2, 't3, 't4) derived_on = ('t1, 't2, 't3, 't4) T4.t
 
@@ -245,6 +250,7 @@ struct
   ;;
 
   let create { f } = f T
+  let create_local { f } = f T
 
   module Type_ids (Type_id_T1 : T) (Type_id_T2 : T) (Type_id_T3 : T) (Type_id_T4 : T) =
   struct
@@ -281,8 +287,8 @@ struct
 end
 
 module Singleton5 (T5 : sig
-  type ('a, 'b, 'c, 'd, 'e) t
-end) =
+    type ('a, 'b, 'c, 'd, 'e) t
+  end) =
 struct
   type nonrec ('t1, 't2, 't3, 't4, 't5) derived_on = ('t1, 't2, 't3, 't4, 't5) T5.t
 
@@ -317,17 +323,18 @@ struct
   ;;
 
   let create { f } = f T
+  let create_local { f } = f T
 
   module Type_ids
-    (Type_id_T1 : T)
-    (Type_id_T2 : T)
-    (Type_id_T3 : T)
-    (Type_id_T4 : T)
-    (Type_id_T5 : T) =
+      (Type_id_T1 : T)
+      (Type_id_T2 : T)
+      (Type_id_T3 : T)
+      (Type_id_T4 : T)
+      (Type_id_T5 : T) =
   struct
     let type_id
       : (Type_id_T1.t, Type_id_T2.t, Type_id_T3.t, Type_id_T4.t, Type_id_T5.t) T5.t
-      Type_equal.Id.t
+          Type_equal.Id.t
       =
       Type_equal.Id.create ~name:"this" (fun _ -> Sexp.Atom "<opaque>")
     ;;

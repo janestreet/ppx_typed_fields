@@ -226,98 +226,100 @@ let identify_constructor_declaration ~loc cd params =
       ; return_value_type = [%type: unit]
       ; is_polymorphic = false
       }
-  (* Payload of a single constr type in the constructor. *)
-  | None, Pcstr_tuple [ ({ ptyp_desc = Ptyp_constr (ident, inner_params); _ } as single) ]
-    ->
-    raise_if_typed_fields_is_seen cd;
-    List.iter inner_params ~f:raise_if_subvariant_is_seen#core_type;
-    let granularity =
-      match Attribute.get subvariant cd with
-      | Some _ -> Variant_kind_generator_intf.Constr_deep { ident; params = inner_params }
-      | None -> Variant_kind_generator_intf.Shallow
-    in
-    let minimum_needed_parameters, minimum_needed_parameter_ids =
-      let parameters_needed =
-        finder_of_types#core_type single (Set.empty (module String))
-      in
-      let needed_parameters_as_id_list =
-        find_minimum_needed_parameter_ids ~params ~parameters_needed
-      in
-      let minimum_needed_parameters =
-        find_minimum_parameters_needed ~total_params:params ~parameters_needed
-      in
-      minimum_needed_parameters, needed_parameters_as_id_list
-    in
-    Single_value_constructor
-      { constructor_name = cd.pcd_name.txt
-      ; return_value_type = attribute_remover#core_type single
-      ; return_value_type_with_original_attributes = single
-      ; granularity
-      ; minimum_needed_parameters
-      ; minimum_needed_parameter_ids
-      ; typed_fields = false
-      ; is_polymorphic = false
-      }
-  (* Payload of a polymorphic variant type in the constructor. *)
-  | ( None
-    , Pcstr_tuple
-        [ ({ ptyp_desc = Ptyp_variant (row_fields, Closed, None); _ } as single) ] ) ->
-    raise_if_typed_fields_is_seen cd;
-    let granularity =
-      match Attribute.get subvariant cd with
-      | Some _ ->
-        List.iter row_fields ~f:check_subvariant_annotations_for_row_field;
-        Variant_kind_generator_intf.Polymorphic_deep
-      | None ->
-        List.iter row_fields ~f:raise_if_subvariant_is_seen#row_field;
-        Variant_kind_generator_intf.Shallow
-    in
-    let parameters_needed =
-      finder_of_types#core_type single (Set.empty (module String))
-    in
-    let minimum_needed_parameter_ids =
-      find_minimum_needed_parameter_ids ~params ~parameters_needed
-    in
-    let minimum_needed_parameters =
-      find_minimum_parameters_needed ~total_params:params ~parameters_needed
-    in
-    Single_value_constructor
-      { constructor_name = cd.pcd_name.txt
-      ; return_value_type = attribute_remover#core_type single
-      ; return_value_type_with_original_attributes = single
-      ; granularity
-      ; minimum_needed_parameters
-      ; minimum_needed_parameter_ids
-      ; typed_fields = false
-      ; is_polymorphic = false
-      }
-  (* Payload of a single type in the constructor. *)
   | None, Pcstr_tuple [ single ] ->
-    (match single.ptyp_desc with
-     | Ptyp_tuple _ -> ()
-     | _ -> raise_if_typed_fields_is_seen cd);
-    raise_if_subvariant_is_seen#constructor_declaration cd;
-    let parameters_needed =
-      finder_of_types#core_type single (Set.empty (module String))
-    in
-    let minimum_needed_parameters =
-      find_minimum_parameters_needed ~total_params:params ~parameters_needed
-    in
-    let minimum_needed_parameter_ids =
-      find_minimum_needed_parameter_ids ~params ~parameters_needed
-    in
-    Single_value_constructor
-      { constructor_name = cd.pcd_name.txt
-      ; return_value_type = attribute_remover#core_type single
-      ; return_value_type_with_original_attributes = single
-      ; granularity = Shallow
-      ; minimum_needed_parameters
-      ; minimum_needed_parameter_ids
-      ; typed_fields = has_typed_fields cd
-      ; is_polymorphic = false
-      }
+    let single = Ppxlib_jane.Shim.Pcstr_tuple_arg.to_core_type single in
+    (match single with
+     (* Payload of a single constr type in the constructor. *)
+     | { ptyp_desc = Ptyp_constr (ident, inner_params); _ } ->
+       raise_if_typed_fields_is_seen cd;
+       List.iter inner_params ~f:raise_if_subvariant_is_seen#core_type;
+       let granularity =
+         match Attribute.get subvariant cd with
+         | Some _ ->
+           Variant_kind_generator_intf.Constr_deep { ident; params = inner_params }
+         | None -> Variant_kind_generator_intf.Shallow
+       in
+       let minimum_needed_parameters, minimum_needed_parameter_ids =
+         let parameters_needed =
+           finder_of_types#core_type single (Set.empty (module String))
+         in
+         let needed_parameters_as_id_list =
+           find_minimum_needed_parameter_ids ~params ~parameters_needed
+         in
+         let minimum_needed_parameters =
+           find_minimum_parameters_needed ~total_params:params ~parameters_needed
+         in
+         minimum_needed_parameters, needed_parameters_as_id_list
+       in
+       Single_value_constructor
+         { constructor_name = cd.pcd_name.txt
+         ; return_value_type = attribute_remover#core_type single
+         ; return_value_type_with_original_attributes = single
+         ; granularity
+         ; minimum_needed_parameters
+         ; minimum_needed_parameter_ids
+         ; typed_fields = false
+         ; is_polymorphic = false
+         }
+     (* Payload of a polymorphic variant type in the constructor. *)
+     | { ptyp_desc = Ptyp_variant (row_fields, Closed, None); _ } ->
+       raise_if_typed_fields_is_seen cd;
+       let granularity =
+         match Attribute.get subvariant cd with
+         | Some _ ->
+           List.iter row_fields ~f:check_subvariant_annotations_for_row_field;
+           Variant_kind_generator_intf.Polymorphic_deep
+         | None ->
+           List.iter row_fields ~f:raise_if_subvariant_is_seen#row_field;
+           Variant_kind_generator_intf.Shallow
+       in
+       let parameters_needed =
+         finder_of_types#core_type single (Set.empty (module String))
+       in
+       let minimum_needed_parameter_ids =
+         find_minimum_needed_parameter_ids ~params ~parameters_needed
+       in
+       let minimum_needed_parameters =
+         find_minimum_parameters_needed ~total_params:params ~parameters_needed
+       in
+       Single_value_constructor
+         { constructor_name = cd.pcd_name.txt
+         ; return_value_type = attribute_remover#core_type single
+         ; return_value_type_with_original_attributes = single
+         ; granularity
+         ; minimum_needed_parameters
+         ; minimum_needed_parameter_ids
+         ; typed_fields = false
+         ; is_polymorphic = false
+         }
+     (* Payload of a single type in the constructor. *)
+     | single ->
+       (match single.ptyp_desc with
+        | Ptyp_tuple _ -> ()
+        | _ -> raise_if_typed_fields_is_seen cd);
+       raise_if_subvariant_is_seen#constructor_declaration cd;
+       let parameters_needed =
+         finder_of_types#core_type single (Set.empty (module String))
+       in
+       let minimum_needed_parameters =
+         find_minimum_parameters_needed ~total_params:params ~parameters_needed
+       in
+       let minimum_needed_parameter_ids =
+         find_minimum_needed_parameter_ids ~params ~parameters_needed
+       in
+       Single_value_constructor
+         { constructor_name = cd.pcd_name.txt
+         ; return_value_type = attribute_remover#core_type single
+         ; return_value_type_with_original_attributes = single
+         ; granularity = Shallow
+         ; minimum_needed_parameters
+         ; minimum_needed_parameter_ids
+         ; typed_fields = has_typed_fields cd
+         ; is_polymorphic = false
+         })
   (* Anonymous tuple payload. *)
   | None, Pcstr_tuple multiple ->
+    let multiple = List.map multiple ~f:Ppxlib_jane.Shim.Pcstr_tuple_arg.to_core_type in
     raise_if_subvariant_is_seen#constructor_declaration cd;
     let minimum_needed_parameters =
       let parameters_needed =

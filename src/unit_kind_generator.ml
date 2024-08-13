@@ -45,7 +45,7 @@ let set_function_body ~loc ~elements_to_convert:_ =
   [%expr fun t _ _ -> unreachable_code t]
 ;;
 
-let create_function_body ~loc ~constructor_declarations:_ =
+let create_function_body ~loc ~constructor_declarations:_ ~local:_ =
   let open (val Ast_builder.make loc) in
   [%expr ()]
 ;;
