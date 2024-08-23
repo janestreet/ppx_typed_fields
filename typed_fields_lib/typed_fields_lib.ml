@@ -17,7 +17,7 @@ module Unit = struct
   let get : type a. a t -> derived_on -> a = unreachable_code
   let set : type a. a t -> derived_on -> a -> derived_on = fun t _ _ -> unreachable_code t
   let create ({ f = _ } : creator) : derived_on = ()
-  let create_local ({ f = _ } : creator) : derived_on = ()
+  let create_local (local_ ({ f = _ } : creator)) : derived_on = local_ ()
 
   module Type_ids = struct
     let type_id : type a. a t -> a Type_equal.Id.t = unreachable_code

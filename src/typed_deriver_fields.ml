@@ -91,7 +91,8 @@ let gen_partial_sig ~loc ~params ~t_name =
     [%sigi: val create : [%t create_type]]
   in
   let create_local =
-    [%sigi: val create_local : [%t creator_type_constr] -> [%t record_type_constr]]
+    [%sigi:
+      val create_local : local_ [%t creator_type_constr] -> local_ [%t record_type_constr]]
   in
   let type_ids =
     let signature =
@@ -443,14 +444,17 @@ let generate_str_body
     match constructor_declarations with
     | [] ->
       [%stri
-        let create_local ({ f = _ } : [%t creator_constr_type]) : [%t var_record_type] =
+        let create_local (local_ ({ f = _ } : [%t creator_constr_type]))
+          : [%t var_record_type]
+          = exclave_
           [%e body]
         ;;]
     | _ :: _ ->
       [%stri
-        let create_local ({ f = __ppx_typed_fields_creator_f } : [%t creator_constr_type])
+        let create_local
+          (local_ ({ f = __ppx_typed_fields_creator_f } : [%t creator_constr_type]))
           : [%t var_record_type]
-          =
+          = exclave_
           [%e body]
         ;;]
   in

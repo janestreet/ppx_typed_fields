@@ -35,7 +35,7 @@ module type S = sig
   val get : 'a t -> derived_on -> 'a
   val set : 'a t -> derived_on -> 'a -> derived_on
   val create : creator -> derived_on
-  val create_local : creator -> derived_on
+  val create_local : local_ creator -> local_ derived_on
 end
 
 module type S1 = sig
@@ -46,7 +46,7 @@ module type S1 = sig
   val get : ('t1, 'a) t -> 't1 derived_on -> 'a
   val set : ('t1, 'a) t -> 't1 derived_on -> 'a -> 't1 derived_on
   val create : 't1 creator -> 't1 derived_on
-  val create_local : 't1 creator -> 't1 derived_on
+  val create_local : local_ 't1 creator -> local_ 't1 derived_on
 end
 
 module type S2 = sig
@@ -57,7 +57,7 @@ module type S2 = sig
   val get : ('t1, 't2, 'a) t -> ('t1, 't2) derived_on -> 'a
   val set : ('t1, 't2, 'a) t -> ('t1, 't2) derived_on -> 'a -> ('t1, 't2) derived_on
   val create : ('t1, 't2) creator -> ('t1, 't2) derived_on
-  val create_local : ('t1, 't2) creator -> ('t1, 't2) derived_on
+  val create_local : local_ ('t1, 't2) creator -> local_ ('t1, 't2) derived_on
 end
 
 module type S3 = sig
@@ -74,7 +74,7 @@ module type S3 = sig
     -> ('t1, 't2, 't3) derived_on
 
   val create : ('t1, 't2, 't3) creator -> ('t1, 't2, 't3) derived_on
-  val create_local : ('t1, 't2, 't3) creator -> ('t1, 't2, 't3) derived_on
+  val create_local : local_ ('t1, 't2, 't3) creator -> local_ ('t1, 't2, 't3) derived_on
 end
 
 module type S4 = sig
@@ -91,7 +91,10 @@ module type S4 = sig
     -> ('t1, 't2, 't3, 't4) derived_on
 
   val create : ('t1, 't2, 't3, 't4) creator -> ('t1, 't2, 't3, 't4) derived_on
-  val create_local : ('t1, 't2, 't3, 't4) creator -> ('t1, 't2, 't3, 't4) derived_on
+
+  val create_local
+    :  local_ ('t1, 't2, 't3, 't4) creator
+    -> local_ ('t1, 't2, 't3, 't4) derived_on
 end
 
 module type S5 = sig
@@ -111,8 +114,8 @@ module type S5 = sig
   val create : ('t1, 't2, 't3, 't4, 't5) creator -> ('t1, 't2, 't3, 't4, 't5) derived_on
 
   val create_local
-    :  ('t1, 't2, 't3, 't4, 't5) creator
-    -> ('t1, 't2, 't3, 't4, 't5) derived_on
+    :  local_ ('t1, 't2, 't3, 't4, 't5) creator
+    -> local_ ('t1, 't2, 't3, 't4, 't5) derived_on
 end
 
 module S_of_S1 (M : S1) (T : T) :
@@ -129,7 +132,7 @@ module S_of_S1 (M : S1) (T : T) :
     M.create m_creator
   ;;
 
-  let create_local ({ f } : creator) =
+  let create_local (local_ ({ f } : creator)) = local_
     let m_creator_f : type a. (T.t, a) M.t -> a = fun field -> f field in
     let m_creator = { M.f = m_creator_f } in
     M.create_local m_creator
@@ -168,7 +171,7 @@ struct
     M.create m_creator
   ;;
 
-  let create_local ({ f } : creator) =
+  let create_local (local_ ({ f } : creator)) = local_
     let m_creator_f : type a. (T1.t, T2.t, a) M.t -> a = fun field -> f field in
     let m_creator = { M.f = m_creator_f } in
     M.create_local m_creator
@@ -208,7 +211,7 @@ module S_of_S3 (M : S3) (T1 : T) (T2 : T) (T3 : T) :
     M.create m_creator
   ;;
 
-  let create_local ({ f } : creator) =
+  let create_local (local_ ({ f } : creator)) = local_
     let m_creator_f : type a. (T1.t, T2.t, T3.t, a) M.t -> a = fun field -> f field in
     let m_creator = { M.f = m_creator_f } in
     M.create_local m_creator
@@ -250,7 +253,7 @@ module S_of_S4 (M : S4) (T1 : T) (T2 : T) (T3 : T) (T4 : T) :
     M.create m_creator
   ;;
 
-  let create_local ({ f } : creator) =
+  let create_local (local_ ({ f } : creator)) = local_
     let m_creator_f : type a. (T1.t, T2.t, T3.t, T4.t, a) M.t -> a =
       fun field -> f field
     in
@@ -294,7 +297,7 @@ module S_of_S5 (M : S5) (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) :
     M.create m_creator
   ;;
 
-  let create_local ({ f } : creator) =
+  let create_local (local_ ({ f } : creator)) = local_
     let m_creator_f : type a. (T1.t, T2.t, T3.t, T4.t, T5.t, a) M.t -> a =
       fun field -> f field
     in
