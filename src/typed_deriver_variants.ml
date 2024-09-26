@@ -586,7 +586,7 @@ let generate_str_body
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
-      ~name_of_first_parameter:internal_gadt_name
+      ~name_of_first_parameter:(Lident internal_gadt_name)
   in
   let path =
     let function_body = Specific_generator.path_function_body ~loc ~elements_to_convert in
@@ -603,7 +603,7 @@ let generate_str_body
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
-      ~name_of_first_parameter:internal_gadt_name
+      ~name_of_first_parameter:(Lident internal_gadt_name)
   in
   let ord =
     let function_body = Specific_generator.ord_function_body ~loc ~elements_to_convert in
@@ -620,7 +620,7 @@ let generate_str_body
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
-      ~name_of_first_parameter:internal_gadt_name
+      ~name_of_first_parameter:(Lident internal_gadt_name)
   in
   let constr_variant_type =
     ptyp_constr
@@ -653,7 +653,7 @@ let generate_str_body
            var_variant_type
            (ptyp_constr (Lident "option" |> Located.mk) [ ptyp_var unique_parameter_id ]))
       ~function_body
-      ~name_of_first_parameter:internal_gadt_name
+      ~name_of_first_parameter:(Lident internal_gadt_name)
   in
   let create =
     let function_body =
@@ -671,7 +671,7 @@ let generate_str_body
            constr_variant_type)
       ~var_arrow_type:(ptyp_arrow Nolabel (ptyp_var unique_parameter_id) var_variant_type)
       ~function_body
-      ~name_of_first_parameter:internal_gadt_name
+      ~name_of_first_parameter:(Lident internal_gadt_name)
   in
   let type_ids =
     let type_ids =
@@ -703,7 +703,7 @@ let generate_str_body
              type_equal_t
              [ ptyp_constr (Lident unique_parameter_id |> Located.mk) [] ])
         ~var_arrow_type:(ptyp_constr type_equal_t [ ptyp_var unique_parameter_id ])
-        ~name_of_first_parameter:internal_gadt_name
+        ~name_of_first_parameter:(Lident internal_gadt_name)
     in
     let number_of_parameters = List.length core_type_params in
     let functor_expression =
@@ -774,7 +774,7 @@ let generate_str_body
         ~constr_arrow_type:arrow_type
         ~var_arrow_type:arrow_type
         ~function_body
-        ~name_of_first_parameter:"field"
+        ~name_of_first_parameter:(Lident "field")
     in
     let sexp_of_packed =
       let function_body = Specific_generator.sexp_of_t_body ~loc ~elements_to_convert in

@@ -465,10 +465,29 @@ module Gen_struct = struct
       ]
   ;;
 
-  let generate ~loc ~path:_ (rec_flag, tds) =
+  let gen_subset (td : type_declaration) super =
+    let { ptype_name = { txt = typ_name; loc }; _ } = td in
+    match identify_type_case td with
+    | Record (fields, params) ->
+      Subset_of.generate_str ~loc ~typ_name ~fields ~params ~super
+    | _ -> Location.raise_errorf ~loc "[subset_of] can only be applied for record types"
+  ;;
+
+  let generate ~loc ~path:_ (rec_flag, tds) super =
     let tds = List.map tds ~f:name_type_params_in_td in
     check_at_least_one_supported_type ~loc rec_flag tds;
-    List.concat_map tds ~f:fields_of_td
+    let typed_field_modules = List.concat_map tds ~f:fields_of_td in
+    let superset_field_fns =
+      match super with
+      | Some { pexp_desc = Pexp_construct (super, None); _ } ->
+        List.map tds ~f:(fun td -> gen_subset td super.txt)
+      | Some { pexp_loc; _ } ->
+        Location.raise_errorf
+          ~loc:pexp_loc
+          "Typed_field module name expected for [subset_of]"
+      | None -> []
+    in
+    typed_field_modules @ superset_field_fns
   ;;
 end
 
@@ -708,10 +727,31 @@ module Gen_sig = struct
     ]
   ;;
 
-  let generate ~loc ~path:_ (rec_flag, tds) =
+  let gen_subset (td : type_declaration) super =
+    let { ptype_name = { txt = typ_name; loc }; _ } = td in
+    match identify_type_case td with
+    | Record (_, params) | Opaque (true, params) ->
+      Subset_of.generate_sig ~loc ~typ_name ~params ~super
+    | _ -> Location.raise_errorf ~loc "[subset_of] can only be applied for record types"
+  ;;
+
+  let generate ~loc ~path:_ (rec_flag, tds) super =
     let tds = List.map tds ~f:name_type_params_in_td in
     check_at_least_one_valid_mli_creation ~loc rec_flag tds;
-    List.filter tds ~f:is_mli_creation_supported |> List.concat_map ~f:fields_of_td
+    let typed_field_modules =
+      List.filter tds ~f:is_mli_creation_supported |> List.concat_map ~f:fields_of_td
+    in
+    let superset_field_fns =
+      match super with
+      | Some { pexp_desc = Pexp_construct (super, None); _ } ->
+        List.map tds ~f:(fun td -> gen_subset td super.txt)
+      | Some { pexp_loc; _ } ->
+        Location.raise_errorf
+          ~loc:pexp_loc
+          "Typed_field module name expected for [subset_of]"
+      | None -> []
+    in
+    typed_field_modules @ superset_field_fns
   ;;
 end
 
@@ -779,13 +819,19 @@ let () =
 let fields =
   Deriving.add
     "typed_fields"
-    ~str_type_decl:(Deriving.Generator.make Deriving.Args.empty Gen_struct.generate)
-    ~sig_type_decl:(Deriving.Generator.make Deriving.Args.empty Gen_sig.generate)
+    ~str_type_decl:
+      (Deriving.Generator.make
+         Deriving.Args.(empty +> arg "subset_of" __)
+         Gen_struct.generate)
+    ~sig_type_decl:
+      (Deriving.Generator.make
+         Deriving.Args.(empty +> arg "subset_of" __)
+         Gen_sig.generate)
 ;;
 
 module For_testing = struct
-  let expand_struct = Gen_struct.generate ~path:()
-  let expand_sig = Gen_sig.generate ~path:()
+  let expand_struct ?super ~loc tds = Gen_struct.generate ~loc ~path:() tds super
+  let expand_sig ?super ~loc tds = Gen_sig.generate ~loc ~path:() tds super
   let expand_anonymous_struct = Gen_anonymous_struct.generate ~path:()
   let expand_variant_struct = Ppx_typed_variants.For_testing.expand_struct
   let expand_variant_sig = Ppx_typed_variants.For_testing.expand_sig

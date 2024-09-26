@@ -123,7 +123,7 @@ let generate_new_typed_function
       (ptyp_arrow
          Nolabel
          (ptyp_constr
-            (Located.mk (Lident name_of_first_parameter))
+            (Located.mk name_of_first_parameter)
             (core_type_params @ [ ptyp_var unique_parameter_id ]))
          var_arrow_type)
   in
@@ -142,7 +142,7 @@ let generate_new_typed_function
            (ptyp_arrow
               Nolabel
               (ptyp_constr
-                 (Located.mk (Lident name_of_first_parameter))
+                 (Located.mk name_of_first_parameter)
                  (parameters_as_constrs
                   @ [ ptyp_constr (Located.mk (Lident unique_parameter_id)) [] ]))
               constr_arrow_type))
