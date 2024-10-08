@@ -85,10 +85,10 @@ let generate_sig ~loc ~typ_name ~params ~super =
          var_arrow_type)
   in
   psig_value
-  (Ppxlib_jane.Shim.Value_description.create
-      ~name:(Located.mk function_name)
-      ~type_:function_type
-      ~modalities:[]
-      ~prim:[]
-      ~loc)
+    (Ppxlib_jane.Shim.Value_description.create
+       ~name:(Located.mk function_name)
+       ~type_:function_type
+       ~modalities:[]
+       ~prim:[]
+       ~loc)
 ;;
