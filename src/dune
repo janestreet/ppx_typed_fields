@@ -6,4 +6,4 @@
    ppx_typed_fields.typed_variants_lib sexplib)
  (libraries base ppxlib ppxlib_jane)
  (preprocess
-  (pps ppxlib.metaquot ppx_string ppx_jane)))
+  (pps ppxlib.metaquot ppx_base ppx_pipebang ppx_string)))

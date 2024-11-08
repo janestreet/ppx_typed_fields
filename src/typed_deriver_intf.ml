@@ -72,8 +72,10 @@ let generate_packed_t_type_declaration ~loc ~core_type_params =
                ~type_:
                  (ptyp_poly
                     (List.filter_map core_type_params ~f:(fun param ->
-                       match param.ptyp_desc with
-                       | Ptyp_var name -> Some (Located.mk name)
+                       match
+                         Ppxlib_jane.Shim.Core_type_desc.of_parsetree param.ptyp_desc
+                       with
+                       | Ptyp_var (name, _) -> Some (Located.mk name)
                        | _ -> None))
                     (ptyp_constr (Lident "t'" |> Located.mk) core_type_params))
            ])
@@ -112,8 +114,8 @@ let generate_new_typed_function
   let open (val Ast_builder.make loc) in
   let parameter_names =
     List.filter_map core_type_params ~f:(fun { ptyp_desc; _ } ->
-      match ptyp_desc with
-      | Ptyp_var name -> Some (Located.mk name)
+      match Ppxlib_jane.Shim.Core_type_desc.of_parsetree ptyp_desc with
+      | Ptyp_var (name, _) -> Some (Located.mk name)
       | _ -> None)
   in
   let t_type_parameters = parameter_names @ [ Located.mk unique_parameter_id ] in
@@ -123,15 +125,15 @@ let generate_new_typed_function
       (ptyp_arrow
          Nolabel
          (ptyp_constr
-            (Located.mk (Lident name_of_first_parameter))
+            (Located.mk name_of_first_parameter)
             (core_type_params @ [ ptyp_var unique_parameter_id ]))
          var_arrow_type)
   in
   let function_expression =
     let parameters_as_constrs =
       List.map core_type_params ~f:(fun type_ ->
-        match type_.ptyp_desc with
-        | Ptyp_var name -> ptyp_constr (Lident name |> Located.mk) []
+        match Ppxlib_jane.Shim.Core_type_desc.of_parsetree type_.ptyp_desc with
+        | Ptyp_var (name, _) -> ptyp_constr (Lident name |> Located.mk) []
         | _ -> type_)
     in
     let inner_new_type =
@@ -142,7 +144,7 @@ let generate_new_typed_function
            (ptyp_arrow
               Nolabel
               (ptyp_constr
-                 (Located.mk (Lident name_of_first_parameter))
+                 (Located.mk name_of_first_parameter)
                  (parameters_as_constrs
                   @ [ ptyp_constr (Located.mk (Lident unique_parameter_id)) [] ]))
               constr_arrow_type))

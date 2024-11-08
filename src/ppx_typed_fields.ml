@@ -73,8 +73,8 @@ let find_minimum_parameters_needed ~total_params ~core_type =
       total_params
       ~init:(Map.empty (module String))
       ~f:(fun index acc (ctype, _) ->
-        match ctype.ptyp_desc with
-        | Ptyp_var name -> Map.set acc ~key:name ~data:index
+        match Ppxlib_jane.Shim.Core_type_desc.of_parsetree ctype.ptyp_desc with
+        | Ptyp_var (name, _) -> Map.set acc ~key:name ~data:index
         | _ -> acc)
   in
   let finder_of_types =
@@ -83,8 +83,8 @@ let find_minimum_parameters_needed ~total_params ~core_type =
 
       method! core_type ctype acc =
         let acc =
-          match ctype.ptyp_desc with
-          | Ptyp_var name -> Set.add acc name
+          match Ppxlib_jane.Shim.Core_type_desc.of_parsetree ctype.ptyp_desc with
+          | Ptyp_var (name, _) -> Set.add acc name
           | _ -> acc
         in
         super#core_type ctype acc
@@ -95,8 +95,8 @@ let find_minimum_parameters_needed ~total_params ~core_type =
   in
   let needed_parameters_as_parameter_list =
     List.filter total_params ~f:(fun (param_type, _) ->
-      match param_type.ptyp_desc with
-      | Ptyp_var name -> Set.mem parameters_needed name
+      match Ppxlib_jane.Shim.Core_type_desc.of_parsetree param_type.ptyp_desc with
+      | Ptyp_var (name, _) -> Set.mem parameters_needed name
       | _ -> false)
   in
   let needed_parameters_as_id_list =
@@ -170,13 +170,20 @@ let identify_type_case ?(remove_attributes = false) td =
   let params =
     td.ptype_params |> List.map ~f:(fun (type_, _) -> type_, (NoVariance, NoInjectivity))
   in
-  match td.ptype_kind, td.ptype_manifest with
+  match
+    td.ptype_kind, Option.map td.ptype_manifest ~f:Ppxlib_jane.Shim.Core_type.of_parsetree
+  with
   | Ptype_abstract, Some { ptyp_desc = Ptyp_constr ({ txt = Lident "unit"; _ }, _); _ } ->
     raise_if_opaque_attribute_is_seen td;
     Unit ((), params)
-  | Ptype_abstract, Some { ptyp_desc = Ptyp_tuple tuple_types; _ } ->
-    raise_if_opaque_attribute_is_seen td;
-    Tuple (attach_granularity_to_tuple_types ~remove_attributes tuple_types params, params)
+  | Ptype_abstract, Some { ptyp_desc = Ptyp_tuple labeled_types; _ } ->
+    (match Ppxlib_jane.as_unlabeled_tuple labeled_types with
+     | Some types ->
+       raise_if_opaque_attribute_is_seen td;
+       Tuple (attach_granularity_to_tuple_types ~remove_attributes types params, params)
+     | None ->
+       raise_if_opaque_attribute_is_seen td;
+       Unknown)
   | Ptype_abstract, None ->
     let should_generate =
       match Attribute.get opaque_attribute td with
@@ -245,24 +252,32 @@ let is_valid_subproduct_tree types_that_are_currently_being_defined td =
     end
   in
   let rec valid_use_of_subproducts ~ignore_current_type ~ctype ~has_skipped =
-    match ctype.ptyp_desc with
+    match Ppxlib_jane.Shim.Core_type_desc.of_parsetree ctype.ptyp_desc with
     (* When a tuple is used as a subproduct. *)
-    | Ptyp_tuple tuple_types ->
-      (match Attribute.get ~mark_as_seen:true subproduct ctype with
-       | Some _ when has_skipped ->
-         Location.raise_errorf
-           ~loc:ctype.ptyp_loc
-           "typed_fields's suproducts' type's parent must be either another subproduct \
-            or the top-level type deriving typed fields."
-       | Some _ ->
-         List.for_all tuple_types ~f:(fun ctype ->
-           valid_use_of_subproducts ~ctype ~has_skipped:false ~ignore_current_type:false)
+    | Ptyp_tuple labeled_tuple_types ->
+      (match Ppxlib_jane.as_unlabeled_tuple labeled_tuple_types with
+       | Some tuple_types ->
+         (match Attribute.get ~mark_as_seen:true subproduct ctype with
+          | Some _ when has_skipped ->
+            Location.raise_errorf
+              ~loc:ctype.ptyp_loc
+              "typed_fields's suproducts' type's parent must be either another \
+               subproduct or the top-level type deriving typed fields."
+          | Some _ ->
+            List.for_all tuple_types ~f:(fun ctype ->
+              valid_use_of_subproducts
+                ~ctype
+                ~has_skipped:false
+                ~ignore_current_type:false)
+          | None ->
+            List.for_all tuple_types ~f:(fun ctype ->
+              valid_use_of_subproducts
+                ~ctype
+                ~has_skipped:(not ignore_current_type)
+                ~ignore_current_type:false))
        | None ->
-         List.for_all tuple_types ~f:(fun ctype ->
-           valid_use_of_subproducts
-             ~ctype
-             ~has_skipped:(not ignore_current_type)
-             ~ignore_current_type:false))
+         raise_if_tag_is_spotted#core_type ctype;
+         true)
     | Ptyp_constr (name, type_parameters) ->
       (match Attribute.get ~mark_as_seen:true subproduct ctype with
        | Some _ ->
@@ -289,7 +304,7 @@ let is_valid_subproduct_tree types_that_are_currently_being_defined td =
     match
       ( Attribute.get ~mark_as_seen:true subfield declaration
       , Attribute.get ~mark_as_seen:true subproduct declaration.pld_type
-      , declaration.pld_type.ptyp_desc )
+      , Ppxlib_jane.Shim.Core_type_desc.of_parsetree declaration.pld_type.ptyp_desc )
     with
     | Some _, Some _, _ ->
       Location.raise_errorf
@@ -326,7 +341,8 @@ let is_valid_subproduct_tree types_that_are_currently_being_defined td =
         ~ctype:declaration.pld_type
         ~has_skipped:false
         ~ignore_current_type:false
-    | Some _, None, Ptyp_tuple _ ->
+    | Some _, None, Ptyp_tuple labeled_types
+      when List.for_all ~f:(fun (lbl, _) -> Option.is_none lbl) labeled_types ->
       valid_use_of_subproducts
         ~ctype:declaration.pld_type
         ~has_skipped:false
@@ -465,10 +481,29 @@ module Gen_struct = struct
       ]
   ;;
 
-  let generate ~loc ~path:_ (rec_flag, tds) =
+  let gen_subset (td : type_declaration) super =
+    let { ptype_name = { txt = typ_name; loc }; _ } = td in
+    match identify_type_case td with
+    | Record (fields, params) ->
+      Subset_of.generate_str ~loc ~typ_name ~fields ~params ~super
+    | _ -> Location.raise_errorf ~loc "[subset_of] can only be applied for record types"
+  ;;
+
+  let generate ~loc ~path:_ (rec_flag, tds) super =
     let tds = List.map tds ~f:name_type_params_in_td in
     check_at_least_one_supported_type ~loc rec_flag tds;
-    List.concat_map tds ~f:fields_of_td
+    let typed_field_modules = List.concat_map tds ~f:fields_of_td in
+    let superset_field_fns =
+      match super with
+      | Some { pexp_desc = Pexp_construct (super, None); _ } ->
+        List.map tds ~f:(fun td -> gen_subset td super.txt)
+      | Some { pexp_loc; _ } ->
+        Location.raise_errorf
+          ~loc:pexp_loc
+          "Typed_field module name expected for [subset_of]"
+      | None -> []
+    in
+    typed_field_modules @ superset_field_fns
   ;;
 end
 
@@ -624,7 +659,7 @@ module Gen_sig = struct
   ;;
 
   let generate_signature_with_name ~td ~fields_module_name
-    : signature * signature_item list
+    : signature_item list * signature_item list
     =
     let { ptype_name = { loc; _ }; _ } = td in
     let open (val Ast_builder.make loc) in
@@ -638,7 +673,7 @@ module Gen_sig = struct
       , singleton_modules )
   ;;
 
-  let fields_of_td (td : type_declaration) : signature =
+  let fields_of_td (td : type_declaration) : signature_item list =
     let { ptype_name = { txt = name; loc }; ptype_params = params; _ } = td in
     let open (val Ast_builder.make loc) in
     let fields_module_name =
@@ -708,10 +743,31 @@ module Gen_sig = struct
     ]
   ;;
 
-  let generate ~loc ~path:_ (rec_flag, tds) =
+  let gen_subset (td : type_declaration) super =
+    let { ptype_name = { txt = typ_name; loc }; _ } = td in
+    match identify_type_case td with
+    | Record (_, params) | Opaque (true, params) ->
+      Subset_of.generate_sig ~loc ~typ_name ~params ~super
+    | _ -> Location.raise_errorf ~loc "[subset_of] can only be applied for record types"
+  ;;
+
+  let generate ~loc ~path:_ (rec_flag, tds) super =
     let tds = List.map tds ~f:name_type_params_in_td in
     check_at_least_one_valid_mli_creation ~loc rec_flag tds;
-    List.filter tds ~f:is_mli_creation_supported |> List.concat_map ~f:fields_of_td
+    let typed_field_modules =
+      List.filter tds ~f:is_mli_creation_supported |> List.concat_map ~f:fields_of_td
+    in
+    let superset_field_fns =
+      match super with
+      | Some { pexp_desc = Pexp_construct (super, None); _ } ->
+        List.map tds ~f:(fun td -> gen_subset td super.txt)
+      | Some { pexp_loc; _ } ->
+        Location.raise_errorf
+          ~loc:pexp_loc
+          "Typed_field module name expected for [subset_of]"
+      | None -> []
+    in
+    typed_field_modules @ superset_field_fns
   ;;
 end
 
@@ -779,13 +835,19 @@ let () =
 let fields =
   Deriving.add
     "typed_fields"
-    ~str_type_decl:(Deriving.Generator.make Deriving.Args.empty Gen_struct.generate)
-    ~sig_type_decl:(Deriving.Generator.make Deriving.Args.empty Gen_sig.generate)
+    ~str_type_decl:
+      (Deriving.Generator.make
+         Deriving.Args.(empty +> arg "subset_of" __)
+         Gen_struct.generate)
+    ~sig_type_decl:
+      (Deriving.Generator.make
+         Deriving.Args.(empty +> arg "subset_of" __)
+         Gen_sig.generate)
 ;;
 
 module For_testing = struct
-  let expand_struct = Gen_struct.generate ~path:()
-  let expand_sig = Gen_sig.generate ~path:()
+  let expand_struct ?super ~loc tds = Gen_struct.generate ~loc ~path:() tds super
+  let expand_sig ?super ~loc tds = Gen_sig.generate ~loc ~path:() tds super
   let expand_anonymous_struct = Gen_anonymous_struct.generate ~path:()
   let expand_variant_struct = Ppx_typed_variants.For_testing.expand_struct
   let expand_variant_sig = Ppx_typed_variants.For_testing.expand_sig

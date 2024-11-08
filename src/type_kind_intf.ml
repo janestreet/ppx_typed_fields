@@ -150,8 +150,8 @@ let generate_param_name_to_index ~core_type_params =
     core_type_params
     ~init:(Map.empty (module String))
     ~f:(fun index acc { ptyp_desc; _ } ->
-      match ptyp_desc with
-      | Ptyp_var name -> Map.set acc ~key:name ~data:index
+      match Ppxlib_jane.Shim.Core_type_desc.of_parsetree ptyp_desc with
+      | Ptyp_var (name, _) -> Map.set acc ~key:name ~data:index
       | _ -> acc)
 ;;
 
@@ -172,8 +172,8 @@ let create_mapper ~loc param_name_to_index =
     inherit Ast_traverse.map as super
 
     method! core_type type_ =
-      match type_.ptyp_desc with
-      | Ptyp_var name ->
+      match Ppxlib_jane.Shim.Core_type_desc.of_parsetree type_.ptyp_desc with
+      | Ptyp_var (name, _) ->
         ptyp_constr
           (original_param_to_functor_param name param_name_to_index |> Located.mk)
           []
@@ -185,8 +185,8 @@ let create_mapper ~loc param_name_to_index =
 let generate_unique_id params =
   let existing =
     List.filter_map params ~f:(fun core_type ->
-      match core_type.ptyp_desc with
-      | Ptyp_var id -> Some id
+      match Ppxlib_jane.Shim.Core_type_desc.of_parsetree core_type.ptyp_desc with
+      | Ptyp_var (id, _) -> Some id
       | _ -> None)
     |> Set.of_list (module String)
   in

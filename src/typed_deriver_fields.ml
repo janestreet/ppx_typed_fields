@@ -327,7 +327,7 @@ let generate_str_body
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
-      ~name_of_first_parameter:internal_gadt_name
+      ~name_of_first_parameter:(Lident internal_gadt_name)
   in
   let path =
     let function_body = Specific_generator.path_function_body ~loc ~elements_to_convert in
@@ -344,7 +344,7 @@ let generate_str_body
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
-      ~name_of_first_parameter:internal_gadt_name
+      ~name_of_first_parameter:(Lident internal_gadt_name)
   in
   let ord =
     let function_body = Specific_generator.ord_function_body ~loc ~elements_to_convert in
@@ -361,14 +361,14 @@ let generate_str_body
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
-      ~name_of_first_parameter:internal_gadt_name
+      ~name_of_first_parameter:(Lident internal_gadt_name)
   in
   let constr_record_type =
     ptyp_constr
       (Lident derived_on_name |> Located.mk)
       (List.filter_map core_type_params ~f:(fun { ptyp_desc; _ } ->
-         match ptyp_desc with
-         | Ptyp_var name -> Some (ptyp_constr (Lident name |> Located.mk) [])
+         match Ppxlib_jane.Shim.Core_type_desc.of_parsetree ptyp_desc with
+         | Ptyp_var (name, _) -> Some (ptyp_constr (Lident name |> Located.mk) [])
          | _ -> None))
   in
   let var_record_type =
@@ -388,7 +388,7 @@ let generate_str_body
            (ptyp_constr (Lident unique_parameter_id |> Located.mk) []))
       ~var_arrow_type:(ptyp_arrow Nolabel var_record_type (ptyp_var unique_parameter_id))
       ~function_body
-      ~name_of_first_parameter:internal_gadt_name
+      ~name_of_first_parameter:(Lident internal_gadt_name)
   in
   let set =
     let function_body = Specific_generator.set_function_body ~loc ~elements_to_convert in
@@ -411,7 +411,7 @@ let generate_str_body
            var_record_type
            (ptyp_arrow Nolabel (ptyp_var unique_parameter_id) var_record_type))
       ~function_body
-      ~name_of_first_parameter:internal_gadt_name
+      ~name_of_first_parameter:(Lident internal_gadt_name)
   in
   let create =
     let body =
@@ -494,7 +494,7 @@ let generate_str_body
              type_equal_t
              [ ptyp_constr (Lident unique_parameter_id |> Located.mk) [] ])
         ~var_arrow_type:(ptyp_constr type_equal_t [ ptyp_var unique_parameter_id ])
-        ~name_of_first_parameter:internal_gadt_name
+        ~name_of_first_parameter:(Lident internal_gadt_name)
     in
     let number_of_parameters = List.length core_type_params in
     let functor_expression =
@@ -565,7 +565,7 @@ let generate_str_body
         ~constr_arrow_type:arrow_type
         ~var_arrow_type:arrow_type
         ~function_body
-        ~name_of_first_parameter:"field"
+        ~name_of_first_parameter:(Lident "field")
     in
     let sexp_of_packed =
       let function_body = Specific_generator.sexp_of_t_body ~loc ~elements_to_convert in

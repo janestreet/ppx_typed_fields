@@ -132,7 +132,7 @@ module S_of_S1 (M : S1) (T : T) :
     M.create m_creator
   ;;
 
-  let create_local (local_ ({ f } : creator)) = local_
+  let create_local (local_ ({ f } : creator)) = exclave_
     let m_creator_f : type a. (T.t, a) M.t -> a = fun field -> f field in
     let m_creator = { M.f = m_creator_f } in
     M.create_local m_creator
@@ -171,7 +171,7 @@ struct
     M.create m_creator
   ;;
 
-  let create_local (local_ ({ f } : creator)) = local_
+  let create_local (local_ ({ f } : creator)) = exclave_
     let m_creator_f : type a. (T1.t, T2.t, a) M.t -> a = fun field -> f field in
     let m_creator = { M.f = m_creator_f } in
     M.create_local m_creator
@@ -211,7 +211,7 @@ module S_of_S3 (M : S3) (T1 : T) (T2 : T) (T3 : T) :
     M.create m_creator
   ;;
 
-  let create_local (local_ ({ f } : creator)) = local_
+  let create_local (local_ ({ f } : creator)) = exclave_
     let m_creator_f : type a. (T1.t, T2.t, T3.t, a) M.t -> a = fun field -> f field in
     let m_creator = { M.f = m_creator_f } in
     M.create_local m_creator
@@ -253,7 +253,7 @@ module S_of_S4 (M : S4) (T1 : T) (T2 : T) (T3 : T) (T4 : T) :
     M.create m_creator
   ;;
 
-  let create_local (local_ ({ f } : creator)) = local_
+  let create_local (local_ ({ f } : creator)) = exclave_
     let m_creator_f : type a. (T1.t, T2.t, T3.t, T4.t, a) M.t -> a =
       fun field -> f field
     in
@@ -297,7 +297,7 @@ module S_of_S5 (M : S5) (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) :
     M.create m_creator
   ;;
 
-  let create_local (local_ ({ f } : creator)) = local_
+  let create_local (local_ ({ f } : creator)) = exclave_
     let m_creator_f : type a. (T1.t, T2.t, T3.t, T4.t, T5.t, a) M.t -> a =
       fun field -> f field
     in

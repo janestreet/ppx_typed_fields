@@ -1,4 +1,4 @@
-open! Core
+open! Base
 
 module type Data = T1
 
