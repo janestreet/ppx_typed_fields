@@ -1,4 +1,4 @@
-open! Core
+open! Base
 
 module Make (Leaf_data : T1) : sig
   module rec Tree : sig

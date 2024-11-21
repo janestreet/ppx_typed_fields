@@ -90,8 +90,8 @@ let finder_of_types =
 
     method! core_type ctype acc =
       let acc =
-        match ctype.ptyp_desc with
-        | Ptyp_var name -> Set.add acc name
+        match Ppxlib_jane.Shim.Core_type_desc.of_parsetree ctype.ptyp_desc with
+        | Ptyp_var (name, _) -> Set.add acc name
         | _ -> acc
       in
       super#core_type ctype acc
@@ -102,8 +102,8 @@ let finder_of_types =
 let find_minimum_parameters_needed ~total_params ~parameters_needed =
   let needed_parameters_as_parameter_list =
     List.filter total_params ~f:(fun (param_type, _) ->
-      match param_type.ptyp_desc with
-      | Ptyp_var name -> Set.mem parameters_needed name
+      match Ppxlib_jane.Shim.Core_type_desc.of_parsetree param_type.ptyp_desc with
+      | Ptyp_var (name, _) -> Set.mem parameters_needed name
       | _ -> false)
   in
   needed_parameters_as_parameter_list
@@ -115,8 +115,8 @@ let find_minimum_needed_parameter_ids ~params ~parameters_needed =
       params
       ~init:(Map.empty (module String))
       ~f:(fun index acc (ctype, _) ->
-        match ctype.ptyp_desc with
-        | Ptyp_var name -> Map.set acc ~key:name ~data:index
+        match Ppxlib_jane.Shim.Core_type_desc.of_parsetree ctype.ptyp_desc with
+        | Ptyp_var (name, _) -> Map.set acc ~key:name ~data:index
         | _ -> acc)
   in
   Set.fold parameters_needed ~init:[] ~f:(fun acc parameter_name_needed ->

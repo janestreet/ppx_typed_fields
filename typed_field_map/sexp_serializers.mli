@@ -1,4 +1,4 @@
-open! Core
+open! Base
 
 (* Creates sexper functions for a typed_field_map. *)
 module Make (Map : The_map_intf.S_plain) : sig

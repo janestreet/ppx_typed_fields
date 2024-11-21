@@ -12,17 +12,19 @@ build: [
 depends: [
   "ocaml" {>= "5.1.0"}
   "base"
-  "core"
+  "ppx_base"
   "ppx_compare"
   "ppx_enumerate"
-  "ppx_jane"
+  "ppx_pipebang"
   "ppx_sexp_conv"
+  "ppx_sexp_message"
   "ppx_string"
   "ppxlib_jane"
   "sexplib"
   "sexplib0"
-  "dune"          {>= "3.11.0"}
-  "ppxlib"        {>= "0.33.0"}
+  "univ_map"
+  "dune"             {>= "3.11.0"}
+  "ppxlib"           {>= "0.33.0"}
 ]
 available: arch != "arm32" & arch != "x86_32"
 synopsis: "GADT-based field accessors and utilities"

@@ -626,8 +626,8 @@ let generate_str_body
     ptyp_constr
       (Lident derived_on_name |> Located.mk)
       (List.filter_map core_type_params ~f:(fun { ptyp_desc; _ } ->
-         match ptyp_desc with
-         | Ptyp_var name -> Some (ptyp_constr (Lident name |> Located.mk) [])
+         match Ppxlib_jane.Shim.Core_type_desc.of_parsetree ptyp_desc with
+         | Ptyp_var (name, _) -> Some (ptyp_constr (Lident name |> Located.mk) [])
          | _ -> None))
   in
   let var_variant_type =

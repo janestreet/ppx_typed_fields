@@ -1,4 +1,4 @@
-open! Core
+open! Base
 
 module Make (Map : The_map_intf.S_plain) = struct
   module Typed_field = Map.Key

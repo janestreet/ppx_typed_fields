@@ -1,4 +1,4 @@
-open! Core
+open! Base
 include The_map_intf
 
 module Make_plain (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
@@ -15,7 +15,7 @@ module Make_plain (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
       (struct
         include Data
 
-        let sexp_of_t _ = sexp_of_opaque
+        let sexp_of_t _ = Sexplib.Conv.sexp_of_opaque
       end)
 
   module Key = Key_mod

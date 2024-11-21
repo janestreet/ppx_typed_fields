@@ -10,8 +10,8 @@ let generate_str ~loc ~typ_name ~fields ~params ~super =
   let unique_parameter_id = generate_unique_id core_type_params in
   let parameters_as_constrs =
     List.map core_type_params ~f:(fun type_ ->
-      match type_.ptyp_desc with
-      | Ptyp_var name -> ptyp_constr (Lident name |> Located.mk) []
+      match Ppxlib_jane.Shim.Core_type_desc.of_parsetree type_.ptyp_desc with
+      | Ptyp_var (name, _) -> ptyp_constr (Lident name |> Located.mk) []
       | _ -> type_)
   in
   let var_arrow_type =
@@ -64,8 +64,8 @@ let generate_sig ~loc ~typ_name ~params ~super =
   let unique_parameter_id = generate_unique_id core_type_params in
   let parameter_names =
     List.filter_map core_type_params ~f:(fun { ptyp_desc; _ } ->
-      match ptyp_desc with
-      | Ptyp_var name -> Some (Located.mk name)
+      match Ppxlib_jane.Shim.Core_type_desc.of_parsetree ptyp_desc with
+      | Ptyp_var (name, _) -> Some (Located.mk name)
       | _ -> None)
   in
   let t_type_parameters = parameter_names @ [ Located.mk unique_parameter_id ] in
