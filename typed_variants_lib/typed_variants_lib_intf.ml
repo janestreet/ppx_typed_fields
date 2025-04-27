@@ -4,7 +4,12 @@
     {[
       type t =
         | Rgb of (int * int * int)
-        | Rgba of { r: int; g: int; b: int; a: int }
+        | Rgba of
+            { r : int
+            ; g : int
+            ; b : int
+            ; a : int
+            }
       [@@deriving typed_variants]
     ]}
 
@@ -31,10 +36,33 @@
     ]}
 
     Exposing this as a module type allows one to write functors over the derived
-    `Typed_variants` module.
-*)
+    `Typed_variants` module. *)
+
+(*$
+  open Base
+  open Stdio
+  open Typed_fields_lib_cinaps
+$*)
 
 open Base
+
+(*$
+  for n = 0 to 5 do
+    [%string
+      {|
+
+module type %{this n "S"} = sig
+  include Typed_fields_lib.Common.%{this n "S"}
+
+  val get : (%{each n "'t%i,"} 'a) t -> %{params n "'t%i"} derived_on -> 'a option
+  val create : (%{each n "'t%i,"} 'a) t -> 'a -> %{params n "'t%i"} derived_on
+  val which : %{params n "'t%i"} derived_on -> Packed.t
+end
+
+    |}]
+    |> print_endline
+  done
+*)
 
 module type S = sig
   include Typed_fields_lib.Common.S
@@ -92,147 +120,7 @@ module type S5 = sig
   val which : ('t1, 't2, 't3, 't4, 't5) derived_on -> Packed.t
 end
 
-module S_of_S1 (M : S1) (T : T) :
-  S with type 'a t = (T.t, 'a) M.t and type derived_on = T.t M.derived_on = struct
-  include M
-
-  type 'a t = (T.t, 'a) M.t
-  type derived_on = T.t M.derived_on
-
-  module Type_ids = Type_ids (T)
-
-  module Packed = struct
-    type 'a field = 'a t
-    type t' = T : 'a field -> t'
-    type t = { f : t' } [@@unboxed]
-
-    let m_of_packed { f = T field } = M.Packed.pack field
-    let packed_of_m { M.Packed.f = T field } = { f = T field }
-    let compare a b = M.Packed.compare (m_of_packed a) (m_of_packed b)
-    let equal a b = M.Packed.equal (m_of_packed a) (m_of_packed b)
-    let all = List.map M.Packed.all ~f:packed_of_m
-    let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
-    let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
-    let pack field = { f = T field }
-  end
-
-  let which t = Packed.packed_of_m (M.which t)
-end
-
-module S_of_S2 (M : S2) (T1 : T) (T2 : T) :
-  S with type 'a t = (T1.t, T2.t, 'a) M.t and type derived_on = (T1.t, T2.t) M.derived_on =
-struct
-  include M
-
-  type 'a t = (T1.t, T2.t, 'a) M.t
-  type derived_on = (T1.t, T2.t) M.derived_on
-
-  module Type_ids = Type_ids (T1) (T2)
-
-  module Packed = struct
-    type 'a field = 'a t
-    type t' = T : 'a field -> t'
-    type t = { f : t' } [@@unboxed]
-
-    let m_of_packed { f = T field } = M.Packed.pack field
-    let packed_of_m { M.Packed.f = T field } = { f = T field }
-    let compare a b = M.Packed.compare (m_of_packed a) (m_of_packed b)
-    let equal a b = M.Packed.equal (m_of_packed a) (m_of_packed b)
-    let all = List.map M.Packed.all ~f:packed_of_m
-    let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
-    let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
-    let pack field = { f = T field }
-  end
-
-  let which t = Packed.packed_of_m (M.which t)
-end
-
-module S_of_S3 (M : S3) (T1 : T) (T2 : T) (T3 : T) :
-  S
-  with type 'a t = (T1.t, T2.t, T3.t, 'a) M.t
-   and type derived_on = (T1.t, T2.t, T3.t) M.derived_on = struct
-  include M
-
-  type 'a t = (T1.t, T2.t, T3.t, 'a) M.t
-  type derived_on = (T1.t, T2.t, T3.t) M.derived_on
-
-  module Type_ids = Type_ids (T1) (T2) (T3)
-
-  module Packed = struct
-    type 'a field = 'a t
-    type t' = T : 'a field -> t'
-    type t = { f : t' } [@@unboxed]
-
-    let m_of_packed { f = T field } = M.Packed.pack field
-    let packed_of_m { M.Packed.f = T field } = { f = T field }
-    let compare a b = M.Packed.compare (m_of_packed a) (m_of_packed b)
-    let equal a b = M.Packed.equal (m_of_packed a) (m_of_packed b)
-    let all = List.map M.Packed.all ~f:packed_of_m
-    let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
-    let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
-    let pack field = { f = T field }
-  end
-
-  let which t = Packed.packed_of_m (M.which t)
-end
-
-module S_of_S4 (M : S4) (T1 : T) (T2 : T) (T3 : T) (T4 : T) :
-  S
-  with type 'a t = (T1.t, T2.t, T3.t, T4.t, 'a) M.t
-   and type derived_on = (T1.t, T2.t, T3.t, T4.t) M.derived_on = struct
-  include M
-
-  type 'a t = (T1.t, T2.t, T3.t, T4.t, 'a) M.t
-  type derived_on = (T1.t, T2.t, T3.t, T4.t) M.derived_on
-
-  module Type_ids = Type_ids (T1) (T2) (T3) (T4)
-
-  module Packed = struct
-    type 'a field = 'a t
-    type t' = T : 'a field -> t'
-    type t = { f : t' } [@@unboxed]
-
-    let m_of_packed { f = T field } = M.Packed.pack field
-    let packed_of_m { M.Packed.f = T field } = { f = T field }
-    let compare a b = M.Packed.compare (m_of_packed a) (m_of_packed b)
-    let equal a b = M.Packed.equal (m_of_packed a) (m_of_packed b)
-    let all = List.map M.Packed.all ~f:packed_of_m
-    let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
-    let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
-    let pack field = { f = T field }
-  end
-
-  let which t = Packed.packed_of_m (M.which t)
-end
-
-module S_of_S5 (M : S5) (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) :
-  S
-  with type 'a t = (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) M.t
-   and type derived_on = (T1.t, T2.t, T3.t, T4.t, T5.t) M.derived_on = struct
-  include M
-
-  type 'a t = (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) M.t
-  type derived_on = (T1.t, T2.t, T3.t, T4.t, T5.t) M.derived_on
-
-  module Type_ids = Type_ids (T1) (T2) (T3) (T4) (T5)
-
-  module Packed = struct
-    type 'a field = 'a t
-    type t' = T : 'a field -> t'
-    type t = { f : t' } [@@unboxed]
-
-    let m_of_packed { f = T field } = M.Packed.pack field
-    let packed_of_m { M.Packed.f = T field } = { f = T field }
-    let compare a b = M.Packed.compare (m_of_packed a) (m_of_packed b)
-    let equal a b = M.Packed.equal (m_of_packed a) (m_of_packed b)
-    let all = List.map M.Packed.all ~f:packed_of_m
-    let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
-    let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
-    let pack field = { f = T field }
-  end
-
-  let which t = Packed.packed_of_m (M.which t)
-end
+(*$*)
 
 module type Typed_variants_lib = sig
   module type S = S
@@ -242,8 +130,22 @@ module type Typed_variants_lib = sig
   module type S4 = S4
   module type S5 = S5
 
-  module S_of_S1 (M : S1) (T : T) :
-    S with type 'a t = (T.t, 'a) M.t and type derived_on = T.t M.derived_on
+  (*$
+    for n = 1 to 5 do
+      [%string
+        {|
+
+  module %{this n "S_of_S"} (M : %{this n "S"}) %{each n "(T%i : T)"} : S
+    with type 'a t = (%{each n "T%i.t,"} 'a) M.t
+     and type derived_on = %{params n "T%i.t"} M.derived_on
+
+      |}]
+      |> print_endline
+    done
+  *)
+
+  module S_of_S1 (M : S1) (T1 : T) :
+    S with type 'a t = (T1.t, 'a) M.t and type derived_on = T1.t M.derived_on
 
   module S_of_S2 (M : S2) (T1 : T) (T2 : T) :
     S
@@ -265,38 +167,68 @@ module type Typed_variants_lib = sig
     with type 'a t = (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) M.t
      and type derived_on = (T1.t, T2.t, T3.t, T4.t, T5.t) M.derived_on
 
-  module Singleton (T : T) : sig
-    type 'a t = T : T.t t
+  (*$
+    for n = 0 to 5 do
+      [%string
+        {|
 
-    include S with type derived_on = T.t and type 'a t := 'a t
+  module %{this n "Singleton"} (%{this n "T"} : sig
+      type %{params n "'t%i"} t
+    end) :
+  sig
+    type (%{each n "'t%i,"} 'r) t =
+      | T : (%{each n "'t%i,"} %{params n "'t%i"} %{this n "T"}.t) t
+
+    include %{this n "S"}
+      with type %{params n "'t%i"} derived_on = %{params n "'t%i"} %{this n "T"}.t
+       and type (%{each n "'t%i,"} 'r) t := (%{each n "'t%i,"} 'r) t
   end
 
-  module Singleton1 (T1 : T1) : sig
-    type ('a, 'r) t = T : ('a, 'a T1.t) t
+      |}]
+      |> print_endline
+    done
+  *)
 
-    include S1 with type 'a derived_on = 'a T1.t and type ('a, 'r) t := ('a, 'r) t
+  module Singleton (T : sig
+      type t
+    end) : sig
+    type 'r t = T : T.t t
+
+    include S with type derived_on = T.t and type 'r t := 'r t
   end
 
-  module Singleton2 (T2 : T2) : sig
-    type ('a, 'b, 'r) t = T : ('a, 'b, ('a, 'b) T2.t) t
+  module Singleton1 (T1 : sig
+      type 't1 t
+    end) : sig
+    type ('t1, 'r) t = T : ('t1, 't1 T1.t) t
+
+    include S1 with type 't1 derived_on = 't1 T1.t and type ('t1, 'r) t := ('t1, 'r) t
+  end
+
+  module Singleton2 (T2 : sig
+      type ('t1, 't2) t
+    end) : sig
+    type ('t1, 't2, 'r) t = T : ('t1, 't2, ('t1, 't2) T2.t) t
 
     include
       S2
-      with type ('a, 'b) derived_on = ('a, 'b) T2.t
-       and type ('a, 'b, 'r) t := ('a, 'b, 'r) t
+      with type ('t1, 't2) derived_on = ('t1, 't2) T2.t
+       and type ('t1, 't2, 'r) t := ('t1, 't2, 'r) t
   end
 
-  module Singleton3 (T3 : T3) : sig
-    type ('a, 'b, 'c, 'r) t = T : ('a, 'b, 'c, ('a, 'b, 'c) T3.t) t
+  module Singleton3 (T3 : sig
+      type ('t1, 't2, 't3) t
+    end) : sig
+    type ('t1, 't2, 't3, 'r) t = T : ('t1, 't2, 't3, ('t1, 't2, 't3) T3.t) t
 
     include
       S3
-      with type ('a, 'b, 'c) derived_on = ('a, 'b, 'c) T3.t
-       and type ('a, 'b, 'c, 'r) t := ('a, 'b, 'c, 'r) t
+      with type ('t1, 't2, 't3) derived_on = ('t1, 't2, 't3) T3.t
+       and type ('t1, 't2, 't3, 'r) t := ('t1, 't2, 't3, 'r) t
   end
 
   module Singleton4 (T4 : sig
-      type ('a, 'b, 'c, 'd) t
+      type ('t1, 't2, 't3, 't4) t
     end) : sig
     type ('t1, 't2, 't3, 't4, 'r) t =
       | T : ('t1, 't2, 't3, 't4, ('t1, 't2, 't3, 't4) T4.t) t
@@ -308,7 +240,7 @@ module type Typed_variants_lib = sig
   end
 
   module Singleton5 (T5 : sig
-      type ('a, 'b, 'c, 'd, 'e) t
+      type ('t1, 't2, 't3, 't4, 't5) t
     end) : sig
     type ('t1, 't2, 't3, 't4, 't5, 'r) t =
       | T : ('t1, 't2, 't3, 't4, 't5, ('t1, 't2, 't3, 't4, 't5) T5.t) t
@@ -318,6 +250,8 @@ module type Typed_variants_lib = sig
       with type ('t1, 't2, 't3, 't4, 't5) derived_on = ('t1, 't2, 't3, 't4, 't5) T5.t
        and type ('t1, 't2, 't3, 't4, 't5, 'r) t := ('t1, 't2, 't3, 't4, 't5, 'r) t
   end
+
+  (*$*)
 
   module Nothing : sig
     type derived_on = |

@@ -1,2 +1,3 @@
+open! Base
 open Ppxlib
-include Type_kind_intf.S with type t = core_type
+include Type_kind.S with type t = core_type

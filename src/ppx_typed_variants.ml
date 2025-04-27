@@ -1,17 +1,11 @@
-open Base
-open Import
+open! Base
 open Ppxlib
-open Type_kind_intf
-open Variant_kind_generator_intf
 
-(**
-   Attached to constructor declarations.
+(** Attached to constructor declarations.
 
-   {[
-     type t =
-
-       | A of some_type_that_derives_typed_variants [@typed_variants.subvariant]
-   ]} *)
+    {[
+      type t = A of some_type_that_derives_typed_variants [@typed_variants.subvariant]
+    ]} *)
 let subvariant =
   Attribute.declare
     "typed_variants.subvariant"
@@ -20,16 +14,11 @@ let subvariant =
     ()
 ;;
 
-(**
-   Attached to row fields' r tags.
+(** Attached to row fields' r tags.
 
-   {[
-     type t =
-       [
-         | `A [@typed_variants.subvariant]
-       ]
-   ]}
-*)
+    {[
+      type t = [ `A [@typed_variants.subvariant] ]
+    ]} *)
 let subvariant_row_fields =
   Attribute.declare
     "typed_variants.subvariant"
@@ -38,15 +27,11 @@ let subvariant_row_fields =
     ()
 ;;
 
-(**
-   Attached to constructor declarations.
+(** Attached to constructor declarations.
 
-   {[
-     type t =
-
-       | A of (int * int * int) [@typed_variants.subvariant]
-   ]}
-*)
+    {[
+      type t = A of (int * int * int) [@typed_variants.subvariant]
+    ]} *)
 let typed_fields =
   Attribute.declare
     "typed_fields"
@@ -55,26 +40,21 @@ let typed_fields =
     ()
 ;;
 
-(**
-   Attached to row fields' r tags.
+(** Attached to row fields' r tags.
 
-   {[
-     type t =
-       [
-         | `A [@typed_variants.subvariant]
-       ]
-   ]} *)
+    {[
+      type t = [ `A [@typed_variants.subvariant] ]
+    ]} *)
 
 let typed_fields_row_fields =
   Attribute.declare "typed_fields" Attribute.Context.rtag Ast_pattern.(pstr nil) ()
 ;;
 
-(**
-   Attached to opaque types for label declarations (e.g.)
+(** Attached to opaque types for label declarations (e.g.)
 
-   {[
-     type t  [@@deriving typed_variants] [@@typed_variants.opaque]
-   ]} *)
+    {[
+      type t [@@deriving typed_variants] [@@typed_variants.opaque]
+    ]} *)
 let opaque_attribute =
   Attribute.declare
     "typed_variants.opaque"
@@ -83,7 +63,7 @@ let opaque_attribute =
     ()
 ;;
 
-(** Returns a string set of the parameters used inside of an ast.*)
+(** Returns a string set of the parameters used inside of an ast. *)
 let finder_of_types =
   object
     inherit [(label, Base.String.comparator_witness) Set.t] Ast_traverse.fold as super
@@ -214,8 +194,10 @@ let has_typed_fields_row_field rf =
   | None -> false
 ;;
 
-let identify_constructor_declaration ~loc cd params =
-  let open (val Ast_builder.make loc) in
+let identify_constructor_declaration ~loc cd params
+  : Variant_kind_generator.supported_constructor_declaration
+  =
+  let open (val Syntax.builder loc) in
   match cd.pcd_res, cd.pcd_args with
   (* No payload in the constructor. *)
   | None, Pcstr_tuple [] ->
@@ -235,9 +217,8 @@ let identify_constructor_declaration ~loc cd params =
        List.iter inner_params ~f:raise_if_subvariant_is_seen#core_type;
        let granularity =
          match Attribute.get subvariant cd with
-         | Some _ ->
-           Variant_kind_generator_intf.Constr_deep { ident; params = inner_params }
-         | None -> Variant_kind_generator_intf.Shallow
+         | Some _ -> Variant_kind_generator.Constr_deep { ident; params = inner_params }
+         | None -> Variant_kind_generator.Shallow
        in
        let minimum_needed_parameters, minimum_needed_parameter_ids =
          let parameters_needed =
@@ -253,7 +234,7 @@ let identify_constructor_declaration ~loc cd params =
        in
        Single_value_constructor
          { constructor_name = cd.pcd_name.txt
-         ; return_value_type = attribute_remover#core_type single
+         ; return_value_type = Type_kind.attribute_remover#core_type single
          ; return_value_type_with_original_attributes = single
          ; granularity
          ; minimum_needed_parameters
@@ -268,10 +249,10 @@ let identify_constructor_declaration ~loc cd params =
          match Attribute.get subvariant cd with
          | Some _ ->
            List.iter row_fields ~f:check_subvariant_annotations_for_row_field;
-           Variant_kind_generator_intf.Polymorphic_deep
+           Variant_kind_generator.Polymorphic_deep
          | None ->
            List.iter row_fields ~f:raise_if_subvariant_is_seen#row_field;
-           Variant_kind_generator_intf.Shallow
+           Variant_kind_generator.Shallow
        in
        let parameters_needed =
          finder_of_types#core_type single (Set.empty (module String))
@@ -284,7 +265,7 @@ let identify_constructor_declaration ~loc cd params =
        in
        Single_value_constructor
          { constructor_name = cd.pcd_name.txt
-         ; return_value_type = attribute_remover#core_type single
+         ; return_value_type = Type_kind.attribute_remover#core_type single
          ; return_value_type_with_original_attributes = single
          ; granularity
          ; minimum_needed_parameters
@@ -309,7 +290,7 @@ let identify_constructor_declaration ~loc cd params =
        in
        Single_value_constructor
          { constructor_name = cd.pcd_name.txt
-         ; return_value_type = attribute_remover#core_type single
+         ; return_value_type = Type_kind.attribute_remover#core_type single
          ; return_value_type_with_original_attributes = single
          ; granularity = Shallow
          ; minimum_needed_parameters
@@ -319,12 +300,16 @@ let identify_constructor_declaration ~loc cd params =
          })
   (* Anonymous tuple payload. *)
   | None, Pcstr_tuple multiple ->
-    let multiple = List.map multiple ~f:Ppxlib_jane.Shim.Pcstr_tuple_arg.to_core_type in
+    let tuple =
+      List.map multiple ~f:(fun arg ->
+        None, Ppxlib_jane.Shim.Pcstr_tuple_arg.to_core_type arg)
+    in
+    let tuple_types = List.map ~f:snd tuple in
     raise_if_subvariant_is_seen#constructor_declaration cd;
     let minimum_needed_parameters =
       let parameters_needed =
         List.fold
-          multiple
+          tuple_types
           ~init:(Set.empty (module String))
           ~f:(fun acc ctype -> finder_of_types#core_type ctype acc)
       in
@@ -332,9 +317,9 @@ let identify_constructor_declaration ~loc cd params =
     in
     Tuple_values_constructor
       { constructor_name = cd.pcd_name.txt
-      ; return_value_type = ptyp_tuple multiple |> attribute_remover#core_type
-      ; return_value_type_with_original_attributes = ptyp_tuple multiple
-      ; tuple_types = multiple
+      ; return_value_type = ptyp_tuple tuple |> Type_kind.attribute_remover#core_type
+      ; return_value_type_with_original_attributes = ptyp_tuple tuple
+      ; tuple_types
       ; minimum_needed_parameters
       ; typed_fields = has_typed_fields cd
       }
@@ -364,7 +349,8 @@ let identify_constructor_declaration ~loc cd params =
     Anonymous_record_constructor
       { constructor_name = cd.pcd_name.txt
       ; return_value_type =
-          return_value_type_with_original_attributes |> attribute_remover#core_type
+          return_value_type_with_original_attributes
+          |> Type_kind.attribute_remover#core_type
       ; return_value_type_with_original_attributes
       ; minimum_needed_parameters
       ; label_declarations
@@ -378,8 +364,9 @@ let identify_constructor_declaration ~loc cd params =
        for GADT or constructor renaming."
 ;;
 
-let identify_row_field ~loc rf params =
-  let open (val Ast_builder.make loc) in
+let identify_row_field ~loc rf params
+  : Variant_kind_generator.supported_constructor_declaration
+  =
   check_subvariant_annotations_for_row_field rf;
   match rf.prf_desc with
   (*  Polymorphic constructor with no payload. *)
@@ -399,8 +386,8 @@ let identify_row_field ~loc rf params =
     List.iter inner_params ~f:raise_if_subvariant_is_seen#core_type;
     let granularity =
       match Attribute.get subvariant_row_fields rf with
-      | Some _ -> Variant_kind_generator_intf.Constr_deep { ident; params = inner_params }
-      | None -> Variant_kind_generator_intf.Shallow
+      | Some _ -> Variant_kind_generator.Constr_deep { ident; params = inner_params }
+      | None -> Variant_kind_generator.Shallow
     in
     let parameters_needed =
       finder_of_types#core_type single (Set.empty (module String))
@@ -413,7 +400,7 @@ let identify_row_field ~loc rf params =
     in
     Single_value_constructor
       { constructor_name = label.txt
-      ; return_value_type = attribute_remover#core_type single
+      ; return_value_type = Type_kind.attribute_remover#core_type single
       ; return_value_type_with_original_attributes = single
       ; granularity
       ; minimum_needed_parameters
@@ -427,8 +414,8 @@ let identify_row_field ~loc rf params =
     raise_if_typed_fields_is_seen_on_row_field rf;
     let granularity =
       match Attribute.get subvariant_row_fields rf with
-      | Some _ -> Variant_kind_generator_intf.Polymorphic_deep
-      | None -> Variant_kind_generator_intf.Shallow
+      | Some _ -> Variant_kind_generator.Polymorphic_deep
+      | None -> Variant_kind_generator.Shallow
     in
     let parameters_needed =
       finder_of_types#core_type single (Set.empty (module String))
@@ -441,7 +428,7 @@ let identify_row_field ~loc rf params =
     in
     Single_value_constructor
       { constructor_name = label.txt
-      ; return_value_type = attribute_remover#core_type single
+      ; return_value_type = Type_kind.attribute_remover#core_type single
       ; return_value_type_with_original_attributes = single
       ; granularity
       ; minimum_needed_parameters
@@ -466,7 +453,7 @@ let identify_row_field ~loc rf params =
     in
     Single_value_constructor
       { constructor_name = label.txt
-      ; return_value_type = attribute_remover#core_type single
+      ; return_value_type = Type_kind.attribute_remover#core_type single
       ; return_value_type_with_original_attributes = single
       ; granularity = Shallow
       ; minimum_needed_parameters
@@ -491,7 +478,7 @@ let raise_if_opaque_attribute_is_seen td =
   | None -> ()
 ;;
 
-let identify_type_case ~loc td =
+let identify_type_case ~loc td : Variant_kind_generator.type_case =
   (* Variance and injectivity are stripped from the parameters. *)
   let params =
     td.ptype_params |> List.map ~f:(fun (type_, _) -> type_, (NoVariance, NoInjectivity))
@@ -566,8 +553,14 @@ let check_at_least_one_valid_ml_creation ~loc rec_flag tds =
 ;;
 
 module Gen_struct = struct
-  let module_struct_expr ~original_type ~original_kind ~td_case ~loc =
-    match td_case with
+  let module_struct_expr
+    ~expand_typed_variants
+    ~original_type
+    ~original_kind
+    ~td_case
+    ~loc
+    =
+    match (td_case : Variant_kind_generator.type_case) with
     | Unknown | Opaque _ -> None
     | Variant (supported_constructors, params) ->
       Some
@@ -577,6 +570,7 @@ module Gen_struct = struct
            ~original_type
            ~original_kind
            ~elements_to_convert:supported_constructors
+           ~expand_typed_variants
            ~params
            ~td_case)
     | Nothing (_, params) ->
@@ -587,21 +581,24 @@ module Gen_struct = struct
            ~original_type
            ~original_kind
            ~elements_to_convert:[]
+           ~expand_typed_variants
            ~params
            ~td_case)
   ;;
 
-  let variants_of_td ~loc td =
+  let variants_of_td ~expand_typed_variants ~loc td =
+    let open (val Syntax.builder loc) in
     let name = td.ptype_name.txt in
-    let open (val Ast_builder.make loc) in
     let td_case = identify_type_case ~loc td in
     let fields_module_name =
       if String.equal name "t" then "Typed_variant" else "Typed_variant_of_" ^ name
     in
     let expr =
       module_struct_expr
+        ~expand_typed_variants
         ~original_type:
-          (Some (generate_manifest_type_constr ~loc ~name ~params:td.ptype_params))
+          (Some
+             (Type_kind.generate_manifest_type_constr ~loc ~name ~params:td.ptype_params))
         ~original_kind:Ptype_abstract
         ~td_case
         ~loc
@@ -616,16 +613,16 @@ module Gen_struct = struct
       ]
   ;;
 
-  let generate ~loc ~path:_ (rec_flag, tds) =
+  let generate ~expand_typed_variants ~loc ~path:_ (rec_flag, tds) =
     let tds = List.map tds ~f:name_type_params_in_td in
     check_at_least_one_valid_ml_creation ~loc rec_flag tds;
-    List.map tds ~f:(variants_of_td ~loc) |> List.concat
+    List.map tds ~f:(variants_of_td ~expand_typed_variants ~loc) |> List.concat
   ;;
 end
 
 module Gen_sig = struct
   let generate_singleton_signatures ~loc ~td_case =
-    match td_case with
+    match (td_case : Variant_kind_generator.type_case) with
     | Variant (constructors, _) ->
       Variant_generator.singleton_modules_signatures
         ~loc
@@ -634,9 +631,13 @@ module Gen_sig = struct
   ;;
 
   let generate_module_type_for_deep ~loc ~td_case ~name ~strip_depth =
-    let open (val Ast_builder.make loc) in
+    let open (val Syntax.builder loc) in
     let unstripped_td_case = td_case in
-    let td_case = if strip_depth then strip_depth_from_td_case td_case else td_case in
+    let td_case =
+      if strip_depth
+      then Variant_kind_generator.strip_depth_from_td_case td_case
+      else td_case
+    in
     match td_case with
     | Unknown | Opaque (false, _) -> None, []
     | Opaque (true, params) | Nothing (_, params) ->
@@ -645,38 +646,41 @@ module Gen_sig = struct
              (module Typed_deriver_variants)
              ~loc
              ~manifest_type:
-               (Some (Type_kind_intf.generate_manifest_type_constr ~loc ~name ~params))
+               (Some (Type_kind.generate_manifest_type_constr ~loc ~name ~params))
              ~original_kind:Ptype_abstract
              ~params)
       , [] )
     | Variant (constructors, params) ->
       let ({ gadt_t = typ; upper; internal_gadt_rename; constructor_declarations = _ }
-            : supported_constructor_declaration gen_t_result)
+            : Variant_kind_generator.supported_constructor_declaration
+                Type_kind.gen_t_result)
         =
         Generic_generator.gen_t
           ~loc
-          ~original_type:(Some (generate_manifest_type_constr ~loc ~name ~params))
+          ~original_type:
+            (Some (Type_kind.generate_manifest_type_constr ~loc ~name ~params))
           ~original_kind:Ptype_abstract
           ~elements_to_convert:
-            (List.map constructors ~f:(fun constr -> constr, Type_kind_intf.Shallow))
+            (List.map constructors ~f:(fun constr -> constr, Type_kind.Shallow))
           ~generate_constructors:Variant_generator.generate_constructor_declarations
           ~params
-          ~upper_name:derived_on_name
+          ~upper_name:Names.derived_on_name
       in
       let type_ =
         pmty_signature
-          ([ psig_type Nonrecursive [ upper ]
-           ; psig_type Recursive [ typ ]
-           ; psig_type Nonrecursive [ internal_gadt_rename ]
-           ]
-           @ Typed_deriver_variants.generate_include_signature ~loc ~params)
+          (signature
+             ([ psig_type Nonrecursive [ upper ]
+              ; psig_type Recursive [ typ ]
+              ; psig_type Nonrecursive [ internal_gadt_rename ]
+              ]
+              @ Typed_deriver_variants.generate_include_signature ~loc ~params))
       in
       Some type_, generate_singleton_signatures ~loc ~td_case:unstripped_td_case
   ;;
 
   let generate_module_type_for_shallow ~loc ~td_case ~name =
-    let open (val Ast_builder.make loc) in
-    match td_case with
+    let open (val Syntax.builder loc) in
+    match (td_case : Variant_kind_generator.type_case) with
     | Unknown | Opaque (false, _) -> None, []
     | Opaque (true, params) ->
       ( Some
@@ -684,7 +688,7 @@ module Gen_sig = struct
              (module Typed_deriver_variants)
              ~loc
              ~manifest_type:
-               (Some (Type_kind_intf.generate_manifest_type_constr ~loc ~name ~params))
+               (Some (Type_kind.generate_manifest_type_constr ~loc ~name ~params))
              ~original_kind:Ptype_abstract
              ~params)
       , [] )
@@ -699,7 +703,7 @@ module Gen_sig = struct
           | Single_value_constructor { granularity = Polymorphic_deep; _ } ->
             Some
               ("Singleton_for_"
-               ^ (Variant_kind_generator_intf.supported_constructor_name element
+               ^ (Variant_kind_generator.supported_constructor_name element
                   |> String.lowercase))
           | _ -> None)
         |> List.fold
@@ -711,7 +715,7 @@ module Gen_sig = struct
   ;;
 
   let generate_signature ~loc ~td_case ~name_of_original_type =
-    let open (val Ast_builder.make loc) in
+    let open (val Syntax.builder loc) in
     let type_, singleton_modules =
       generate_module_type_for_shallow ~loc ~td_case ~name:name_of_original_type
     in
@@ -719,13 +723,13 @@ module Gen_sig = struct
     | None -> []
     | Some type_ ->
       singleton_modules
-      @ [ psig_module (module_declaration ~name:(Some "Shallow" |> Located.mk) ~type_) ]
+      @ [ psig_module (module_declaration (Some "Shallow" |> Located.mk) type_) ]
   ;;
 
   let generate_anonymous_record_module ~loc td_case =
-    let open (val Ast_builder.make loc) in
+    let open (val Syntax.builder loc) in
     let td_sig_items =
-      match td_case with
+      match (td_case : Variant_kind_generator.type_case) with
       | Opaque _ | Unknown | Nothing _ -> []
       | Variant (constructors_to_convert, _) ->
         Typed_deriver_variants.generate_anonymous_records_sig
@@ -734,14 +738,14 @@ module Gen_sig = struct
     in
     psig_module
       (module_declaration
-         ~name:(Some "Typed_variant_anonymous_records" |> Located.mk)
-         ~type_:(pmty_signature td_sig_items))
+         (Some "Typed_variant_anonymous_records" |> Located.mk)
+         (pmty_signature (signature td_sig_items)))
   ;;
 
   let generate_tuples_module ~loc td_case =
-    let open (val Ast_builder.make loc) in
+    let open (val Syntax.builder loc) in
     let td_sig_items =
-      match td_case with
+      match (td_case : Variant_kind_generator.type_case) with
       | Opaque _ | Unknown | Nothing _ -> []
       | Variant (constructors_to_convert, _) ->
         Typed_deriver_variants.generate_tuples_sig
@@ -750,12 +754,11 @@ module Gen_sig = struct
     in
     psig_module
       (module_declaration
-         ~name:(Some "Typed_variant_tuples" |> Located.mk)
-         ~type_:(pmty_signature td_sig_items))
+         (Some "Typed_variant_tuples" |> Located.mk)
+         (pmty_signature (signature td_sig_items)))
   ;;
 
   let generate_deep_module_signature ~loc ~td_case ~name =
-    let open (val Ast_builder.make loc) in
     let base_module_type, _ =
       generate_module_type_for_deep ~loc ~td_case ~name ~strip_depth:false
     in
@@ -775,18 +778,20 @@ module Gen_sig = struct
       ]
   ;;
 
-  let generate_full_depth_module_signature ~loc ~td_case =
-    let open (val Ast_builder.make loc) in
-    match td_case with
+  let generate_full_depth_module_signature ~expand_typed_variants ~loc ~td_case =
+    match (td_case : Variant_kind_generator.type_case) with
     | Variant (elements, _) ->
-      Variant_generator.full_depth_signature ~loc ~elements_to_convert:elements
+      Variant_generator.full_depth_signature
+        ~loc
+        ~elements_to_convert:elements
+        ~expand_typed_variants
     | Opaque _ -> [ [%sigi: include module type of Shallow] ]
     | Nothing _ | Unknown -> [ [%sigi: include module type of Deep] ]
   ;;
 
-  let variants_of_td ~loc td =
+  let variants_of_td ~expand_typed_variants ~loc td =
+    let open (val Syntax.builder loc) in
     let name = td.ptype_name.txt in
-    let open (val Ast_builder.make loc) in
     let td_case = identify_type_case ~loc td in
     let fields_module_name =
       if String.equal name "t" then "Typed_variant" else "Typed_variant_of_" ^ name
@@ -795,32 +800,31 @@ module Gen_sig = struct
     let tuples_module = generate_tuples_module ~loc td_case in
     let shallow = generate_signature ~loc ~td_case ~name_of_original_type:name in
     let deep = generate_deep_module_signature ~loc ~td_case ~name in
-    let full_depth = generate_full_depth_module_signature ~loc ~td_case in
+    let full_depth =
+      generate_full_depth_module_signature ~expand_typed_variants ~loc ~td_case
+    in
     let signature =
       pmty_signature
-        ([ anonymous_record_module; tuples_module ] @ deep @ shallow @ full_depth)
+        (signature
+           ([ anonymous_record_module; tuples_module ] @ deep @ shallow @ full_depth))
     in
-    [ psig_module
-        (module_declaration
-           ~name:(Some fields_module_name |> Located.mk)
-           ~type_:signature)
-    ]
+    [ psig_module (module_declaration (Some fields_module_name |> Located.mk) signature) ]
   ;;
 
-  let generate ~loc ~path:_ (rec_flag, tds) =
+  let generate ~expand_typed_variants ~loc ~path:_ (rec_flag, tds) =
     let tds = List.map tds ~f:name_type_params_in_td in
     check_at_least_one_valid_mli_creation ~loc rec_flag tds;
     List.filter tds ~f:(is_mli_creation_supported ~loc)
-    |> List.map ~f:(variants_of_td ~loc)
+    |> List.map ~f:(variants_of_td ~expand_typed_variants ~loc)
     |> List.concat
   ;;
 end
 
 module Gen_anonymous_struct = struct
-  let generate ~loc ~path:_ recflag tds =
+  let rec expand_typed_variants ~loc recflag tds =
     let loc = { loc with loc_ghost = true } in
+    let open (val Syntax.builder loc) in
     check_at_least_one_valid_ml_creation ~loc recflag tds;
-    let open (val Ast_builder.make loc) in
     let loc_ghoster =
       object
         inherit Ast_traverse.map as super
@@ -840,13 +844,14 @@ module Gen_anonymous_struct = struct
     | [ td ] ->
       (* Needs to be an identifier that does not collide with any other types
          from the Typed_fields_lib.S signature. *)
-      let local_type_name = Type_kind_intf.generate_local_type_name td in
+      let local_type_name = Type_kind.generate_local_type_name td in
       let td = { td with ptype_name = { td.ptype_name with txt = local_type_name } } in
       let module_expr =
         Gen_struct.module_struct_expr
+          ~expand_typed_variants
           ~original_type:
             (Some
-               (generate_manifest_type_constr
+               (Type_kind.generate_manifest_type_constr
                   ~loc
                   ~name:local_type_name
                   ~params:td.ptype_params))
@@ -854,20 +859,28 @@ module Gen_anonymous_struct = struct
           ~loc
           ~td_case:(identify_type_case ~loc td)
       in
-      let open (val Ast_builder.make loc) in
       (match module_expr with
        | Some expr ->
          let structure =
-           { (pmod_structure expr) with pmod_attributes = [ disable_warning_32 ~loc ] }
+           { (pmod_structure expr) with
+             pmod_attributes = [ Type_kind.disable_warning_32 ~loc ]
+           }
          in
          let local_type_declaration =
-           let local_type_declaration = attribute_remover#type_declaration td in
+           let local_type_declaration = Type_kind.attribute_remover#type_declaration td in
            pstr_type Recursive [ local_type_declaration ]
          in
-         pmod_structure [ local_type_declaration; pstr_include (include_infos structure) ]
+         pmod_structure
+           [ local_type_declaration
+           ; pstr_include (include_infos structure ~kind:Structure)
+           ]
        | None -> pmod_structure [])
   ;;
+
+  let generate ~loc ~path:_ recflag tds = expand_typed_variants ~loc recflag tds
 end
+
+let expand_typed_variants = Gen_anonymous_struct.expand_typed_variants
 
 let () =
   Driver.register_transformation
@@ -884,12 +897,18 @@ let () =
 let variants =
   Deriving.add
     "typed_variants"
-    ~str_type_decl:(Deriving.Generator.make Deriving.Args.empty Gen_struct.generate)
-    ~sig_type_decl:(Deriving.Generator.make Deriving.Args.empty Gen_sig.generate)
+    ~str_type_decl:
+      (Deriving.Generator.make
+         Deriving.Args.empty
+         (Gen_struct.generate ~expand_typed_variants))
+    ~sig_type_decl:
+      (Deriving.Generator.make
+         Deriving.Args.empty
+         (Gen_sig.generate ~expand_typed_variants))
 ;;
 
 module For_testing = struct
-  let expand_struct = Gen_struct.generate ~path:()
-  let expand_sig = Gen_sig.generate ~path:()
+  let expand_struct = Gen_struct.generate ~path:() ~expand_typed_variants
+  let expand_sig = Gen_sig.generate ~path:() ~expand_typed_variants
   let expand_anonymous_struct = Gen_anonymous_struct.generate ~path:()
 end

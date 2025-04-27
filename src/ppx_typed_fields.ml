@@ -1,21 +1,18 @@
-open Base
-open Import
+open! Base
 open Ppxlib
-open Type_kind_intf
 
 type type_case =
-  | Record of (label_declaration * granularity) list with_parameters
-  | Tuple of (core_type * granularity) list with_parameters
-  | Unit of unit with_parameters
-  | Opaque of bool with_parameters
+  | Record of (label_declaration * Type_kind.granularity) list Type_kind.with_parameters
+  | Tuple of (core_type * Type_kind.granularity) list Type_kind.with_parameters
+  | Unit of unit Type_kind.with_parameters
+  | Opaque of bool Type_kind.with_parameters
   | Unknown
 
-(**
-   Attached to core types (e.g.)
+(** Attached to core types (e.g.)
 
-   {[
-     type t = int * ((int * int)[@typed_fields.subproduct])[@@deriving typed_fields]
-   ]} *)
+    {[
+      type t = int * ((int * int)[@typed_fields.subproduct]) [@@deriving typed_fields]
+    ]} *)
 let subproduct =
   Attribute.declare
     "typed_fields.subproduct"
@@ -24,15 +21,15 @@ let subproduct =
     ()
 ;;
 
-(**
-   Attached to label declarations (e.g.)
+(** Attached to label declarations (e.g.)
 
-   {[
-     type t = {
-       a: int * int [@typed_fields.subproduct]
-     ; b: int
-     } [@@deriving typed_fields]
-   ]} *)
+    {[
+      type t =
+        { a : int * int [@typed_fields.subproduct]
+        ; b : int
+        }
+      [@@deriving typed_fields]
+    ]} *)
 let subfield =
   Attribute.declare
     "typed_fields.subproduct"
@@ -41,12 +38,11 @@ let subfield =
     ()
 ;;
 
-(**
-   Attached to opaque types for label declarations (e.g.)
+(** Attached to opaque types for label declarations (e.g.)
 
-   {[
-     type t  [@@deriving typed_fields] [@@typed_fields.opaque]
-   ]} *)
+    {[
+      type t [@@deriving typed_fields] [@@typed_fields.opaque]
+    ]} *)
 let opaque_attribute =
   Attribute.declare
     "typed_fields.opaque"
@@ -109,14 +105,14 @@ let find_minimum_parameters_needed ~total_params ~core_type =
 ;;
 
 (** Identifies the fields that have a depth and attaches the depth and some extra
-    information like the parameters that the subproduct needs which comes in handy
-    when generating parts of the new ast. *)
+    information like the parameters that the subproduct needs which comes in handy when
+    generating parts of the new ast. *)
 let attach_granularity_to_tuple_types ~remove_attributes tuple_types params =
-  List.map tuple_types ~f:(fun tuple_type ->
+  List.map tuple_types ~f:(fun tuple_type : (core_type * Type_kind.granularity) ->
     match Attribute.get ~mark_as_seen:false subproduct tuple_type with
     | Some _ ->
       ( (if remove_attributes
-         then tuple_type |> attribute_remover#core_type
+         then tuple_type |> Type_kind.attribute_remover#core_type
          else tuple_type)
       , let minimum_needed_parameters, minimum_needed_parameter_ids =
           find_minimum_parameters_needed ~total_params:params ~core_type:tuple_type
@@ -130,29 +126,31 @@ let attach_granularity_to_tuple_types ~remove_attributes tuple_types params =
 ;;
 
 (** Identifies the fields that have a depth and attaches the depth and some extra
-    information like the parameters that the subproduct needs which comes in handy
-    when generating parts of the new ast.  *)
+    information like the parameters that the subproduct needs which comes in handy when
+    generating parts of the new ast. *)
 let attach_granularity_to_record_fields ~remove_attributes record_fields params =
-  List.map record_fields ~f:(fun declaration ->
-    match
-      ( Attribute.get ~mark_as_seen:false subproduct declaration.pld_type
-      , Attribute.get ~mark_as_seen:false subfield declaration )
-    with
-    | Some _, _ | _, Some _ ->
-      ( (if remove_attributes
-         then declaration |> attribute_remover#label_declaration
-         else declaration)
-      , let minimum_needed_parameters, minimum_needed_parameter_ids =
-          find_minimum_parameters_needed
-            ~total_params:params
-            ~core_type:declaration.pld_type
-        in
-        Deep
-          { minimum_needed_parameters
-          ; minimum_needed_parameter_ids
-          ; original_type_with_attributes = declaration.pld_type
-          } )
-    | None, _ -> declaration, Shallow)
+  List.map
+    record_fields
+    ~f:(fun declaration : (label_declaration * Type_kind.granularity) ->
+      match
+        ( Attribute.get ~mark_as_seen:false subproduct declaration.pld_type
+        , Attribute.get ~mark_as_seen:false subfield declaration )
+      with
+      | Some _, _ | _, Some _ ->
+        ( (if remove_attributes
+           then declaration |> Type_kind.attribute_remover#label_declaration
+           else declaration)
+        , let minimum_needed_parameters, minimum_needed_parameter_ids =
+            find_minimum_parameters_needed
+              ~total_params:params
+              ~core_type:declaration.pld_type
+          in
+          Deep
+            { minimum_needed_parameters
+            ; minimum_needed_parameter_ids
+            ; original_type_with_attributes = declaration.pld_type
+            } )
+      | None, _ -> declaration, Shallow)
 ;;
 
 let raise_if_opaque_attribute_is_seen td =
@@ -228,13 +226,10 @@ let is_tuple td =
 (** A subproduct tree is valid if and only if the following hold true.
 
     1. Subproduct annotations may only exist on tuples or on constr's.
-    2. Subproduct annotations' patent must either also be a tuple and
-    have a subproduct annotation or be the top-most annotation while
-    deriving typed fields.
-    3. For records, the subproduct annotation can be attached to either
-    the label declaration or the type of the label declaration, but
-    not both.
-*)
+    2. Subproduct annotations' patent must either also be a tuple and have a subproduct
+       annotation or be the top-most annotation while deriving typed fields.
+    3. For records, the subproduct annotation can be attached to either the label
+       declaration or the type of the label declaration, but not both. *)
 let is_valid_subproduct_tree types_that_are_currently_being_defined td =
   let raise_if_tag_is_spotted =
     object
@@ -460,14 +455,15 @@ module Gen_struct = struct
 
   let fields_of_td (td : type_declaration) : structure =
     let { ptype_name = { txt = name; loc }; _ } = td in
-    let open (val Ast_builder.make loc) in
+    let open (val Syntax.builder loc) in
     let fields_module_name =
       if String.equal name "t" then "Typed_field" else "Typed_field_of_" ^ name
     in
     let expr =
       module_struct_expr
         ~original_type:
-          (Some (generate_manifest_type_constr ~loc ~name ~params:td.ptype_params))
+          (Some
+             (Type_kind.generate_manifest_type_constr ~loc ~name ~params:td.ptype_params))
         ~original_kind:Ptype_abstract
         ~td
     in
@@ -510,7 +506,7 @@ end
 module Gen_sig = struct
   let strip_depth_if_needed strip_depth elements =
     match strip_depth with
-    | true -> List.map elements ~f:(fun (element, _) -> element, Shallow)
+    | true -> List.map elements ~f:(fun (element, _) -> element, Type_kind.Shallow)
     | false -> elements
   ;;
 
@@ -518,7 +514,7 @@ module Gen_sig = struct
 
   let generate_module_type_for_shallow ~td : module_type option * signature_item list =
     let { ptype_name = { txt = name; loc }; _ } = td in
-    let open (val Ast_builder.make loc) in
+    let open (val Syntax.builder loc) in
     match identify_type_case ~remove_attributes:true td with
     | Unit (_, _) -> Some (pmty_typeof (pmod_ident (Lident "Deep" |> Located.mk))), []
     | Tuple (tuple_types, _) ->
@@ -542,7 +538,8 @@ module Gen_sig = struct
           (Generic_generator.opaque_signature
              (module Typed_deriver_fields)
              ~loc
-             ~manifest_type:(Some (generate_manifest_type_constr ~loc ~name ~params))
+             ~manifest_type:
+               (Some (Type_kind.generate_manifest_type_constr ~loc ~name ~params))
              ~original_kind:Ptype_abstract
              ~params)
       , [] )
@@ -569,41 +566,44 @@ module Gen_sig = struct
     : module_type option * signature_item list
     =
     let { ptype_name = { txt = name; loc }; _ } = td in
-    let open (val Ast_builder.make loc) in
+    let open (val Syntax.builder loc) in
     match identify_type_case ~remove_attributes:true td with
     | Unit (_, params) ->
       let ({ gadt_t = typ; upper; constructor_declarations = _; internal_gadt_rename }
-            : core_type gen_t_result)
+            : core_type Type_kind.gen_t_result)
         =
         Generic_generator.gen_t
           ~loc
-          ~original_type:(Some (generate_manifest_type_constr ~loc ~name ~params))
+          ~original_type:
+            (Some (Type_kind.generate_manifest_type_constr ~loc ~name ~params))
           ~original_kind:Ptype_abstract
           ~elements_to_convert:[]
           ~generate_constructors:Unit_kind_generator.constructor_declarations
           ~params
-          ~upper_name:derived_on_name
+          ~upper_name:Names.derived_on_name
       in
       ( Some
           (pmty_signature
-             ([ psig_type Nonrecursive [ upper ]
-              ; psig_type Recursive [ typ ]
-              ; psig_type Nonrecursive [ internal_gadt_rename ]
-              ]
-              @ Typed_deriver_fields.generate_include_signature ~loc ~params))
+             (signature
+                ([ psig_type Nonrecursive [ upper ]
+                 ; psig_type Recursive [ typ ]
+                 ; psig_type Nonrecursive [ internal_gadt_rename ]
+                 ]
+                 @ Typed_deriver_fields.generate_include_signature ~loc ~params)))
       , [] )
     | Tuple (tuple_types, params) ->
       let ({ gadt_t = typ; upper; constructor_declarations = _; internal_gadt_rename }
-            : core_type gen_t_result)
+            : core_type Type_kind.gen_t_result)
         =
         Generic_generator.gen_t
           ~loc
-          ~original_type:(Some (generate_manifest_type_constr ~loc ~name ~params))
+          ~original_type:
+            (Some (Type_kind.generate_manifest_type_constr ~loc ~name ~params))
           ~original_kind:Ptype_abstract
           ~elements_to_convert:(strip_depth_if_needed strip_depth tuple_types)
           ~generate_constructors:Tuple_kind_generator.constructor_declarations
           ~params
-          ~upper_name:derived_on_name
+          ~upper_name:Names.derived_on_name
       in
       let singleton_modules =
         Product_kind_generator.singleton_modules_signatures
@@ -613,33 +613,36 @@ module Gen_sig = struct
       in
       ( Some
           (pmty_signature
-             ([ psig_type Nonrecursive [ upper ]
-              ; psig_type Recursive [ typ ]
-              ; psig_type Nonrecursive [ internal_gadt_rename ]
-              ]
-              @ Typed_deriver_fields.generate_include_signature ~loc ~params))
+             (signature
+                ([ psig_type Nonrecursive [ upper ]
+                 ; psig_type Recursive [ typ ]
+                 ; psig_type Nonrecursive [ internal_gadt_rename ]
+                 ]
+                 @ Typed_deriver_fields.generate_include_signature ~loc ~params)))
       , get_singleton_modules singleton_modules )
     | Opaque (true, params) ->
       ( Some
           (Generic_generator.opaque_signature
              (module Typed_deriver_fields)
              ~loc
-             ~manifest_type:(Some (generate_manifest_type_constr ~loc ~name ~params))
+             ~manifest_type:
+               (Some (Type_kind.generate_manifest_type_constr ~loc ~name ~params))
              ~original_kind:Ptype_abstract
              ~params)
       , [] )
     | Record (fields, params) ->
       let ({ gadt_t = typ; upper; constructor_declarations = _; internal_gadt_rename }
-            : label_declaration gen_t_result)
+            : label_declaration Type_kind.gen_t_result)
         =
         Generic_generator.gen_t
           ~loc
-          ~original_type:(Some (generate_manifest_type_constr ~loc ~name ~params))
+          ~original_type:
+            (Some (Type_kind.generate_manifest_type_constr ~loc ~name ~params))
           ~original_kind:Ptype_abstract
           ~elements_to_convert:(strip_depth_if_needed strip_depth fields)
           ~generate_constructors:Record_kind_generator.constructor_declarations
           ~params
-          ~upper_name:derived_on_name
+          ~upper_name:Names.derived_on_name
       in
       let singleton_modules =
         Product_kind_generator.singleton_modules_signatures
@@ -649,11 +652,12 @@ module Gen_sig = struct
       in
       ( Some
           (pmty_signature
-             ([ psig_type Nonrecursive [ upper ]
-              ; psig_type Recursive [ typ ]
-              ; psig_type Nonrecursive [ internal_gadt_rename ]
-              ]
-              @ Typed_deriver_fields.generate_include_signature ~loc ~params))
+             (signature
+                ([ psig_type Nonrecursive [ upper ]
+                 ; psig_type Recursive [ typ ]
+                 ; psig_type Nonrecursive [ internal_gadt_rename ]
+                 ]
+                 @ Typed_deriver_fields.generate_include_signature ~loc ~params)))
       , get_singleton_modules singleton_modules )
     | Unknown | Opaque (false, _) -> None, []
   ;;
@@ -662,20 +666,18 @@ module Gen_sig = struct
     : signature_item list * signature_item list
     =
     let { ptype_name = { loc; _ }; _ } = td in
-    let open (val Ast_builder.make loc) in
+    let open (val Syntax.builder loc) in
     let type_, singleton_modules = generate_module_type_for_shallow ~td in
     match type_ with
     | None -> [], singleton_modules
     | Some type_ ->
-      ( [ psig_module
-            (module_declaration ~name:(Located.mk (Some fields_module_name)) ~type_)
-        ]
+      ( [ psig_module (module_declaration (Located.mk (Some fields_module_name)) type_) ]
       , singleton_modules )
   ;;
 
   let fields_of_td (td : type_declaration) : signature_item list =
     let { ptype_name = { txt = name; loc }; ptype_params = params; _ } = td in
-    let open (val Ast_builder.make loc) in
+    let open (val Syntax.builder loc) in
     let fields_module_name =
       if String.equal name "t" then "Typed_field" else "Typed_field_of_" ^ name
     in
@@ -704,9 +706,7 @@ module Gen_sig = struct
         ]
       | Opaque _, _ -> []
       | Unit _, Some module_type ->
-        [ psig_module
-            (module_declaration ~name:(Some "Deep" |> Located.mk) ~type_:module_type)
-        ]
+        [ psig_module (module_declaration (Some "Deep" |> Located.mk) module_type) ]
       | Unknown, _ | _, None -> []
     in
     let full_depth =
@@ -727,20 +727,17 @@ module Gen_sig = struct
              Generic_generator.opaque_signature
                (module Typed_deriver_fields)
                ~loc
-               ~manifest_type:(Some (generate_manifest_type_constr ~loc ~name ~params))
+               ~manifest_type:
+                 (Some (Type_kind.generate_manifest_type_constr ~loc ~name ~params))
                ~original_kind:Ptype_abstract
                ~params
            in
-           psig_include (include_infos module_type))
+           psig_include (include_infos module_type ~kind:Structure) ~modalities:[])
         ]
       | Unknown | Opaque (false, _) -> []
     in
-    let signature = pmty_signature (deep @ shallow @ full_depth) in
-    [ psig_module
-        (module_declaration
-           ~name:(Some fields_module_name |> Located.mk)
-           ~type_:signature)
-    ]
+    let signature = pmty_signature (signature (deep @ shallow @ full_depth)) in
+    [ psig_module (module_declaration (Some fields_module_name |> Located.mk) signature) ]
   ;;
 
   let gen_subset (td : type_declaration) super =
@@ -774,6 +771,7 @@ end
 module Gen_anonymous_struct = struct
   let generate ~loc ~path:_ recflag tds =
     let loc = { loc with loc_ghost = true } in
+    let open (val Syntax.builder loc) in
     check_at_least_one_supported_type ~loc recflag tds;
     let loc_ghoster =
       object
@@ -792,30 +790,34 @@ module Gen_anonymous_struct = struct
         "'typed_fields' can only be applied on type definitions in which at least one \
          type definition is a record or tuple"
     | [ td ] ->
-      let local_type_name = generate_local_type_name td in
+      let local_type_name = Type_kind.generate_local_type_name td in
       let td = { td with ptype_name = { td.ptype_name with txt = local_type_name } } in
       let module_expr =
         Gen_struct.module_struct_expr
           ~original_type:
             (Some
-               (generate_manifest_type_constr
+               (Type_kind.generate_manifest_type_constr
                   ~loc
                   ~name:local_type_name
                   ~params:td.ptype_params))
           ~original_kind:Ptype_abstract
           ~td
       in
-      let open (val Ast_builder.make loc) in
       (match module_expr with
        | Some expr ->
          let structure =
-           { (pmod_structure expr) with pmod_attributes = [ disable_warning_32 ~loc ] }
+           { (pmod_structure expr) with
+             pmod_attributes = [ Type_kind.disable_warning_32 ~loc ]
+           }
          in
          let local_type_declaration =
-           let local_type_declaration = attribute_remover#type_declaration td in
+           let local_type_declaration = Type_kind.attribute_remover#type_declaration td in
            pstr_type Recursive [ local_type_declaration ]
          in
-         pmod_structure [ local_type_declaration; pstr_include (include_infos structure) ]
+         pmod_structure
+           [ local_type_declaration
+           ; pstr_include (include_infos structure ~kind:Structure)
+           ]
        | None -> pmod_structure [])
   ;;
 end

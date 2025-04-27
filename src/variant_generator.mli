@@ -1,1 +1,2 @@
-include Variant_kind_generator_intf.S
+open! Base
+include Variant_kind_generator.S

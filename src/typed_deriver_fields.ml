@@ -1,12 +1,11 @@
-open Base
-open Import
+open! Base
 open Ppxlib
-open Type_kind_intf
-open Typed_deriver_intf
 
 let gen_sig_t ~loc ~params =
-  let open (val Ast_builder.make loc) in
-  let unique_id = generate_unique_id (generate_core_type_params params) in
+  let open (val Syntax.builder loc) in
+  let unique_id =
+    Type_kind.generate_unique_id (Type_kind.generate_core_type_params params)
+  in
   let t_params = params @ [ ptyp_var unique_id, (NoVariance, NoInjectivity) ] in
   let t =
     psig_type
@@ -24,30 +23,31 @@ let gen_sig_t ~loc ~params =
 ;;
 
 let deriving_compare_equals_attribute ~loc =
-  let open (val Ast_builder.make loc) in
+  let open (val Syntax.builder loc) in
   attribute
     ~name:(Located.mk "deriving")
-    ~payload:(PStr [ pstr_eval (pexp_tuple [ [%expr compare]; [%expr equal] ]) [] ])
+    ~payload:
+      (PStr [ pstr_eval (pexp_tuple [ None, [%expr compare]; None, [%expr equal] ]) [] ])
 ;;
 
-(**
-   Generates a partial signature without the upper level t and without the upper level
-   record.
-*)
+(** Generates a partial signature without the upper level t and without the upper level
+    record. *)
 let gen_partial_sig ~loc ~params ~t_name =
-  let open (val Ast_builder.make loc) in
-  let unique_parameter_id = generate_unique_id (generate_core_type_params params) in
-  let core_type_params = generate_core_type_params params in
+  let open (val Syntax.builder loc) in
+  let unique_parameter_id =
+    Type_kind.generate_unique_id (Type_kind.generate_core_type_params params)
+  in
+  let core_type_params = Type_kind.generate_core_type_params params in
   let t_params = core_type_params @ [ ptyp_var unique_parameter_id ] in
   let t_type_constr = ptyp_constr (Lident "t" |> Located.mk) t_params in
   let record_type_constr =
-    ptyp_constr (Lident derived_on_name |> Located.mk) core_type_params
+    ptyp_constr (Lident Names.derived_on_name |> Located.mk) core_type_params
   in
   let unique_parameter_type_var = ptyp_var unique_parameter_id in
   let creator =
     psig_type
       Recursive
-      [ generate_creator_type_declaration
+      [ Type_kind.generate_creator_type_declaration
           ~loc
           ~unique_parameter_id
           ~core_type_params
@@ -60,35 +60,25 @@ let gen_partial_sig ~loc ~params ~t_name =
   let path = [%sigi: val path : [%t t_type_constr] -> string list] in
   let ord = [%sigi: val __ord : [%t t_type_constr] -> int list] in
   let get =
-    let get_type =
-      generate_arrow_type
-        ~loc
-        ~types_before_last:[ t_type_constr; record_type_constr ]
-        ~last_type:unique_parameter_type_var
-    in
-    [%sigi: val get : [%t get_type]]
+    [%sigi:
+      val get
+        :  [%t t_type_constr]
+        -> [%t record_type_constr]
+        -> [%t unique_parameter_type_var]]
   in
   let set =
-    let set_type =
-      generate_arrow_type
-        ~loc
-        ~types_before_last:
-          [ t_type_constr; record_type_constr; unique_parameter_type_var ]
-        ~last_type:record_type_constr
-    in
-    [%sigi: val set : [%t set_type]]
+    [%sigi:
+      val set
+        :  [%t t_type_constr]
+        -> [%t record_type_constr]
+        -> [%t unique_parameter_type_var]
+        -> [%t record_type_constr]]
   in
   let creator_type_constr =
     ptyp_constr (Lident "creator" |> Located.mk) core_type_params
   in
   let create =
-    let create_type =
-      generate_arrow_type
-        ~loc
-        ~types_before_last:[ creator_type_constr ]
-        ~last_type:record_type_constr
-    in
-    [%sigi: val create : [%t create_type]]
+    [%sigi: val create : [%t creator_type_constr] -> [%t record_type_constr]]
   in
   let create_local =
     [%sigi:
@@ -96,25 +86,22 @@ let gen_partial_sig ~loc ~params ~t_name =
   in
   let type_ids =
     let signature =
-      let type_id_type =
-        let t_type =
-          ptyp_constr
-            (Lident "t" |> Located.mk)
-            (List.mapi core_type_params ~f:(fun index _ ->
-               ptyp_constr
-                 (Ldot (Lident [%string "T%{(index + 1)#Int}"], "t") |> Located.mk)
-                 [])
-             @ [ unique_parameter_type_var ])
-        in
-        generate_arrow_type
-          ~loc
-          ~types_before_last:[ t_type ]
-          ~last_type:
-            (ptyp_constr
-               (Ldot (Ldot (Ldot (Lident "Base", "Type_equal"), "Id"), "t") |> Located.mk)
-               [ unique_parameter_type_var ])
+      let t_type =
+        ptyp_constr
+          (Lident "t" |> Located.mk)
+          (List.mapi core_type_params ~f:(fun index _ ->
+             ptyp_constr
+               (Ldot (Lident [%string "T%{(index + 1)#Int}"], "t") |> Located.mk)
+               [])
+           @ [ unique_parameter_type_var ])
       in
-      pmty_signature [ [%sigi: val type_id : [%t type_id_type]] ]
+      pmty_signature
+        (signature
+           [ [%sigi:
+               val type_id
+                 :  [%t t_type]
+                 -> [%t unique_parameter_type_var] Base.Type_equal.Id.t]
+           ])
     in
     let number_of_parameters = List.length core_type_params in
     let signature_with_functors =
@@ -122,19 +109,19 @@ let gen_partial_sig ~loc ~params ~t_name =
         pmty_functor
           (Named
              ( Some [%string "T%{(number_of_parameters - index)#Int}"] |> Located.mk
-             , pmty_ident (Ldot (Lident "Base", "T") |> Located.mk) ))
+             , pmty_ident (Ldot (Lident "Base", "T") |> Located.mk)
+             , [] )
+           |> Ppxlib_jane.Shim.Functor_parameter.to_parsetree)
           acc)
     in
     psig_module
-      (module_declaration
-         ~name:(Some "Type_ids" |> Located.mk)
-         ~type_:signature_with_functors)
+      (module_declaration (Some "Type_ids" |> Located.mk) signature_with_functors)
   in
   let packed =
     let signature =
       let field_type_declaration =
         let td =
-          generate_packed_field_type_declaration
+          Typed_deriver.generate_packed_field_type_declaration
             ~loc
             ~params
             ~unique_parameter_id
@@ -145,19 +132,24 @@ let gen_partial_sig ~loc ~params ~t_name =
       let field_type = ptyp_constr (Lident "field" |> Located.mk) t_params in
       let t_prime_type_declaration =
         let td =
-          generate_packed_t_prime_type_declaration
+          Typed_deriver.generate_packed_t_prime_type_declaration
             ~loc
             ~params
             ~core_type_params
             ~field_type
         in
         let td =
-          { td with ptype_attributes = disable_warning_37 ~loc :: td.ptype_attributes }
+          { td with
+            ptype_attributes =
+              Typed_deriver.disable_warning_37 ~loc :: td.ptype_attributes
+          }
         in
         psig_type Recursive [ td ]
       in
       let t_type_declaration =
-        let td = generate_packed_t_type_declaration ~loc ~core_type_params in
+        let td =
+          Typed_deriver.generate_packed_t_type_declaration ~loc ~core_type_params
+        in
         let td =
           { td with
             ptype_attributes =
@@ -174,28 +166,24 @@ let gen_partial_sig ~loc ~params ~t_name =
         [%sigi: val pack : [%t field_type_constr] -> t]
       in
       pmty_signature
-        [ field_type_declaration
-        ; t_prime_type_declaration
-        ; t_type_declaration
-        ; pack
-        ; sexp_of_t
-        ; t_of_sexp
-        ; all
-        ]
+        (signature
+           [ field_type_declaration
+           ; t_prime_type_declaration
+           ; t_type_declaration
+           ; pack
+           ; sexp_of_t
+           ; t_of_sexp
+           ; all
+           ])
     in
-    psig_module (module_declaration ~name:(Some "Packed" |> Located.mk) ~type_:signature)
+    psig_module (module_declaration (Some "Packed" |> Located.mk) signature)
   in
   [ creator; name; path; ord; get; set; create; create_local; type_ids; packed; names ]
 ;;
 
-(**
-   Either generates either
-   `include Typed_fields_lib.SN with type original := original`
-   or
-   the fully generated partial signature if the number of parameter is above 5.
-*)
+(** Either generates either `include Typed_fields_lib.SN with type original := original`
+    or the fully generated partial signature if the number of parameter is above 5. *)
 let generate_include_signature_for_opaque ~loc ~params =
-  let open (val Ast_builder.make loc) in
   match List.length params with
   | 0 -> [ [%sigi: include Typed_fields_lib.S with type derived_on := derived_on] ]
   | 1 ->
@@ -228,7 +216,6 @@ let generate_include_signature_for_opaque ~loc ~params =
 ;;
 
 let generate_include_signature ~loc ~params =
-  let open (val Ast_builder.make loc) in
   match List.length params with
   | 0 ->
     [ [%sigi:
@@ -276,16 +263,16 @@ let generate_include_signature ~loc ~params =
 
 let generate_str_body
   (type a)
-  (module Specific_generator : Type_kind_intf.S with type t = a)
+  (module Specific_generator : Type_kind.S with type t = a)
   ~original_type
   ~original_kind
   ~loc
-  ~(elements_to_convert : (a * granularity) list)
+  ~(elements_to_convert : (a * Type_kind.granularity) list)
   ~params
   =
-  let open (val Ast_builder.make loc) in
+  let open (val Syntax.builder loc) in
   let ({ gadt_t = t; upper; constructor_declarations; internal_gadt_rename }
-        : a gen_t_result)
+        : a Type_kind.gen_t_result)
     =
     Generic_generator.gen_t
       ~loc
@@ -299,17 +286,17 @@ let generate_str_body
   let upper = pstr_type Nonrecursive [ upper ] in
   let t = pstr_type Recursive [ t ] in
   let internal_gadt_rename = pstr_type Recursive [ internal_gadt_rename ] in
-  let core_type_params = generate_core_type_params params in
-  let unique_parameter_id = generate_unique_id core_type_params in
+  let core_type_params = Type_kind.generate_core_type_params params in
+  let unique_parameter_id = Type_kind.generate_unique_id core_type_params in
   let creator_type =
     pstr_type
       Recursive
-      [ generate_creator_type_declaration
+      [ Type_kind.generate_creator_type_declaration
           ~loc
           ~unique_parameter_id
           ~core_type_params
           ~params
-          ~t_name:internal_gadt_name
+          ~t_name:Type_kind.internal_gadt_name
       ]
   in
   let names =
@@ -319,7 +306,7 @@ let generate_str_body
   let name =
     let function_body = Specific_generator.name_function_body ~loc in
     let arrow_type = ptyp_constr (Lident "string" |> Located.mk) [] in
-    generate_new_typed_function
+    Typed_deriver.generate_new_typed_function
       ~loc
       ~function_name:"name"
       ~core_type_params
@@ -327,7 +314,7 @@ let generate_str_body
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
-      ~name_of_first_parameter:(Lident internal_gadt_name)
+      ~name_of_first_parameter:(Lident Type_kind.internal_gadt_name)
   in
   let path =
     let function_body = Specific_generator.path_function_body ~loc ~elements_to_convert in
@@ -336,7 +323,7 @@ let generate_str_body
         (Lident "list" |> Located.mk)
         [ ptyp_constr (Lident "string" |> Located.mk) [] ]
     in
-    generate_new_typed_function
+    Typed_deriver.generate_new_typed_function
       ~loc
       ~function_name:"path"
       ~core_type_params
@@ -344,7 +331,7 @@ let generate_str_body
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
-      ~name_of_first_parameter:(Lident internal_gadt_name)
+      ~name_of_first_parameter:(Lident Type_kind.internal_gadt_name)
   in
   let ord =
     let function_body = Specific_generator.ord_function_body ~loc ~elements_to_convert in
@@ -353,7 +340,7 @@ let generate_str_body
         (Lident "list" |> Located.mk)
         [ ptyp_constr (Lident "int" |> Located.mk) [] ]
     in
-    generate_new_typed_function
+    Typed_deriver.generate_new_typed_function
       ~loc
       ~function_name:"__ord"
       ~core_type_params
@@ -361,57 +348,72 @@ let generate_str_body
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
-      ~name_of_first_parameter:(Lident internal_gadt_name)
+      ~name_of_first_parameter:(Lident Type_kind.internal_gadt_name)
   in
   let constr_record_type =
     ptyp_constr
-      (Lident derived_on_name |> Located.mk)
+      (Lident Names.derived_on_name |> Located.mk)
       (List.filter_map core_type_params ~f:(fun { ptyp_desc; _ } ->
          match Ppxlib_jane.Shim.Core_type_desc.of_parsetree ptyp_desc with
          | Ptyp_var (name, _) -> Some (ptyp_constr (Lident name |> Located.mk) [])
          | _ -> None))
   in
   let var_record_type =
-    ptyp_constr (Lident derived_on_name |> Located.mk) core_type_params
+    ptyp_constr (Lident Names.derived_on_name |> Located.mk) core_type_params
   in
   let get =
     let function_body = Specific_generator.get_function_body ~loc ~elements_to_convert in
-    generate_new_typed_function
+    Typed_deriver.generate_new_typed_function
       ~loc
       ~function_name:"get"
       ~core_type_params
       ~unique_parameter_id
       ~constr_arrow_type:
         (ptyp_arrow
-           Nolabel
-           constr_record_type
-           (ptyp_constr (Lident unique_parameter_id |> Located.mk) []))
-      ~var_arrow_type:(ptyp_arrow Nolabel var_record_type (ptyp_var unique_parameter_id))
+           { arg_label = Nolabel; arg_type = constr_record_type; arg_modes = [] }
+           { result_type = ptyp_constr (Lident unique_parameter_id |> Located.mk) []
+           ; result_modes = []
+           })
+      ~var_arrow_type:
+        (ptyp_arrow
+           { arg_label = Nolabel; arg_type = var_record_type; arg_modes = [] }
+           { result_type = ptyp_var unique_parameter_id; result_modes = [] })
       ~function_body
-      ~name_of_first_parameter:(Lident internal_gadt_name)
+      ~name_of_first_parameter:(Lident Type_kind.internal_gadt_name)
   in
   let set =
     let function_body = Specific_generator.set_function_body ~loc ~elements_to_convert in
-    generate_new_typed_function
+    Typed_deriver.generate_new_typed_function
       ~loc
       ~function_name:"set"
       ~core_type_params
       ~unique_parameter_id
       ~constr_arrow_type:
         (ptyp_arrow
-           Nolabel
-           constr_record_type
-           (ptyp_arrow
-              Nolabel
-              (ptyp_constr (Lident unique_parameter_id |> Located.mk) [])
-              constr_record_type))
+           { arg_label = Nolabel; arg_type = constr_record_type; arg_modes = [] }
+           { result_type =
+               ptyp_arrow
+                 { arg_label = Nolabel
+                 ; arg_type = ptyp_constr (Lident unique_parameter_id |> Located.mk) []
+                 ; arg_modes = []
+                 }
+                 { result_type = constr_record_type; result_modes = [] }
+           ; result_modes = []
+           })
       ~var_arrow_type:
         (ptyp_arrow
-           Nolabel
-           var_record_type
-           (ptyp_arrow Nolabel (ptyp_var unique_parameter_id) var_record_type))
+           { arg_label = Nolabel; arg_type = var_record_type; arg_modes = [] }
+           { result_type =
+               ptyp_arrow
+                 { arg_label = Nolabel
+                 ; arg_type = ptyp_var unique_parameter_id
+                 ; arg_modes = []
+                 }
+                 { result_type = var_record_type; result_modes = [] }
+           ; result_modes = []
+           })
       ~function_body
-      ~name_of_first_parameter:(Lident internal_gadt_name)
+      ~name_of_first_parameter:(Lident Type_kind.internal_gadt_name)
   in
   let create =
     let body =
@@ -479,7 +481,7 @@ let generate_str_body
           ~f:(fun acc new_label -> Ldot (acc, new_label))
         |> Located.mk
       in
-      generate_new_typed_function
+      Typed_deriver.generate_new_typed_function
         ~loc
         ~function_name:"type_id"
         ~core_type_params:
@@ -494,7 +496,7 @@ let generate_str_body
              type_equal_t
              [ ptyp_constr (Lident unique_parameter_id |> Located.mk) [] ])
         ~var_arrow_type:(ptyp_constr type_equal_t [ ptyp_var unique_parameter_id ])
-        ~name_of_first_parameter:(Lident internal_gadt_name)
+        ~name_of_first_parameter:(Lident Type_kind.internal_gadt_name)
     in
     let number_of_parameters = List.length core_type_params in
     let functor_expression =
@@ -505,18 +507,22 @@ let generate_str_body
           pmod_functor
             (Named
                ( Some [%string "T%{(number_of_parameters - index)#Int}"] |> Located.mk
-               , pmty_ident (Ldot (Lident "Base", "T") |> Located.mk) ))
+               , pmty_ident (Ldot (Lident "Base", "T") |> Located.mk)
+               , [] )
+             |> Ppxlib_jane.Shim.Functor_parameter.to_parsetree)
             acc)
     in
     [%stri module Type_ids = [%m functor_expression]]
   in
   let t_params = core_type_params @ [ ptyp_var unique_parameter_id ] in
-  let t_type_constr = ptyp_constr (Lident internal_gadt_name |> Located.mk) t_params in
+  let t_type_constr =
+    ptyp_constr (Lident Type_kind.internal_gadt_name |> Located.mk) t_params
+  in
   let field_type = ptyp_constr (Lident "field" |> Located.mk) t_params in
   let packed =
     let packed_field =
       let td =
-        generate_packed_field_type_declaration
+        Typed_deriver.generate_packed_field_type_declaration
           ~loc
           ~params
           ~unique_parameter_id
@@ -526,17 +532,17 @@ let generate_str_body
     in
     let t_prime_type_declaration =
       let td =
-        generate_packed_t_prime_type_declaration
+        Typed_deriver.generate_packed_t_prime_type_declaration
           ~loc
           ~params
           ~core_type_params
           ~field_type
       in
-      let td = { td with ptype_attributes = [ disable_warning_37 ~loc ] } in
+      let td = { td with ptype_attributes = [ Typed_deriver.disable_warning_37 ~loc ] } in
       pstr_type Recursive [ td ]
     in
     let t_type_declaration =
-      let td = generate_packed_t_type_declaration ~loc ~core_type_params in
+      let td = Typed_deriver.generate_packed_t_type_declaration ~loc ~core_type_params in
       pstr_type Recursive [ td ]
     in
     let all =
@@ -557,7 +563,7 @@ let generate_str_body
     let pack =
       let function_body = Specific_generator.pack_body ~loc ~elements_to_convert in
       let arrow_type = ptyp_constr (Lident "t" |> Located.mk) [] in
-      generate_new_typed_function
+      Typed_deriver.generate_new_typed_function
         ~loc
         ~function_name:"pack"
         ~core_type_params
@@ -575,6 +581,15 @@ let generate_str_body
       let function_body = Specific_generator.t_of_sexp_body ~loc ~elements_to_convert in
       [%stri let t_of_sexp sexp = [%e function_body]]
     in
+    let comparator =
+      [%stri
+        include Base.Comparator.Make (struct
+            type nonrec t = t
+
+            let compare = compare
+            let sexp_of_t = sexp_of_t
+          end)]
+    in
     pstr_module
       (module_binding
          ~name:(Some "Packed" |> Located.mk)
@@ -589,12 +604,13 @@ let generate_str_body
               ; pack
               ; sexp_of_packed
               ; packed_of_sexp
+              ; comparator
               ]))
   in
   let upper_rename =
     let td =
       type_declaration
-        ~name:(Located.mk derived_on_name)
+        ~name:(Located.mk Names.derived_on_name)
         ~params
         ~cstrs:[]
         ~private_:Public
@@ -622,20 +638,18 @@ let generate_str_body
     ]
 ;;
 
-(**
-   Generates a structure with the two submodules, Shallow, Deep and exposes the full depth
-   version of Deep.
-*)
+(** Generates a structure with the two submodules, Shallow, Deep and exposes the full
+    depth version of Deep. *)
 let gen_str
   (type a)
-  (module Specific_generator : Type_kind_intf.S with type t = a)
+  (module Specific_generator : Type_kind.S with type t = a)
   ~original_type
   ~original_kind
   ~loc
-  ~(elements_to_convert : (a * granularity) list)
+  ~(elements_to_convert : (a * Type_kind.granularity) list)
   ~params
   =
-  let open (val Ast_builder.make loc) in
+  let open (val Syntax.builder loc) in
   let shallow_module =
     let singleton_modules =
       Specific_generator.singleton_modules_structures ~loc ~elements_to_convert

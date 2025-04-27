@@ -1,2 +1,3 @@
+open! Base
 open Ppxlib
-include Type_kind_intf.S with type t = label_declaration
+include Type_kind.S with type t = label_declaration

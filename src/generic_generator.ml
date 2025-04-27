@@ -1,7 +1,5 @@
-open Base
-open Import
+open! Base
 open Ppxlib
-open Type_kind_intf
 
 (* Generates `type _ t = A : a |  B : b ...` type *)
 let gen_t
@@ -9,15 +7,20 @@ let gen_t
   ~loc
   ~original_type
   ~original_kind
-  ~(elements_to_convert : (a * granularity) list)
+  ~(elements_to_convert : (a * Type_kind.granularity) list)
   ~generate_constructors
   ~params
   ~upper_name
   =
-  let open (val Ast_builder.make loc) in
+  let open (val Syntax.builder loc) in
   let core_type_params = List.map params ~f:(fun (core_type_, _) -> core_type_) in
   let upper =
-    upper ~loc ~manifest_type:original_type ~original_kind ~params ~name:upper_name
+    Type_kind.upper
+      ~loc
+      ~manifest_type:original_type
+      ~original_kind
+      ~params
+      ~name:upper_name
   in
   let constructor_declarations =
     generate_constructors ~loc ~elements_to_convert ~core_type_params
@@ -26,13 +29,15 @@ let gen_t
     type_declaration
       ~private_:Public
       ~manifest:None
-      ~name:(Located.mk internal_gadt_name)
+      ~name:(Located.mk Type_kind.internal_gadt_name)
       ~params:(params @ [ ptyp_any, (NoVariance, Injective) ])
       ~cstrs:[]
       ~kind:(Ptype_variant (List.map constructor_declarations ~f:snd))
   in
   let internal_gadt_rename =
-    let unique_id = generate_unique_id (generate_core_type_params params) in
+    let unique_id =
+      Type_kind.generate_unique_id (Type_kind.generate_core_type_params params)
+    in
     let t_params = params @ [ ptyp_var unique_id, (NoVariance, NoInjectivity) ] in
     let core_type_params = List.map t_params ~f:(fun (x, _) -> x) in
     type_declaration
@@ -42,7 +47,10 @@ let gen_t
       ~private_:Public
       ~kind:Ptype_abstract
       ~manifest:
-        (Some (ptyp_constr (Lident internal_gadt_name |> Located.mk) core_type_params))
+        (Some
+           (ptyp_constr
+              (Lident Type_kind.internal_gadt_name |> Located.mk)
+              core_type_params))
   in
   let internal_gadt_rename =
     { internal_gadt_rename with
@@ -53,22 +61,25 @@ let gen_t
         ]
     }
   in
-  let result : 'a gen_t_result =
+  let result : 'a Type_kind.gen_t_result =
     { gadt_t = t; upper; constructor_declarations; internal_gadt_rename }
   in
   result
 ;;
 
 let opaque_signature
-  (module Specific_deriver : Typed_deriver_intf.S)
+  (module Specific_deriver : Typed_deriver.S)
   ~loc
   ~manifest_type
   ~original_kind
   ~params
   =
-  let open (val Ast_builder.make loc) in
-  let upper = upper ~loc ~manifest_type ~original_kind ~params ~name:derived_on_name in
+  let open (val Syntax.builder loc) in
+  let upper =
+    Type_kind.upper ~loc ~manifest_type ~original_kind ~params ~name:Names.derived_on_name
+  in
   pmty_signature
-    ([ psig_type Nonrecursive [ upper ] ]
-     @ Specific_deriver.generate_include_signature_for_opaque ~loc ~params)
+    (signature
+       ([ psig_type Nonrecursive [ upper ] ]
+        @ Specific_deriver.generate_include_signature_for_opaque ~loc ~params))
 ;;

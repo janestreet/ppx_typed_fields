@@ -2,13 +2,13 @@ open! Base
 
 module type Data = T1
 
-(** The reason that S_plain exists is because the To_other_map functor needs to
-    take one as an argument, so they need to be split.
+(** The reason that S_plain exists is because the To_other_map functor needs to take one
+    as an argument, so they need to be split.
 
-    One of these maps is isomorphic to the record that they are built out of.  When
+    One of these maps is isomorphic to the record that they are built out of. When
     creating the map via the creator function, you provide all possible keys and values.
 
-    This means that [find] will always succeed.  *)
+    This means that [find] will always succeed. *)
 module type S_plain = sig
   type t [@@deriving sexp_of]
 
@@ -25,7 +25,7 @@ module type S_plain = sig
   val create : ?sexper:sexper -> creator -> t
   val set : t -> key:'a Key.t -> data:'a Data.t -> t
 
-  (** Find will always succeed  *)
+  (** Find will always succeed *)
   val find : t -> 'a Key.t -> 'a Data.t
 
   val change : t -> 'a Key.t -> f:('a Data.t -> 'a Data.t) -> t
@@ -51,8 +51,8 @@ module type S = sig
     include module type of As_applicative
 
     module type S_for_other_map = sig
-      (** This module is basically "Applicative", but with an additional type that can be used to
-          translate to the applicative type.
+      (** This module is basically "Applicative", but with an additional type that can be
+          used to translate to the applicative type.
 
           Typically these types will be something like
 
@@ -60,11 +60,11 @@ module type S = sig
             type 'a t = 'a Value.t
             type 'a s = 'a Form.t
 
-            val translate: 'a Form.t Value.t -> 'a Form.t Value.t
+            val translate : 'a Form.t Value.t -> 'a Form.t Value.t
           ]}
 
-          [translate] probably doesn't need to do any work. It just exists to
-          expose a type equality between ['a Data.t] and ['a s t]. *)
+          [translate] probably doesn't need to do any work. It just exists to expose a
+          type equality between ['a Data.t] and ['a s t]. *)
 
       type 'a t
 
@@ -117,6 +117,7 @@ end
 module type The_map = sig
   module type Data = Data
   module type S = S
+  module type S_plain = S_plain
 
   module Make (Key : Typed_fields_lib.Common.S) (Data : Data) :
     S with module Key = Key and module Data = Data

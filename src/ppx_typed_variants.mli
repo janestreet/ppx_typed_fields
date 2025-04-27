@@ -1,3 +1,4 @@
+open! Base
 open Ppxlib
 
 val variants : Deriving.t

@@ -1,2 +1,3 @@
+open! Base
 open Ppxlib
-include Product_kind_intf.S with type t = core_type
+include Product_kind.S with type t = core_type
