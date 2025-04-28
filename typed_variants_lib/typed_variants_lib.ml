@@ -1,3 +1,9 @@
+(*$
+  open Base
+  open Stdio
+  open Typed_fields_lib_cinaps
+$*)
+
 open Base
 include Typed_variants_lib_intf
 
@@ -42,6 +48,13 @@ module Nothing = struct
            ; sexp
            ])
     ;;
+
+    include Comparator.Make (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
   end
 
   let which : derived_on -> Packed.t = function
@@ -49,54 +62,111 @@ module Nothing = struct
   ;;
 end
 
-module Singleton (T : T) = struct
-  include Typed_fields_lib.Singleton (T)
+(*$
+  for n = 0 to 5 do
+    [%string
+      {|
 
-  let get (type a) (T : a t) (t : derived_on) : a option = Some t
-  let create (type a) (T : a t) (t : a) : derived_on = t
-  let which _ = { Packed.f = Packed.T T }
-end
-
-module Singleton1 (T1 : T1) = struct
-  include Typed_fields_lib.Singleton1 (T1)
-
-  let get (type a r) (T : (a, r) t) (t : a derived_on) : r option = Some t
-  let create (type a r) (T : (a, r) t) (t : r) : a derived_on = t
-  let which _ = { Packed.f = Packed.T T }
-end
-
-module Singleton2 (T2 : T2) = struct
-  include Typed_fields_lib.Singleton2 (T2)
-
-  let get (type a b r) (T : (a, b, r) t) (t : (a, b) derived_on) : r option = Some t
-  let create (type a b r) (T : (a, b, r) t) (t : r) : (a, b) derived_on = t
-  let which _ = { Packed.f = Packed.T T }
-end
-
-module Singleton3 (T3 : T3) = struct
-  include Typed_fields_lib.Singleton3 (T3)
-
-  let get (type a b c r) (T : (a, b, c, r) t) (t : (a, b, c) derived_on) : r option =
-    Some t
-  ;;
-
-  let create (type a b c r) (T : (a, b, c, r) t) (t : r) : (a, b, c) derived_on = t
-  let which _ = { Packed.f = Packed.T T }
-end
-
-module Singleton4 (T4 : sig
-    type ('a, 'b, 'c, 'd) t
+module %{this n "Singleton"} (%{this n "T"} : sig
+    type %{params n "'t%i"} t
   end) =
 struct
-  include Typed_fields_lib.Singleton4 (T4)
+  include Typed_fields_lib.%{this n "Singleton"} (%{this n "T"})
 
-  let get (type a b c d r) (T : (a, b, c, d, r) t) (t : (a, b, c, d) derived_on)
+  let get
+      (type %{each n "t%i "} r)
+      (T : (%{each n "t%i,"} r) t)
+      (t : %{params n "t%i"} derived_on)
+      : r option
+    = Some t
+  ;;
+
+  let create
+      (type %{each n "t%i "} r)
+      (T : (%{each n "t%i,"} r) t)
+      (t : r)
+      : %{params n "t%i"} derived_on
+    = t
+  ;;
+
+  let which _ = { Packed.f = Packed.T T }
+end
+
+      |}]
+    |> print_endline
+  done
+*)
+
+module Singleton (T : sig
+    type t
+  end) =
+struct
+  include Typed_fields_lib.Singleton (T)
+
+  let get (type r) (T : r t) (t : derived_on) : r option = Some t
+  let create (type r) (T : r t) (t : r) : derived_on = t
+  let which _ = { Packed.f = Packed.T T }
+end
+
+module Singleton1 (T1 : sig
+    type 't1 t
+  end) =
+struct
+  include Typed_fields_lib.Singleton1 (T1)
+
+  let get (type t1 r) (T : (t1, r) t) (t : t1 derived_on) : r option = Some t
+  let create (type t1 r) (T : (t1, r) t) (t : r) : t1 derived_on = t
+  let which _ = { Packed.f = Packed.T T }
+end
+
+module Singleton2 (T2 : sig
+    type ('t1, 't2) t
+  end) =
+struct
+  include Typed_fields_lib.Singleton2 (T2)
+
+  let get (type t1 t2 r) (T : (t1, t2, r) t) (t : (t1, t2) derived_on) : r option = Some t
+  let create (type t1 t2 r) (T : (t1, t2, r) t) (t : r) : (t1, t2) derived_on = t
+  let which _ = { Packed.f = Packed.T T }
+end
+
+module Singleton3 (T3 : sig
+    type ('t1, 't2, 't3) t
+  end) =
+struct
+  include Typed_fields_lib.Singleton3 (T3)
+
+  let get (type t1 t2 t3 r) (T : (t1, t2, t3, r) t) (t : (t1, t2, t3) derived_on)
     : r option
     =
     Some t
   ;;
 
-  let create (type a b c d r) (T : (a, b, c, d, r) t) (t : r) : (a, b, c, d) derived_on =
+  let create (type t1 t2 t3 r) (T : (t1, t2, t3, r) t) (t : r) : (t1, t2, t3) derived_on =
+    t
+  ;;
+
+  let which _ = { Packed.f = Packed.T T }
+end
+
+module Singleton4 (T4 : sig
+    type ('t1, 't2, 't3, 't4) t
+  end) =
+struct
+  include Typed_fields_lib.Singleton4 (T4)
+
+  let get
+    (type t1 t2 t3 t4 r)
+    (T : (t1, t2, t3, t4, r) t)
+    (t : (t1, t2, t3, t4) derived_on)
+    : r option
+    =
+    Some t
+  ;;
+
+  let create (type t1 t2 t3 t4 r) (T : (t1, t2, t3, t4, r) t) (t : r)
+    : (t1, t2, t3, t4) derived_on
+    =
     t
   ;;
 
@@ -104,22 +174,249 @@ struct
 end
 
 module Singleton5 (T5 : sig
-    type ('a, 'b, 'c, 'd, 'e) t
+    type ('t1, 't2, 't3, 't4, 't5) t
   end) =
 struct
   include Typed_fields_lib.Singleton5 (T5)
 
-  let get (type a b c d e r) (T : (a, b, c, d, e, r) t) (t : (a, b, c, d, e) derived_on)
+  let get
+    (type t1 t2 t3 t4 t5 r)
+    (T : (t1, t2, t3, t4, t5, r) t)
+    (t : (t1, t2, t3, t4, t5) derived_on)
     : r option
     =
     Some t
   ;;
 
-  let create (type a b c d e r) (T : (a, b, c, d, e, r) t) (t : r)
-    : (a, b, c, d, e) derived_on
+  let create (type t1 t2 t3 t4 t5 r) (T : (t1, t2, t3, t4, t5, r) t) (t : r)
+    : (t1, t2, t3, t4, t5) derived_on
     =
     t
   ;;
 
   let which _ = { Packed.f = Packed.T T }
 end
+
+(*$
+  for n = 1 to 5 do
+    [%string
+      {|
+
+module %{this n "S_of_S"} (M : %{this n "S"}) %{each n "(T%i : T)"} : S
+ with type 'a t = (%{each n "T%i.t,"} 'a) M.t
+  and type derived_on = %{params n "T%i.t"} M.derived_on =
+struct
+  include M
+
+  type 'a t = (%{each n "T%i.t,"} 'a) M.t
+  type derived_on = %{params n "T%i.t"} M.derived_on
+
+  module Type_ids = Type_ids %{each n "(T%i)"}
+
+  module Packed = struct
+    type 'a field = 'a t
+    type t' = T : 'a field -> t'
+    type t = { f : t' } [@@unboxed]
+
+    let m_of_packed { f = T field } = M.Packed.pack field
+    let packed_of_m { M.Packed.f = T field } = { f = T field }
+    let compare a b = M.Packed.compare (m_of_packed a) (m_of_packed b)
+    let equal a b = M.Packed.equal (m_of_packed a) (m_of_packed b)
+    let all = List.map M.Packed.all ~f:packed_of_m
+    let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
+    let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
+    let pack field = { f = T field }
+
+    include Comparator.Make (struct
+        type nonrec t = t
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
+
+  let which t = Packed.packed_of_m (M.which t)
+end
+
+      |}]
+    |> print_endline
+  done
+*)
+
+module S_of_S1 (M : S1) (T1 : T) :
+  S with type 'a t = (T1.t, 'a) M.t and type derived_on = T1.t M.derived_on = struct
+  include M
+
+  type 'a t = (T1.t, 'a) M.t
+  type derived_on = T1.t M.derived_on
+
+  module Type_ids = Type_ids (T1)
+
+  module Packed = struct
+    type 'a field = 'a t
+    type t' = T : 'a field -> t'
+    type t = { f : t' } [@@unboxed]
+
+    let m_of_packed { f = T field } = M.Packed.pack field
+    let packed_of_m { M.Packed.f = T field } = { f = T field }
+    let compare a b = M.Packed.compare (m_of_packed a) (m_of_packed b)
+    let equal a b = M.Packed.equal (m_of_packed a) (m_of_packed b)
+    let all = List.map M.Packed.all ~f:packed_of_m
+    let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
+    let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
+    let pack field = { f = T field }
+
+    include Comparator.Make (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
+
+  let which t = Packed.packed_of_m (M.which t)
+end
+
+module S_of_S2 (M : S2) (T1 : T) (T2 : T) :
+  S with type 'a t = (T1.t, T2.t, 'a) M.t and type derived_on = (T1.t, T2.t) M.derived_on =
+struct
+  include M
+
+  type 'a t = (T1.t, T2.t, 'a) M.t
+  type derived_on = (T1.t, T2.t) M.derived_on
+
+  module Type_ids = Type_ids (T1) (T2)
+
+  module Packed = struct
+    type 'a field = 'a t
+    type t' = T : 'a field -> t'
+    type t = { f : t' } [@@unboxed]
+
+    let m_of_packed { f = T field } = M.Packed.pack field
+    let packed_of_m { M.Packed.f = T field } = { f = T field }
+    let compare a b = M.Packed.compare (m_of_packed a) (m_of_packed b)
+    let equal a b = M.Packed.equal (m_of_packed a) (m_of_packed b)
+    let all = List.map M.Packed.all ~f:packed_of_m
+    let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
+    let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
+    let pack field = { f = T field }
+
+    include Comparator.Make (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
+
+  let which t = Packed.packed_of_m (M.which t)
+end
+
+module S_of_S3 (M : S3) (T1 : T) (T2 : T) (T3 : T) :
+  S
+  with type 'a t = (T1.t, T2.t, T3.t, 'a) M.t
+   and type derived_on = (T1.t, T2.t, T3.t) M.derived_on = struct
+  include M
+
+  type 'a t = (T1.t, T2.t, T3.t, 'a) M.t
+  type derived_on = (T1.t, T2.t, T3.t) M.derived_on
+
+  module Type_ids = Type_ids (T1) (T2) (T3)
+
+  module Packed = struct
+    type 'a field = 'a t
+    type t' = T : 'a field -> t'
+    type t = { f : t' } [@@unboxed]
+
+    let m_of_packed { f = T field } = M.Packed.pack field
+    let packed_of_m { M.Packed.f = T field } = { f = T field }
+    let compare a b = M.Packed.compare (m_of_packed a) (m_of_packed b)
+    let equal a b = M.Packed.equal (m_of_packed a) (m_of_packed b)
+    let all = List.map M.Packed.all ~f:packed_of_m
+    let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
+    let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
+    let pack field = { f = T field }
+
+    include Comparator.Make (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
+
+  let which t = Packed.packed_of_m (M.which t)
+end
+
+module S_of_S4 (M : S4) (T1 : T) (T2 : T) (T3 : T) (T4 : T) :
+  S
+  with type 'a t = (T1.t, T2.t, T3.t, T4.t, 'a) M.t
+   and type derived_on = (T1.t, T2.t, T3.t, T4.t) M.derived_on = struct
+  include M
+
+  type 'a t = (T1.t, T2.t, T3.t, T4.t, 'a) M.t
+  type derived_on = (T1.t, T2.t, T3.t, T4.t) M.derived_on
+
+  module Type_ids = Type_ids (T1) (T2) (T3) (T4)
+
+  module Packed = struct
+    type 'a field = 'a t
+    type t' = T : 'a field -> t'
+    type t = { f : t' } [@@unboxed]
+
+    let m_of_packed { f = T field } = M.Packed.pack field
+    let packed_of_m { M.Packed.f = T field } = { f = T field }
+    let compare a b = M.Packed.compare (m_of_packed a) (m_of_packed b)
+    let equal a b = M.Packed.equal (m_of_packed a) (m_of_packed b)
+    let all = List.map M.Packed.all ~f:packed_of_m
+    let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
+    let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
+    let pack field = { f = T field }
+
+    include Comparator.Make (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
+
+  let which t = Packed.packed_of_m (M.which t)
+end
+
+module S_of_S5 (M : S5) (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) :
+  S
+  with type 'a t = (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) M.t
+   and type derived_on = (T1.t, T2.t, T3.t, T4.t, T5.t) M.derived_on = struct
+  include M
+
+  type 'a t = (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) M.t
+  type derived_on = (T1.t, T2.t, T3.t, T4.t, T5.t) M.derived_on
+
+  module Type_ids = Type_ids (T1) (T2) (T3) (T4) (T5)
+
+  module Packed = struct
+    type 'a field = 'a t
+    type t' = T : 'a field -> t'
+    type t = { f : t' } [@@unboxed]
+
+    let m_of_packed { f = T field } = M.Packed.pack field
+    let packed_of_m { M.Packed.f = T field } = { f = T field }
+    let compare a b = M.Packed.compare (m_of_packed a) (m_of_packed b)
+    let equal a b = M.Packed.equal (m_of_packed a) (m_of_packed b)
+    let all = List.map M.Packed.all ~f:packed_of_m
+    let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
+    let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
+    let pack field = { f = T field }
+
+    include Comparator.Make (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
+
+  let which t = Packed.packed_of_m (M.which t)
+end
+
+(*$*)

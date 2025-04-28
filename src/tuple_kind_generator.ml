@@ -1,3 +1,4 @@
+open! Base
 open Ppxlib
 
 type t = core_type

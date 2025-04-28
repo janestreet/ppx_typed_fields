@@ -1,3 +1,4 @@
+open! Base
 open Ppxlib
 
 type t = label_declaration

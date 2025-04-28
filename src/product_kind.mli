@@ -1,0 +1,1 @@
+include Product_kind_intf.Product_kind
