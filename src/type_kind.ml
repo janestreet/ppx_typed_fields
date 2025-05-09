@@ -65,7 +65,7 @@ let generate_creator_type_declaration
              ptyp_constr
                (Located.mk (Lident t_name))
                (core_type_params @ [ ptyp_var unique_parameter_id ])
-         ; arg_modes = []
+         ; arg_modes = Ppxlib_jane.Shim.Modes.local
          }
          { result_type = ptyp_var unique_parameter_id; result_modes = [] })
   in
@@ -166,4 +166,10 @@ let generate_unique_id params =
 let or_patterns (patterns : pattern list) ~(loc : Location.t) =
   let open (val Syntax.builder loc) in
   List.reduce_exn patterns ~f:ppat_or
+;;
+
+let exclave_if exp ~loc ~local =
+  match local with
+  | false -> exp
+  | true -> [%expr exclave_ [%e exp]]
 ;;

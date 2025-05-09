@@ -132,6 +132,18 @@ val type_id_function_body
   -> elements_to_convert:('a * Type_kind.granularity) list
   -> expression
 
+val globalize0_function_body
+  :  (module Product_kind.S with type t = 'a)
+  -> loc:location
+  -> elements_to_convert:('a * Type_kind.granularity) list
+  -> expression
+
+val globalize_packed_function_body
+  :  (module Product_kind.S with type t = 'a)
+  -> loc:location
+  -> elements_to_convert:('a * Type_kind.granularity) list
+  -> expression
+
 (** Generates the body for the all function inside of packed.
 
     [T Constr1 ; T Name] *)
@@ -152,6 +164,7 @@ val pack_body
   :  (module Product_kind.S with type t = 'a)
   -> loc:location
   -> elements_to_convert:('a * Type_kind.granularity) list
+  -> local:bool
   -> expression
 
 (** {v
@@ -165,6 +178,7 @@ val sexp_of_t_body
   :  (module Product_kind.S with type t = 'a)
   -> loc:location
   -> elements_to_convert:('a * Type_kind.granularity) list
+  -> local:bool
   -> expression
 
 (** {v

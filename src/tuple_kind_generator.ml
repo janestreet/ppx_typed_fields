@@ -80,6 +80,20 @@ let type_id_function_body ~loc ~elements_to_convert =
     ~elements_to_convert
 ;;
 
+let globalize0_function_body ~loc ~elements_to_convert =
+  Product_kind_generator.globalize0_function_body
+    (module Tuple_generator)
+    ~loc
+    ~elements_to_convert
+;;
+
+let globalize_packed_function_body ~loc ~elements_to_convert =
+  Product_kind_generator.globalize_packed_function_body
+    (module Tuple_generator)
+    ~loc
+    ~elements_to_convert
+;;
+
 let all_body ~loc ~constructor_declarations =
   Product_kind_generator.all_body (module Tuple_generator) ~loc ~constructor_declarations
 ;;

@@ -64,10 +64,13 @@ module type Typed_deriver = sig
     -> function_name:string
     -> core_type_params:core_type list
     -> unique_parameter_id:string
+    -> ?arg_modes:Ppxlib_jane.Shim.Modes.t
+    -> ?result_modes:Ppxlib_jane.Shim.Modes.t
     -> var_arrow_type:core_type
     -> constr_arrow_type:core_type
     -> function_body:expression
     -> name_of_first_parameter:Longident.t
+    -> unit
     -> structure_item
 
   val at_least_one_subproduct : ('a * Type_kind.granularity) list -> bool

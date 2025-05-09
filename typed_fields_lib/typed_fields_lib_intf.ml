@@ -41,12 +41,12 @@ open Base
 module type %{this n "S"} = sig
   include Typed_common_lib_intf.%{this n "S"}
 
-  type %{params n "'t%i"} creator = { f : 'a. (%{each n "'t%i,"} 'a) t -> 'a }
+  type %{params n "'t%i"} creator = { f : 'a. (%{each n "'t%i,"} 'a) t @ local -> 'a }
 
-  val get : (%{each n "'t%i,"} 'a) t -> %{params n "'t%i"} derived_on -> 'a
+  val get : (%{each n "'t%i,"} 'a) t @ local -> %{params n "'t%i"} derived_on -> 'a
 
   val set
-    :  (%{each n "'t%i,"} 'a) t
+    :  (%{each n "'t%i,"} 'a) t @ local
     -> %{params n "'t%i"} derived_on
     -> 'a
     -> %{params n "'t%i"} derived_on
@@ -66,10 +66,10 @@ end
 module type S = sig
   include Typed_common_lib_intf.S
 
-  type creator = { f : 'a. 'a t -> 'a }
+  type creator = { f : 'a. 'a t @ local -> 'a }
 
-  val get : 'a t -> derived_on -> 'a
-  val set : 'a t -> derived_on -> 'a -> derived_on
+  val get : 'a t @ local -> derived_on -> 'a
+  val set : 'a t @ local -> derived_on -> 'a -> derived_on
   val create : creator -> derived_on
   val create_local : local_ creator -> local_ derived_on
 end
@@ -77,10 +77,10 @@ end
 module type S1 = sig
   include Typed_common_lib_intf.S1
 
-  type 't1 creator = { f : 'a. ('t1, 'a) t -> 'a }
+  type 't1 creator = { f : 'a. ('t1, 'a) t @ local -> 'a }
 
-  val get : ('t1, 'a) t -> 't1 derived_on -> 'a
-  val set : ('t1, 'a) t -> 't1 derived_on -> 'a -> 't1 derived_on
+  val get : ('t1, 'a) t @ local -> 't1 derived_on -> 'a
+  val set : ('t1, 'a) t @ local -> 't1 derived_on -> 'a -> 't1 derived_on
   val create : 't1 creator -> 't1 derived_on
   val create_local : local_ 't1 creator -> local_ 't1 derived_on
 end
@@ -88,10 +88,16 @@ end
 module type S2 = sig
   include Typed_common_lib_intf.S2
 
-  type ('t1, 't2) creator = { f : 'a. ('t1, 't2, 'a) t -> 'a }
+  type ('t1, 't2) creator = { f : 'a. ('t1, 't2, 'a) t @ local -> 'a }
 
-  val get : ('t1, 't2, 'a) t -> ('t1, 't2) derived_on -> 'a
-  val set : ('t1, 't2, 'a) t -> ('t1, 't2) derived_on -> 'a -> ('t1, 't2) derived_on
+  val get : ('t1, 't2, 'a) t @ local -> ('t1, 't2) derived_on -> 'a
+
+  val set
+    :  ('t1, 't2, 'a) t @ local
+    -> ('t1, 't2) derived_on
+    -> 'a
+    -> ('t1, 't2) derived_on
+
   val create : ('t1, 't2) creator -> ('t1, 't2) derived_on
   val create_local : local_ ('t1, 't2) creator -> local_ ('t1, 't2) derived_on
 end
@@ -99,12 +105,12 @@ end
 module type S3 = sig
   include Typed_common_lib_intf.S3
 
-  type ('t1, 't2, 't3) creator = { f : 'a. ('t1, 't2, 't3, 'a) t -> 'a }
+  type ('t1, 't2, 't3) creator = { f : 'a. ('t1, 't2, 't3, 'a) t @ local -> 'a }
 
-  val get : ('t1, 't2, 't3, 'a) t -> ('t1, 't2, 't3) derived_on -> 'a
+  val get : ('t1, 't2, 't3, 'a) t @ local -> ('t1, 't2, 't3) derived_on -> 'a
 
   val set
-    :  ('t1, 't2, 't3, 'a) t
+    :  ('t1, 't2, 't3, 'a) t @ local
     -> ('t1, 't2, 't3) derived_on
     -> 'a
     -> ('t1, 't2, 't3) derived_on
@@ -116,12 +122,12 @@ end
 module type S4 = sig
   include Typed_common_lib_intf.S4
 
-  type ('t1, 't2, 't3, 't4) creator = { f : 'a. ('t1, 't2, 't3, 't4, 'a) t -> 'a }
+  type ('t1, 't2, 't3, 't4) creator = { f : 'a. ('t1, 't2, 't3, 't4, 'a) t @ local -> 'a }
 
-  val get : ('t1, 't2, 't3, 't4, 'a) t -> ('t1, 't2, 't3, 't4) derived_on -> 'a
+  val get : ('t1, 't2, 't3, 't4, 'a) t @ local -> ('t1, 't2, 't3, 't4) derived_on -> 'a
 
   val set
-    :  ('t1, 't2, 't3, 't4, 'a) t
+    :  ('t1, 't2, 't3, 't4, 'a) t @ local
     -> ('t1, 't2, 't3, 't4) derived_on
     -> 'a
     -> ('t1, 't2, 't3, 't4) derived_on
@@ -137,12 +143,15 @@ module type S5 = sig
   include Typed_common_lib_intf.S5
 
   type ('t1, 't2, 't3, 't4, 't5) creator =
-    { f : 'a. ('t1, 't2, 't3, 't4, 't5, 'a) t -> 'a }
+    { f : 'a. ('t1, 't2, 't3, 't4, 't5, 'a) t @ local -> 'a }
 
-  val get : ('t1, 't2, 't3, 't4, 't5, 'a) t -> ('t1, 't2, 't3, 't4, 't5) derived_on -> 'a
+  val get
+    :  ('t1, 't2, 't3, 't4, 't5, 'a) t @ local
+    -> ('t1, 't2, 't3, 't4, 't5) derived_on
+    -> 'a
 
   val set
-    :  ('t1, 't2, 't3, 't4, 't5, 'a) t
+    :  ('t1, 't2, 't3, 't4, 't5, 'a) t @ local
     -> ('t1, 't2, 't3, 't4, 't5) derived_on
     -> 'a
     -> ('t1, 't2, 't3, 't4, 't5) derived_on

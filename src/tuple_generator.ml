@@ -86,7 +86,10 @@ let create_expression ~loc ~constructor_declarations ~local =
           in
           [%expr
             [%e subproduct_function]
-              { f = (fun x -> __ppx_typed_fields_creator_f [%e constructor_expression]) }]
+              { f =
+                  (fun (x @ local) ->
+                    __ppx_typed_fields_creator_f [%e constructor_expression] [@nontail])
+              }]
       in
       pexp_let
         Nonrecursive

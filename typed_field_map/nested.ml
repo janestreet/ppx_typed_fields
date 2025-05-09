@@ -27,7 +27,7 @@ module Make (Leaf_data : T1) = struct
   module type S = sig
     module Typed_field : Typed_fields_lib.S
 
-    val children : 'a Typed_field.t -> 'a Tree.t
+    val children : 'a Typed_field.t @ local -> 'a Tree.t
   end
 
   let branch (type a) (module N : S with type Typed_field.derived_on = a) =

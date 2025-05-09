@@ -3,4 +3,4 @@
  (public_name ppx_typed_fields.typed_fields_lib)
  (libraries base sexplib0)
  (preprocess
-  (pps ppx_sexp_conv ppx_enumerate ppx_compare)))
+  (pps ppx_compare ppx_enumerate ppx_globalize ppx_sexp_conv ppx_template)))

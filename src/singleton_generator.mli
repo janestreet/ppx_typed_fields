@@ -10,6 +10,8 @@ type common_items =
   ; name : structure_item
   ; path : structure_item
   ; ord : structure_item
+  ; globalize0 : structure_item
+  ; globalize : structure_item
   ; type_ids : structure_item
   ; packed : structure_item
   }

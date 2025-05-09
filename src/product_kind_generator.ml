@@ -489,6 +489,85 @@ let type_id_function_body
   pexp_function cases
 ;;
 
+let globalize0_function_body
+  (type a)
+  (module Specific_implementation : Product_kind.S with type t = a)
+  ~loc
+  ~elements_to_convert
+  =
+  let open (val Syntax.builder loc) in
+  let cases =
+    List.mapi elements_to_convert ~f:(fun index (element, granularity) ->
+      let variant_name =
+        Specific_implementation.name index element |> String.capitalize
+      in
+      let lhs =
+        ppat_construct
+          (Located.mk (Lident variant_name))
+          (generate_constructor_payload ~loc granularity)
+      in
+      let rhs =
+        match (granularity : Type_kind.granularity) with
+        | Shallow -> pexp_construct (Located.mk (Lident variant_name)) None
+        | Deep _ ->
+          let module_name =
+            generate_subproduct_module_name (module Specific_implementation) index element
+          in
+          let f = pexp_ident (Located.mk (Ldot (Lident module_name, "globalize0"))) in
+          pexp_construct
+            (Located.mk (Lident variant_name))
+            (Some [%expr [%e f] subproduct])
+      in
+      case ~lhs ~guard:None ~rhs)
+  in
+  pexp_function cases
+;;
+
+let globalize_packed_function_body
+  (type a)
+  (module Specific_implementation : Product_kind.S with type t = a)
+  ~loc
+  ~elements_to_convert
+  =
+  let open (val Syntax.builder loc) in
+  let cases =
+    List.mapi elements_to_convert ~f:(fun index (element, granularity) ->
+      let variant_name =
+        Specific_implementation.name index element |> String.capitalize
+      in
+      let lhs =
+        let pat =
+          ppat_construct
+            (Located.mk (Lident variant_name))
+            (generate_constructor_payload ~loc granularity)
+        in
+        [%pat? { f = T [%p pat] }]
+      in
+      let rhs =
+        match (granularity : Type_kind.granularity) with
+        | Shallow ->
+          let exp = pexp_construct (Located.mk (Lident variant_name)) None in
+          [%expr { f = T [%e exp] }]
+        | Deep _ ->
+          let module_name =
+            generate_subproduct_module_name (module Specific_implementation) index element
+          in
+          let f name = evar (String.concat ~sep:"." [ module_name; name ]) in
+          let exp =
+            pexp_construct (Located.mk (Lident variant_name)) (Some [%expr subproduct])
+          in
+          [%expr
+            let subproduct = [%e f "Packed.pack"] ([%e f "globalize0"] subproduct) in
+            { f =
+                (let { f = T subproduct } = subproduct in
+                 T [%e exp])
+            }]
+      in
+      case ~lhs ~guard:None ~rhs)
+  in
+  pexp_function cases
+;;
+
 (** Generates the body for the all function inside of packed.
 
     [T Constr1 ; T Name] *)
@@ -539,6 +618,7 @@ let pack_body
   (module Specific_implementation : Product_kind.S with type t = a)
   ~loc
   ~elements_to_convert
+  ~local
   =
   let open (val Syntax.builder loc) in
   let cases =
@@ -571,7 +651,10 @@ let pack_body
           in
           let pack_function_ident =
             pexp_ident
-              (Ldot (Ldot (Lident parameter_module_name, "Packed"), "pack") |> Located.mk)
+              (Ldot
+                 ( Ldot (Lident parameter_module_name, "Packed")
+                 , Names.localize "pack" ~local )
+               |> Located.mk)
           in
           [%expr
             let subproduct = [%e pack_function_ident] subproduct in
@@ -580,7 +663,7 @@ let pack_body
                  [%e bottom_constructor_with_record])
             }]
       in
-      case ~lhs ~guard:None ~rhs)
+      case ~lhs ~guard:None ~rhs:(Type_kind.exclave_if ~loc ~local rhs))
   in
   pexp_function cases
 ;;
@@ -597,6 +680,7 @@ let sexp_of_t_body
   (module Specific_implementation : Product_kind.S with type t = a)
   ~loc
   ~elements_to_convert
+  ~local
   =
   let open (val Syntax.builder loc) in
   let cases =
@@ -627,12 +711,17 @@ let sexp_of_t_body
           in
           let sexp_of_t_subproduct_function =
             pexp_ident
-              (Ldot (Ldot (Lident subproduct_module_name, "Packed"), "sexp_of_t")
+              (Ldot
+                 ( Ldot (Lident subproduct_module_name, "Packed")
+                 , Names.localize "sexp_of_t" ~local )
                |> Located.mk)
           in
           let subproduct_pack_subproductor_function =
             pexp_ident
-              (Ldot (Ldot (Lident subproduct_module_name, "Packed"), "pack") |> Located.mk)
+              (Ldot
+                 ( Ldot (Lident subproduct_module_name, "Packed")
+                 , Names.localize "pack" ~local )
+               |> Located.mk)
           in
           [%expr
             Sexplib.Sexp.List
@@ -641,7 +730,7 @@ let sexp_of_t_body
                   ([%e subproduct_pack_subproductor_function] subproduct)
               ]]
       in
-      case ~lhs:pattern ~guard:None ~rhs)
+      case ~lhs:pattern ~guard:None ~rhs:(Type_kind.exclave_if ~loc ~local rhs))
   in
   pexp_match [%expr packed] cases
 ;;
@@ -1053,6 +1142,8 @@ let generate_base_module_expr_for_singleton_for_any_parameter_length
        ; name
        ; path
        ; ord
+       ; globalize0
+       ; globalize
        ; type_ids
        ; packed
        }
@@ -1176,6 +1267,8 @@ let generate_base_module_expr_for_singleton_for_any_parameter_length
     ; create
     ; create_local
     ; type_ids
+    ; globalize0
+    ; globalize
     ; packed
     ; names
     ]

@@ -16,19 +16,19 @@ module type S_plain = sig
   module Data : Data
 
   type sexper =
-    { individual : 'a. 'a Key.t -> 'a -> Sexp.t
+    { individual : 'a. 'a Key.t @ local -> 'a -> Sexp.t
     ; container : 'a. ('a -> Sexp.t) -> 'a Data.t -> Sexp.t
     }
 
-  type creator = { f : 'a. 'a Key.t -> 'a Data.t }
+  type creator = { f : 'a. 'a Key.t @ local -> 'a Data.t }
 
   val create : ?sexper:sexper -> creator -> t
-  val set : t -> key:'a Key.t -> data:'a Data.t -> t
+  val set : t -> key:'a Key.t @ local -> data:'a Data.t -> t
 
   (** Find will always succeed *)
-  val find : t -> 'a Key.t -> 'a Data.t
+  val find : t -> 'a Key.t @ local -> 'a Data.t
 
-  val change : t -> 'a Key.t -> f:('a Data.t -> 'a Data.t) -> t
+  val change : t -> 'a Key.t @ local -> f:('a Data.t -> 'a Data.t) -> t
 
   module As_applicative : sig
     module type S = sig
@@ -38,7 +38,7 @@ module type S_plain = sig
       val all : 'a t list -> 'a list t
     end
 
-    type creator = { f : 'a. 'a Key.t -> 'a }
+    type creator = { f : 'a. 'a Key.t @ local -> 'a }
 
     val transpose : (module S) -> t -> create:(creator -> 'a) -> 'a Data.t
   end

@@ -3,9 +3,9 @@ open! Base
 module Make (Map : The_map_intf.S_plain) = struct
   module Typed_field = Map.Key
 
-  type to_sexper = { f : 'a. 'a Typed_field.t -> 'a Map.Data.t -> Sexp.t }
-  type of_sexper = { f : 'a. 'a Map.Key.t -> Sexp.t -> 'a Map.Data.t }
-  type defaulter = { f : 'a. 'a Map.Key.t -> 'a Map.Data.t option }
+  type to_sexper = { f : 'a. 'a Typed_field.t @ local -> 'a Map.Data.t -> Sexp.t }
+  type of_sexper = { f : 'a. 'a Map.Key.t @ local -> Sexp.t -> 'a Map.Data.t }
+  type defaulter = { f : 'a. 'a Map.Key.t @ local -> 'a Map.Data.t option }
 
   let default_defaulter = { f = (fun _ -> None) }
 
@@ -60,7 +60,9 @@ module Make (Map : The_map_intf.S_plain) = struct
       Map.create
         { Map.f =
             (fun f ->
-              match Optional_map.find map_with_parsed_results f with
+              match
+                Optional_map.find map_with_parsed_results (Typed_field.globalize0 f)
+              with
               | None ->
                 (match default.f f with
                  | Some data -> data

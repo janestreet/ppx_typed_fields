@@ -54,8 +54,8 @@ open Base
 module type %{this n "S"} = sig
   include Typed_fields_lib.Common.%{this n "S"}
 
-  val get : (%{each n "'t%i,"} 'a) t -> %{params n "'t%i"} derived_on -> 'a option
-  val create : (%{each n "'t%i,"} 'a) t -> 'a -> %{params n "'t%i"} derived_on
+  val get : (%{each n "'t%i,"} 'a) t @ local -> %{params n "'t%i"} derived_on -> 'a option
+  val create : (%{each n "'t%i,"} 'a) t @ local -> 'a -> %{params n "'t%i"} derived_on
   val which : %{params n "'t%i"} derived_on -> Packed.t
 end
 
@@ -67,40 +67,44 @@ end
 module type S = sig
   include Typed_fields_lib.Common.S
 
-  val get : 'a t -> derived_on -> 'a option
-  val create : 'a t -> 'a -> derived_on
+  val get : 'a t @ local -> derived_on -> 'a option
+  val create : 'a t @ local -> 'a -> derived_on
   val which : derived_on -> Packed.t
 end
 
 module type S1 = sig
   include Typed_fields_lib.Common.S1
 
-  val get : ('t1, 'a) t -> 't1 derived_on -> 'a option
-  val create : ('t1, 'a) t -> 'a -> 't1 derived_on
+  val get : ('t1, 'a) t @ local -> 't1 derived_on -> 'a option
+  val create : ('t1, 'a) t @ local -> 'a -> 't1 derived_on
   val which : 't1 derived_on -> Packed.t
 end
 
 module type S2 = sig
   include Typed_fields_lib.Common.S2
 
-  val get : ('t1, 't2, 'a) t -> ('t1, 't2) derived_on -> 'a option
-  val create : ('t1, 't2, 'a) t -> 'a -> ('t1, 't2) derived_on
+  val get : ('t1, 't2, 'a) t @ local -> ('t1, 't2) derived_on -> 'a option
+  val create : ('t1, 't2, 'a) t @ local -> 'a -> ('t1, 't2) derived_on
   val which : ('t1, 't2) derived_on -> Packed.t
 end
 
 module type S3 = sig
   include Typed_fields_lib.Common.S3
 
-  val get : ('t1, 't2, 't3, 'a) t -> ('t1, 't2, 't3) derived_on -> 'a option
-  val create : ('t1, 't2, 't3, 'a) t -> 'a -> ('t1, 't2, 't3) derived_on
+  val get : ('t1, 't2, 't3, 'a) t @ local -> ('t1, 't2, 't3) derived_on -> 'a option
+  val create : ('t1, 't2, 't3, 'a) t @ local -> 'a -> ('t1, 't2, 't3) derived_on
   val which : ('t1, 't2, 't3) derived_on -> Packed.t
 end
 
 module type S4 = sig
   include Typed_fields_lib.Common.S4
 
-  val get : ('t1, 't2, 't3, 't4, 'a) t -> ('t1, 't2, 't3, 't4) derived_on -> 'a option
-  val create : ('t1, 't2, 't3, 't4, 'a) t -> 'a -> ('t1, 't2, 't3, 't4) derived_on
+  val get
+    :  ('t1, 't2, 't3, 't4, 'a) t @ local
+    -> ('t1, 't2, 't3, 't4) derived_on
+    -> 'a option
+
+  val create : ('t1, 't2, 't3, 't4, 'a) t @ local -> 'a -> ('t1, 't2, 't3, 't4) derived_on
   val which : ('t1, 't2, 't3, 't4) derived_on -> Packed.t
 end
 
@@ -108,12 +112,12 @@ module type S5 = sig
   include Typed_fields_lib.Common.S5
 
   val get
-    :  ('t1, 't2, 't3, 't4, 't5, 'a) t
+    :  ('t1, 't2, 't3, 't4, 't5, 'a) t @ local
     -> ('t1, 't2, 't3, 't4, 't5) derived_on
     -> 'a option
 
   val create
-    :  ('t1, 't2, 't3, 't4, 't5, 'a) t
+    :  ('t1, 't2, 't3, 't4, 't5, 'a) t @ local
     -> 'a
     -> ('t1, 't2, 't3, 't4, 't5) derived_on
 

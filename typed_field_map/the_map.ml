@@ -20,10 +20,11 @@ module Make_plain (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
 
   module Key = Key_mod
 
-  let find = find_exn
-  let change = change_exn
+  let find t key = find_exn t (Key.globalize0 key)
+  let change t key ~f = change_exn t (Key.globalize0 key) ~f
+  let set t ~key ~data = set t ~key:(Key.globalize0 key) ~data
 
-  type creator = { f : 'a. 'a Key.t -> 'a Data.t }
+  type creator = { f : 'a. 'a Key.t @ local -> 'a Data.t }
 
   let create creator =
     List.fold Key.Packed.all ~init:empty ~f:(fun acc { f = Key.Packed.T t } ->
@@ -36,10 +37,10 @@ module Make (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
   module Data = Data
   module Base = Make_plain (Key) (Data)
 
-  type creator = Base.creator = { f : 'a. 'a Key.t -> 'a Data.t }
+  type creator = Base.creator = { f : 'a. 'a Key.t @ local -> 'a Data.t }
 
   type sexper =
-    { individual : 'a. 'a Key.t -> 'a -> Sexp.t
+    { individual : 'a. 'a Key.t @ local -> 'a -> Sexp.t
     ; container : 'a. ('a -> Sexp.t) -> 'a Data.t -> Sexp.t
     }
 
@@ -78,7 +79,7 @@ module Make (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
 
     module Id_map = Make_plain (Key) (Id)
 
-    type creator = { f : 'a. 'a Key.t -> 'a }
+    type creator = { f : 'a. 'a Key.t @ local -> 'a }
 
     let transpose (module A : S) t ~create =
       t.base
@@ -88,7 +89,7 @@ module Make (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
       |> A.all
       |> A.map ~f:(fun all ->
         let map = Id_map.of_alist_exn all in
-        create { f = (fun k -> Id_map.find map k) })
+        create { f = (fun k -> Id_map.find map (Key.globalize0 k)) })
     ;;
 
     module To_other_map
@@ -110,7 +111,7 @@ module Make (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
         |> A.all
         |> A.map ~f:(fun alist ->
           let m = Inner.of_alist_exn alist in
-          M.create { f = (fun k -> Inner.find m k) })
+          M.create { f = (fun k -> Inner.find m (Key.globalize0 k)) })
       ;;
     end
   end
@@ -122,7 +123,7 @@ module Make (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
       t.base
       |> Base.to_alist
       |> List.map ~f:(function T (k, v) ->
-        let sexp_of_a = sexpers.container (sexpers.individual k) v in
+        let sexp_of_a = sexpers.container [%eta1 sexpers.individual k] v in
         Sexp.List [ Key.Packed.sexp_of_t { f = T k }; sexp_of_a ])
       |> Sexp.List
   ;;
