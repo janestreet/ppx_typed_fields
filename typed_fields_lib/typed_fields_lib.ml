@@ -24,6 +24,8 @@ module Unit = struct
   let set : type a. a t -> derived_on -> a -> derived_on = fun t _ _ -> unreachable_code t
   let create ({ f = _ } : creator) : derived_on = ()
   let create_local ({ f = _ } : creator) : derived_on = ()
+  let globalize0 = unreachable_code
+  let globalize _ t = globalize0 t
 
   module Type_ids = struct
     let type_id : type a. a t -> a Type_equal.Id.t = unreachable_code
@@ -40,10 +42,22 @@ module Unit = struct
       Base.List.compare Base.Int.compare (__ord x1) (__ord x2)
     ;;
 
+    let compare__local { f = T x1 } { f = T x2 } =
+      Base.List.compare__local Base.Int.compare__local (__ord x1) (__ord x2)
+    ;;
+
     let equal p1 p2 = compare p1 p2 = 0
+    let equal__local p1 p2 = compare__local p1 p2 = 0
     let pack : type a. a field -> t = unreachable_code
+    let pack__local : type a. a field -> t = unreachable_code
+    let globalize { f = T field } = globalize0 field
 
     let sexp_of_t packed =
+      match packed with
+      | (_ : t) -> .
+    ;;
+
+    let sexp_of_t__local packed =
       match packed with
       | (_ : t) -> .
     ;;
@@ -79,7 +93,7 @@ struct
   type (%{each n "'t%i,"} 'r) t =
     | T : (%{each n "'t%i,"} %{params n "'t%i"} %{this n "T"}.t) t
 
-  type %{params n "'t%i"} creator = { f : 'a. (%{each n "'t%i,"} 'a) t -> 'a }
+  type %{params n "'t%i"} creator = { f : 'a. (%{each n "'t%i,"} 'a) t @ local -> 'a }
 
   let names = [ "this" ]
   let name _ = "this"
@@ -103,6 +117,11 @@ struct
     = t
   ;;
 
+  let globalize0 (type %{each n "t%i "} r) (T : (%{each n "t%i,"} r) t) =
+    (T : (%{each n "t%i,"} r) t)
+  ;;
+
+  let globalize %{each n "_%i "} _ t = globalize0 t
   let create { f } = f T
   let create_local { f } = f T
 
@@ -123,11 +142,16 @@ struct
     type t = { f : %{poly n "'t%i"} %{params n "'t%i"} t' } [@@unboxed]
 
     let compare _ _ = 0
+    let compare__local _ _ = 0
     let equal _ _ = true
+    let equal__local _ _ = true
     let all = [ { f = T T } ]
     let sexp_of_t _ = Sexp.Atom "this"
-    let t_of_sexp _ = { f = T T}
+    let sexp_of_t__local _ = exclave_ Sexp.Atom "this"
+    let t_of_sexp _ = { f = T T }
+    let globalize _ = { f = T T }
     let pack _ = { f = T T }
+    let pack__local _ = exclave_ { f = T T }
 
     include Comparator.Make (struct
         type nonrec t = t
@@ -156,6 +180,8 @@ struct
   let __ord _ = [ 0 ]
   let get (type a) (T : a t) (t : derived_on) : a = t
   let set (type a) (T : a t) (_ : derived_on) (t : a) : derived_on = t
+  let globalize0 (type r) (T : r t) : r t = T
+  let globalize _ t = globalize0 t
   let create { f } = f T
   let create_local { f } = f T
 
@@ -173,11 +199,16 @@ struct
     type t = { f : t' } [@@unboxed]
 
     let compare _ _ = 0
+    let compare__local _ _ = 0
     let equal _ _ = true
+    let equal__local _ _ = true
     let all = [ { f = T T } ]
     let sexp_of_t _ = Sexp.Atom "this"
+    let sexp_of_t__local _ = Sexp.Atom "this"
     let t_of_sexp _ = { f = T T }
+    let globalize _ = { f = T T }
     let pack _ = { f = T T }
+    let pack__local _ = { f = T T }
 
     include Comparator.Make (struct
         type nonrec t = t
@@ -202,6 +233,8 @@ struct
   let __ord _ = [ 0 ]
   let get (type t1 a) (T : (t1, a) t) (t : t1 derived_on) : a = t
   let set (type t1 a) (T : (t1, a) t) (_ : t1 derived_on) (t : a) : t1 derived_on = t
+  let globalize0 (type t1 r) (T : (t1, r) t) : (t1, r) t = T
+  let globalize _1 _ t = globalize0 t
   let create { f } = f T
   let create_local { f } = f T
 
@@ -219,11 +252,16 @@ struct
     type t = { f : 't1. 't1 t' } [@@unboxed]
 
     let compare _ _ = 0
+    let compare__local _ _ = 0
     let equal _ _ = true
+    let equal__local _ _ = true
     let all = [ { f = T T } ]
     let sexp_of_t _ = Sexp.Atom "this"
+    let sexp_of_t__local _ = Sexp.Atom "this"
     let t_of_sexp _ = { f = T T }
+    let globalize _ = { f = T T }
     let pack _ = { f = T T }
+    let pack__local _ = { f = T T }
 
     include Comparator.Make (struct
         type nonrec t = t
@@ -254,6 +292,8 @@ struct
     t
   ;;
 
+  let globalize0 (type t1 t2 r) (T : (t1, t2, r) t) : (t1, t2, r) t = T
+  let globalize _1 _2 _ t = globalize0 t
   let create { f } = f T
   let create_local { f } = f T
 
@@ -273,11 +313,16 @@ struct
     type t = { f : 't1 't2. ('t1, 't2) t' } [@@unboxed]
 
     let compare _ _ = 0
+    let compare__local _ _ = 0
     let equal _ _ = true
+    let equal__local _ _ = true
     let all = [ { f = T T } ]
     let sexp_of_t _ = Sexp.Atom "this"
+    let sexp_of_t__local _ = Sexp.Atom "this"
     let t_of_sexp _ = { f = T T }
+    let globalize _ = { f = T T }
     let pack _ = { f = T T }
+    let pack__local _ = { f = T T }
 
     include Comparator.Make (struct
         type nonrec t = t
@@ -308,6 +353,8 @@ struct
     t
   ;;
 
+  let globalize0 (type t1 t2 t3 r) (T : (t1, t2, t3, r) t) : (t1, t2, t3, r) t = T
+  let globalize _1 _2 _3 _ t = globalize0 t
   let create { f } = f T
   let create_local { f } = f T
 
@@ -329,11 +376,16 @@ struct
     type t = { f : 't1 't2 't3. ('t1, 't2, 't3) t' } [@@unboxed]
 
     let compare _ _ = 0
+    let compare__local _ _ = 0
     let equal _ _ = true
+    let equal__local _ _ = true
     let all = [ { f = T T } ]
     let sexp_of_t _ = Sexp.Atom "this"
+    let sexp_of_t__local _ = Sexp.Atom "this"
     let t_of_sexp _ = { f = T T }
+    let globalize _ = { f = T T }
     let pack _ = { f = T T }
+    let pack__local _ = { f = T T }
 
     include Comparator.Make (struct
         type nonrec t = t
@@ -379,6 +431,11 @@ struct
     t
   ;;
 
+  let globalize0 (type t1 t2 t3 t4 r) (T : (t1, t2, t3, t4, r) t) : (t1, t2, t3, t4, r) t =
+    T
+  ;;
+
+  let globalize _1 _2 _3 _4 _ t = globalize0 t
   let create { f } = f T
   let create_local { f } = f T
 
@@ -408,11 +465,16 @@ struct
     type t = { f : 't1 't2 't3 't4. ('t1, 't2, 't3, 't4) t' } [@@unboxed]
 
     let compare _ _ = 0
+    let compare__local _ _ = 0
     let equal _ _ = true
+    let equal__local _ _ = true
     let all = [ { f = T T } ]
     let sexp_of_t _ = Sexp.Atom "this"
+    let sexp_of_t__local _ = Sexp.Atom "this"
     let t_of_sexp _ = { f = T T }
+    let globalize _ = { f = T T }
     let pack _ = { f = T T }
+    let pack__local _ = { f = T T }
 
     include Comparator.Make (struct
         type nonrec t = t
@@ -459,6 +521,13 @@ struct
     t
   ;;
 
+  let globalize0 (type t1 t2 t3 t4 t5 r) (T : (t1, t2, t3, t4, t5, r) t)
+    : (t1, t2, t3, t4, t5, r) t
+    =
+    T
+  ;;
+
+  let globalize _1 _2 _3 _4 _5 _ t = globalize0 t
   let create { f } = f T
   let create_local { f } = f T
 
@@ -494,11 +563,16 @@ struct
     type t = { f : 't1 't2 't3 't4 't5. ('t1, 't2, 't3, 't4, 't5) t' } [@@unboxed]
 
     let compare _ _ = 0
+    let compare__local _ _ = 0
     let equal _ _ = true
+    let equal__local _ _ = true
     let all = [ { f = T T } ]
     let sexp_of_t _ = Sexp.Atom "this"
+    let sexp_of_t__local _ = Sexp.Atom "this"
     let t_of_sexp _ = { f = T T }
+    let globalize _ = { f = T T }
     let pack _ = { f = T T }
+    let pack__local _ = { f = T T }
 
     include Comparator.Make (struct
         type nonrec t = t
@@ -522,19 +596,27 @@ struct
 
   type 'a t = (%{each n "T%i.t,"} 'a) M.t
   type derived_on = %{params n "T%i.t"} M.derived_on
-  type creator = { f : 'a. 'a t -> 'a }
+  type creator = { f : 'a. 'a t @ local -> 'a }
 
   let create ({ f } : creator) =
-    let m_creator_f : type a. (%{each n "T%i.t,"} a) M.t -> a = fun field -> f field in
+    let m_creator_f
+      : type a. (%{each n "T%i.t,"} a) M.t @ local -> a
+      = fun field -> f field
+    in
     let m_creator = { M.f = m_creator_f } in
     M.create m_creator
   ;;
 
   let create_local (local_ { f } : creator) = exclave_
-    let m_creator_f : type a. (%{each n "T%i.t,"} a) M.t -> a = fun field -> f field in
+    let m_creator_f
+      : type a. (%{each n "T%i.t,"} a) M.t @ local -> a
+      = fun field -> f field
+    in
     let m_creator = { M.f = m_creator_f } in
     M.create_local m_creator
   ;;
+
+  let globalize _ (t @ local) = globalize0 t
 
   module Type_ids = Type_ids %{each n "(T%i)"}
 
@@ -544,13 +626,27 @@ struct
     type t = { f : t' } [@@unboxed]
 
     let m_of_packed { f = T field } = M.Packed.pack field
+    let m_of_packed__local { f = T field } = exclave_ M.Packed.pack__local field
     let packed_of_m { M.Packed.f = T field } = { f = T field }
     let compare a b = M.Packed.compare (m_of_packed a) (m_of_packed b)
+
+    let compare__local a b =
+      M.Packed.compare__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
+    ;;
+
     let equal a b = M.Packed.equal (m_of_packed a) (m_of_packed b)
+
+    let equal__local a b =
+      M.Packed.equal__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
+    ;;
+
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
+    let sexp_of_t__local t = exclave_ M.Packed.sexp_of_t__local (m_of_packed__local t)
     let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
+    let globalize { f = T field } = { f = T (globalize0 field) }
     let pack field = { f = T field }
+    let pack__local field = exclave_ { f = T field }
 
     include Comparator.Make (struct
         type nonrec t = t
@@ -585,6 +681,8 @@ module S_of_S1 (M : S1) (T1 : T) :
     M.create_local m_creator
   ;;
 
+  let globalize _ t = globalize0 t
+
   module Type_ids = Type_ids (T1)
 
   module Packed = struct
@@ -593,13 +691,27 @@ module S_of_S1 (M : S1) (T1 : T) :
     type t = { f : t' } [@@unboxed]
 
     let m_of_packed { f = T field } = M.Packed.pack field
+    let m_of_packed__local { f = T field } = M.Packed.pack__local field
     let packed_of_m { M.Packed.f = T field } = { f = T field }
     let compare a b = M.Packed.compare (m_of_packed a) (m_of_packed b)
+
+    let compare__local a b =
+      M.Packed.compare__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
+    ;;
+
     let equal a b = M.Packed.equal (m_of_packed a) (m_of_packed b)
+
+    let equal__local a b =
+      M.Packed.equal__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
+    ;;
+
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
+    let sexp_of_t__local t = M.Packed.sexp_of_t__local (m_of_packed__local t)
     let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
+    let globalize { f = T field } = { f = T (globalize0 field) }
     let pack field = { f = T field }
+    let pack__local field = { f = T field }
 
     include Comparator.Make (struct
         type nonrec t = t
@@ -631,6 +743,8 @@ struct
     M.create_local m_creator
   ;;
 
+  let globalize _ t = globalize0 t
+
   module Type_ids = Type_ids (T1) (T2)
 
   module Packed = struct
@@ -639,13 +753,27 @@ struct
     type t = { f : t' } [@@unboxed]
 
     let m_of_packed { f = T field } = M.Packed.pack field
+    let m_of_packed__local { f = T field } = M.Packed.pack__local field
     let packed_of_m { M.Packed.f = T field } = { f = T field }
     let compare a b = M.Packed.compare (m_of_packed a) (m_of_packed b)
+
+    let compare__local a b =
+      M.Packed.compare__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
+    ;;
+
     let equal a b = M.Packed.equal (m_of_packed a) (m_of_packed b)
+
+    let equal__local a b =
+      M.Packed.equal__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
+    ;;
+
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
+    let sexp_of_t__local t = M.Packed.sexp_of_t__local (m_of_packed__local t)
     let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
+    let globalize { f = T field } = { f = T (globalize0 field) }
     let pack field = { f = T field }
+    let pack__local field = { f = T field }
 
     include Comparator.Make (struct
         type nonrec t = t
@@ -678,6 +806,8 @@ module S_of_S3 (M : S3) (T1 : T) (T2 : T) (T3 : T) :
     M.create_local m_creator
   ;;
 
+  let globalize _ t = globalize0 t
+
   module Type_ids = Type_ids (T1) (T2) (T3)
 
   module Packed = struct
@@ -686,13 +816,27 @@ module S_of_S3 (M : S3) (T1 : T) (T2 : T) (T3 : T) :
     type t = { f : t' } [@@unboxed]
 
     let m_of_packed { f = T field } = M.Packed.pack field
+    let m_of_packed__local { f = T field } = M.Packed.pack__local field
     let packed_of_m { M.Packed.f = T field } = { f = T field }
     let compare a b = M.Packed.compare (m_of_packed a) (m_of_packed b)
+
+    let compare__local a b =
+      M.Packed.compare__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
+    ;;
+
     let equal a b = M.Packed.equal (m_of_packed a) (m_of_packed b)
+
+    let equal__local a b =
+      M.Packed.equal__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
+    ;;
+
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
+    let sexp_of_t__local t = M.Packed.sexp_of_t__local (m_of_packed__local t)
     let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
+    let globalize { f = T field } = { f = T (globalize0 field) }
     let pack field = { f = T field }
+    let pack__local field = { f = T field }
 
     include Comparator.Make (struct
         type nonrec t = t
@@ -729,6 +873,8 @@ module S_of_S4 (M : S4) (T1 : T) (T2 : T) (T3 : T) (T4 : T) :
     M.create_local m_creator
   ;;
 
+  let globalize _ t = globalize0 t
+
   module Type_ids = Type_ids (T1) (T2) (T3) (T4)
 
   module Packed = struct
@@ -737,13 +883,27 @@ module S_of_S4 (M : S4) (T1 : T) (T2 : T) (T3 : T) (T4 : T) :
     type t = { f : t' } [@@unboxed]
 
     let m_of_packed { f = T field } = M.Packed.pack field
+    let m_of_packed__local { f = T field } = M.Packed.pack__local field
     let packed_of_m { M.Packed.f = T field } = { f = T field }
     let compare a b = M.Packed.compare (m_of_packed a) (m_of_packed b)
+
+    let compare__local a b =
+      M.Packed.compare__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
+    ;;
+
     let equal a b = M.Packed.equal (m_of_packed a) (m_of_packed b)
+
+    let equal__local a b =
+      M.Packed.equal__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
+    ;;
+
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
+    let sexp_of_t__local t = M.Packed.sexp_of_t__local (m_of_packed__local t)
     let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
+    let globalize { f = T field } = { f = T (globalize0 field) }
     let pack field = { f = T field }
+    let pack__local field = { f = T field }
 
     include Comparator.Make (struct
         type nonrec t = t
@@ -780,6 +940,8 @@ module S_of_S5 (M : S5) (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) :
     M.create_local m_creator
   ;;
 
+  let globalize _ t = globalize0 t
+
   module Type_ids = Type_ids (T1) (T2) (T3) (T4) (T5)
 
   module Packed = struct
@@ -788,13 +950,27 @@ module S_of_S5 (M : S5) (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) :
     type t = { f : t' } [@@unboxed]
 
     let m_of_packed { f = T field } = M.Packed.pack field
+    let m_of_packed__local { f = T field } = M.Packed.pack__local field
     let packed_of_m { M.Packed.f = T field } = { f = T field }
     let compare a b = M.Packed.compare (m_of_packed a) (m_of_packed b)
+
+    let compare__local a b =
+      M.Packed.compare__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
+    ;;
+
     let equal a b = M.Packed.equal (m_of_packed a) (m_of_packed b)
+
+    let equal__local a b =
+      M.Packed.equal__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
+    ;;
+
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
+    let sexp_of_t__local t = M.Packed.sexp_of_t__local (m_of_packed__local t)
     let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
+    let globalize { f = T field } = { f = T (globalize0 field) }
     let pack field = { f = T field }
+    let pack__local field = { f = T field }
 
     include Comparator.Make (struct
         type nonrec t = t

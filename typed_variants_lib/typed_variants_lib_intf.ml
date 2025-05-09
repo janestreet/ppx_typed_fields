@@ -54,8 +54,8 @@ open Base
 module type %{this n "S"} = sig
   include Typed_fields_lib.Common.%{this n "S"}
 
-  val get : (%{each n "'t%i,"} 'a) t -> %{params n "'t%i"} derived_on -> 'a option
-  val create : (%{each n "'t%i,"} 'a) t -> 'a -> %{params n "'t%i"} derived_on
+  val get : (%{each n "'t%i,"} 'a) t @ local -> %{params n "'t%i"} derived_on -> 'a option
+  val create : (%{each n "'t%i,"} 'a) t @ local -> 'a -> %{params n "'t%i"} derived_on
   val which : %{params n "'t%i"} derived_on -> Packed.t
 end
 

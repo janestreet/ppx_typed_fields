@@ -39,8 +39,12 @@ let generate_str ~loc ~typ_name ~fields ~params ~super =
            | Shallow -> None
          in
          case
-           ~lhs:(ppat_construct constr pat_payload)
-           ~rhs:(pexp_construct constr expr_payload)
+           ~lhs:
+             (ppat_constraint
+                (ppat_construct constr pat_payload)
+                None
+                Ppxlib_jane.Shim.Modes.local)
+           ~rhs:[%expr [%e pexp_construct constr expr_payload]]
            ~guard:None))
   in
   Typed_deriver.generate_new_typed_function
@@ -48,10 +52,13 @@ let generate_str ~loc ~typ_name ~fields ~params ~super =
     ~function_name
     ~core_type_params
     ~unique_parameter_id
+    ~arg_modes:Ppxlib_jane.Shim.Modes.local
+    ~result_modes:Ppxlib_jane.Shim.Modes.local
     ~var_arrow_type
     ~constr_arrow_type
     ~name_of_first_parameter:(Ldot (Lident [%string "Typed_field%{of_suffix}"], "t"))
     ~function_body
+    ()
 ;;
 
 let generate_sig ~loc ~typ_name ~params ~super =
@@ -82,9 +89,9 @@ let generate_sig ~loc ~typ_name ~params ~super =
              ptyp_constr
                (Located.mk typed_fields)
                (core_type_params @ [ ptyp_var unique_parameter_id ])
-         ; arg_modes = []
+         ; arg_modes = Ppxlib_jane.Shim.Modes.local
          }
-         { result_type = var_arrow_type; result_modes = [] })
+         { result_type = var_arrow_type; result_modes = Ppxlib_jane.Shim.Modes.local })
   in
   psig_value
     (Ppxlib_jane.Shim.Value_description.create

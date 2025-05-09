@@ -60,7 +60,9 @@ module Make (Map : The_map_intf.S_plain) = struct
       Map.create
         { Map.f =
             (fun f ->
-              match Optional_map.find map_with_parsed_results f with
+              match
+                Optional_map.find map_with_parsed_results (Typed_field.globalize0 f)
+              with
               | None ->
                 (match default.f f with
                  | Some data -> data

@@ -501,7 +501,74 @@ let type_id_function_body ~loc ~elements_to_convert =
   pexp_function cases
 ;;
 
-let sexp_of_t_body ~loc ~elements_to_convert =
+let globalize0_function_body ~loc ~elements_to_convert =
+  let open (val Syntax.builder loc) in
+  let cases =
+    List.map elements_to_convert ~f:(fun (element, _) ->
+      let variant_name =
+        Variant_kind_generator.supported_constructor_name element |> String.capitalize
+      in
+      let lhs =
+        ppat_construct
+          (Located.mk (Lident variant_name))
+          (generate_subvariant_pattern_if_needed ~loc element)
+      in
+      let rhs =
+        match element with
+        | Single_value_constructor { granularity = Constr_deep _ | Polymorphic_deep; _ }
+          ->
+          let module_name = generate_subvariant_name element in
+          let f = pexp_ident (Located.mk (Ldot (Lident module_name, "globalize0"))) in
+          pexp_construct
+            (Located.mk (Lident variant_name))
+            (Some [%expr [%e f] subvariant])
+        | _ -> pexp_construct (Located.mk (Lident variant_name)) None
+      in
+      case ~lhs ~guard:None ~rhs)
+  in
+  pexp_function cases
+;;
+
+let globalize_packed_function_body ~loc ~elements_to_convert =
+  let open (val Syntax.builder loc) in
+  let cases =
+    List.map elements_to_convert ~f:(fun (element, _) ->
+      let variant_name =
+        Variant_kind_generator.supported_constructor_name element |> String.capitalize
+      in
+      let lhs =
+        let pat =
+          ppat_construct
+            (Located.mk (Lident variant_name))
+            (generate_subvariant_pattern_if_needed ~loc element)
+        in
+        [%pat? { f = T [%p pat] }]
+      in
+      let rhs =
+        match element with
+        | Single_value_constructor { granularity = Polymorphic_deep | Constr_deep _; _ }
+          ->
+          let module_name = generate_subvariant_name element in
+          let f name = evar (String.concat ~sep:"." [ module_name; name ]) in
+          let exp =
+            pexp_construct (Located.mk (Lident variant_name)) (Some [%expr subvariant])
+          in
+          [%expr
+            let subvariant = [%e f "Packed.pack"] ([%e f "globalize0"] subvariant) in
+            { f =
+                (let { f = T subvariant } = subvariant in
+                 T [%e exp])
+            }]
+        | _ ->
+          let exp = pexp_construct (Located.mk (Lident variant_name)) None in
+          [%expr { f = T [%e exp] }]
+      in
+      case ~lhs ~guard:None ~rhs)
+  in
+  pexp_function cases
+;;
+
+let sexp_of_t_body ~loc ~elements_to_convert ~local =
   let open (val Syntax.builder loc) in
   let cases =
     List.map elements_to_convert ~f:(fun (element, _) ->
@@ -525,11 +592,15 @@ let sexp_of_t_body ~loc ~elements_to_convert =
           let subvariant_name = generate_subvariant_name element in
           let sexp_of_t_function =
             pexp_ident
-              (Ldot (Ldot (Lident subvariant_name, "Packed"), "sexp_of_t") |> Located.mk)
+              (Ldot
+                 ( Ldot (Lident subvariant_name, "Packed")
+                 , Names.localize "sexp_of_t" ~local )
+               |> Located.mk)
           in
           let pack_function =
             pexp_ident
-              (Ldot (Ldot (Lident subvariant_name, "Packed"), "pack") |> Located.mk)
+              (Ldot (Ldot (Lident subvariant_name, "Packed"), Names.localize "pack" ~local)
+               |> Located.mk)
           in
           [%expr
             Sexplib.Sexp.List
@@ -539,7 +610,7 @@ let sexp_of_t_body ~loc ~elements_to_convert =
               ]]
         | _ -> [%expr Sexplib.Sexp.Atom [%e estring variant_name]]
       in
-      case ~lhs:pattern ~guard:None ~rhs)
+      case ~lhs:pattern ~guard:None ~rhs:(Type_kind.exclave_if ~loc ~local rhs))
   in
   pexp_match [%expr packed] cases
 ;;
@@ -587,7 +658,7 @@ let wrap_t_struct_around_expression ~loc expression =
   pexp_record [ Lident "f" |> Located.mk, expression ] None
 ;;
 
-let pack_body ~loc ~elements_to_convert =
+let pack_body ~loc ~elements_to_convert ~local =
   let open (val Syntax.builder loc) in
   let cases =
     List.map elements_to_convert ~f:(fun (element, _) ->
@@ -606,7 +677,8 @@ let pack_body ~loc ~elements_to_convert =
           let subvariant_name = generate_subvariant_name element in
           let pack_function =
             pexp_ident
-              (Ldot (Ldot (Lident subvariant_name, "Packed"), "pack") |> Located.mk)
+              (Ldot (Ldot (Lident subvariant_name, "Packed"), Names.localize "pack" ~local)
+               |> Located.mk)
           in
           let inner_constructor =
             pexp_construct
@@ -626,7 +698,7 @@ let pack_body ~loc ~elements_to_convert =
             (Some (pexp_construct (Lident constructor_name |> Located.mk) None))
           |> wrap_t_struct_around_expression ~loc
       in
-      case ~lhs ~guard:None ~rhs)
+      case ~lhs ~guard:None ~rhs:(Type_kind.exclave_if ~loc ~local rhs))
   in
   pexp_function cases
 ;;
@@ -1024,6 +1096,8 @@ let generate_base_module_expr_for_singleton_for_any_arity
        ; name
        ; path
        ; ord
+       ; globalize0
+       ; globalize
        ; type_ids
        ; packed
        }
@@ -1133,6 +1207,8 @@ let generate_base_module_expr_for_singleton_for_any_arity
     ; get
     ; create
     ; type_ids
+    ; globalize0
+    ; globalize
     ; packed
     ; names
     ; which

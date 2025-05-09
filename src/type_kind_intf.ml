@@ -158,6 +158,16 @@ module Definitions = struct
       -> elements_to_convert:(t * granularity) list
       -> expression
 
+    val globalize0_function_body
+      :  loc:location
+      -> elements_to_convert:(t * granularity) list
+      -> expression
+
+    val globalize_packed_function_body
+      :  loc:location
+      -> elements_to_convert:(t * granularity) list
+      -> expression
+
     (** Generates the body for the all function inside of packed.
 
         [T Constr1 ; T Name] *)
@@ -169,6 +179,7 @@ module Definitions = struct
     val pack_body
       :  loc:location
       -> elements_to_convert:(t * granularity) list
+      -> local:bool
       -> expression
 
     (** Generates the body for the sexp_of_t function inside of packed.
@@ -181,6 +192,7 @@ module Definitions = struct
     val sexp_of_t_body
       :  loc:location
       -> elements_to_convert:(t * granularity) list
+      -> local:bool
       -> expression
 
     (** Generates the body for the t_of_sexp function inside of packed.
@@ -302,4 +314,5 @@ module type Type_kind = sig
   val generate_unique_id : core_type list -> string
 
   val or_patterns : pattern list -> loc:Location.t -> pattern
+  val exclave_if : expression -> loc:Location.t -> local:bool -> expression
 end

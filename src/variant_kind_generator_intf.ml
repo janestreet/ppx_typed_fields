@@ -164,6 +164,18 @@ module Definitions = struct
            (supported_constructor_declaration * Type_kind.granularity) list
       -> expression
 
+    val globalize0_function_body
+      :  loc:location
+      -> elements_to_convert:
+           (supported_constructor_declaration * Type_kind.granularity) list
+      -> expression
+
+    val globalize_packed_function_body
+      :  loc:location
+      -> elements_to_convert:
+           (supported_constructor_declaration * Type_kind.granularity) list
+      -> expression
+
     (** Generates the body for the all function inside of packed.
 
         [T Constr1 ; T Name] *)
@@ -179,6 +191,7 @@ module Definitions = struct
       :  loc:location
       -> elements_to_convert:
            (supported_constructor_declaration * Type_kind.granularity) list
+      -> local:bool
       -> expression
 
     (** Generates the body for the sexp_of_t function inside of packed.
@@ -192,6 +205,7 @@ module Definitions = struct
       :  loc:location
       -> elements_to_convert:
            (supported_constructor_declaration * Type_kind.granularity) list
+      -> local:bool
       -> expression
 
     (** Generates the body for the t_of_sexp function inside of packed.

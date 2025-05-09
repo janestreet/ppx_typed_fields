@@ -78,19 +78,38 @@ let type_id_function_body ~loc ~elements_to_convert =
     ~elements_to_convert
 ;;
 
+let globalize0_function_body ~loc ~elements_to_convert =
+  Product_kind_generator.globalize0_function_body
+    (module Record_generator)
+    ~loc
+    ~elements_to_convert
+;;
+
+let globalize_packed_function_body ~loc ~elements_to_convert =
+  Product_kind_generator.globalize_packed_function_body
+    (module Record_generator)
+    ~loc
+    ~elements_to_convert
+;;
+
 let all_body ~loc ~constructor_declarations =
   Product_kind_generator.all_body (module Record_generator) ~loc ~constructor_declarations
 ;;
 
-let pack_body ~loc ~elements_to_convert =
-  Product_kind_generator.pack_body (module Record_generator) ~loc ~elements_to_convert
+let pack_body ~loc ~elements_to_convert ~local =
+  Product_kind_generator.pack_body
+    (module Record_generator)
+    ~loc
+    ~elements_to_convert
+    ~local
 ;;
 
-let sexp_of_t_body ~loc ~elements_to_convert =
+let sexp_of_t_body ~loc ~elements_to_convert ~local =
   Product_kind_generator.sexp_of_t_body
     (module Record_generator)
     ~loc
     ~elements_to_convert
+    ~local
 ;;
 
 let t_of_sexp_body ~loc ~elements_to_convert =

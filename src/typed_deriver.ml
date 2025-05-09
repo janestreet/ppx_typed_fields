@@ -82,10 +82,13 @@ let generate_new_typed_function
   ~function_name
   ~core_type_params
   ~unique_parameter_id
+  ?(arg_modes = [])
+  ?(result_modes = [])
   ~var_arrow_type
   ~constr_arrow_type
   ~function_body
   ~name_of_first_parameter
+  ()
   =
   let open (val Syntax.builder loc) in
   let parameter_names =
@@ -104,9 +107,9 @@ let generate_new_typed_function
              ptyp_constr
                (Located.mk name_of_first_parameter)
                (core_type_params @ [ ptyp_var unique_parameter_id ])
-         ; arg_modes = []
+         ; arg_modes
          }
-         { result_type = var_arrow_type; result_modes = [] })
+         { result_type = var_arrow_type; result_modes })
   in
   let function_expression =
     let parameters_as_constrs =
@@ -129,9 +132,9 @@ let generate_new_typed_function
                        (Located.mk name_of_first_parameter)
                        (parameters_as_constrs
                         @ [ ptyp_constr (Located.mk (Lident unique_parameter_id)) [] ])
-                 ; arg_modes = []
+                 ; arg_modes
                  }
-                 { result_type = constr_arrow_type; result_modes = [] }))
+                 { result_type = constr_arrow_type; result_modes }))
            [])
     in
     List.fold_right parameter_names ~init:inner_new_type ~f:(fun (name, kind) acc ->

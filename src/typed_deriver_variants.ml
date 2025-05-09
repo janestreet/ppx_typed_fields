@@ -24,7 +24,12 @@ let deriving_compare_equals_attribute ~loc =
   attribute
     ~name:(Located.mk "deriving")
     ~payload:
-      (PStr [ pstr_eval (pexp_tuple [ None, [%expr compare]; None, [%expr equal] ]) [] ])
+      (PStr
+         [ pstr_eval
+             (pexp_tuple
+                [ None, [%expr compare ~localize]; None, [%expr equal ~localize] ])
+             []
+         ])
 ;;
 
 let generate_packed_with_value_type ~loc ~params ~core_type_params ~unique_parameter_id =
@@ -87,6 +92,7 @@ let gen_partial_sig ~loc ~params =
         -> [%t unique_parameter_type_var]
         -> [%t variant_type_constr]]
   in
+  let globalize0 = [%sigi: val globalize0 : [%t t_type_constr] -> [%t t_type_constr]] in
   let type_ids =
     let signature =
       let t_type =
@@ -162,11 +168,16 @@ let gen_partial_sig ~loc ~params =
         psig_type Recursive [ td ]
       in
       let sexp_of_t = [%sigi: val sexp_of_t : t -> Sexplib.Sexp.t] in
+      let sexp_of_t__local = [%sigi: val sexp_of_t__local : t -> Sexplib.Sexp.t] in
       let t_of_sexp = [%sigi: val t_of_sexp : Sexplib.Sexp.t -> t] in
       let all = [%sigi: val all : t list] in
       let pack =
         let field_type_constr = ptyp_constr (Lident "field" |> Located.mk) t_params in
         [%sigi: val pack : [%t field_type_constr] -> t]
+      in
+      let pack__local =
+        let field_type_constr = ptyp_constr (Lident "field" |> Located.mk) t_params in
+        [%sigi: val pack__local : [%t field_type_constr] -> t]
       in
       pmty_signature
         (signature
@@ -174,7 +185,9 @@ let gen_partial_sig ~loc ~params =
            ; t_prime_type_declaration
            ; t_type_declaration
            ; pack
+           ; pack__local
            ; sexp_of_t
+           ; sexp_of_t__local
            ; t_of_sexp
            ; all
            ])
@@ -182,7 +195,7 @@ let gen_partial_sig ~loc ~params =
     psig_module (module_declaration (Some "Packed" |> Located.mk) signature)
   in
   let which = [%sigi: val which : [%t variant_type_constr] -> Packed.t] in
-  [ name; path; ord; get; create; type_ids; packed; which; names ]
+  [ name; path; ord; get; create; type_ids; globalize0; packed; which; names ]
 ;;
 
 (** Either generates either `include Typed_variants_lib.SN with type original := original`
@@ -552,10 +565,12 @@ let generate_str_body
       ~function_name:"name"
       ~core_type_params
       ~unique_parameter_id
+      ~arg_modes:Ppxlib_jane.Shim.Modes.local
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
       ~name_of_first_parameter:(Lident Type_kind.internal_gadt_name)
+      ()
   in
   let path =
     let function_body = Specific_generator.path_function_body ~loc ~elements_to_convert in
@@ -569,10 +584,12 @@ let generate_str_body
       ~function_name:"path"
       ~core_type_params
       ~unique_parameter_id
+      ~arg_modes:Ppxlib_jane.Shim.Modes.local
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
       ~name_of_first_parameter:(Lident Type_kind.internal_gadt_name)
+      ()
   in
   let ord =
     let function_body = Specific_generator.ord_function_body ~loc ~elements_to_convert in
@@ -586,10 +603,12 @@ let generate_str_body
       ~function_name:"__ord"
       ~core_type_params
       ~unique_parameter_id
+      ~arg_modes:Ppxlib_jane.Shim.Modes.local
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
       ~name_of_first_parameter:(Lident Type_kind.internal_gadt_name)
+      ()
   in
   let constr_variant_type =
     ptyp_constr
@@ -609,6 +628,7 @@ let generate_str_body
       ~function_name:"get"
       ~core_type_params
       ~unique_parameter_id
+      ~arg_modes:Ppxlib_jane.Shim.Modes.local
       ~constr_arrow_type:
         (ptyp_arrow
            { arg_label = Nolabel; arg_type = constr_variant_type; arg_modes = [] }
@@ -629,6 +649,7 @@ let generate_str_body
            })
       ~function_body
       ~name_of_first_parameter:(Lident Type_kind.internal_gadt_name)
+      ()
   in
   let create =
     let function_body =
@@ -639,6 +660,7 @@ let generate_str_body
       ~function_name:"create"
       ~core_type_params
       ~unique_parameter_id
+      ~arg_modes:Ppxlib_jane.Shim.Modes.local
       ~constr_arrow_type:
         (ptyp_arrow
            { arg_label = Nolabel
@@ -655,6 +677,7 @@ let generate_str_body
            { result_type = var_variant_type; result_modes = [] })
       ~function_body
       ~name_of_first_parameter:(Lident Type_kind.internal_gadt_name)
+      ()
   in
   let type_ids =
     let type_ids =
@@ -681,12 +704,14 @@ let generate_str_body
                []))
         ~unique_parameter_id
         ~function_body
+        ~arg_modes:Ppxlib_jane.Shim.Modes.local
         ~constr_arrow_type:
           (ptyp_constr
              type_equal_t
              [ ptyp_constr (Lident unique_parameter_id |> Located.mk) [] ])
         ~var_arrow_type:(ptyp_constr type_equal_t [ ptyp_var unique_parameter_id ])
         ~name_of_first_parameter:(Lident Type_kind.internal_gadt_name)
+        ()
     in
     let number_of_parameters = List.length core_type_params in
     let functor_expression =
@@ -709,6 +734,37 @@ let generate_str_body
     ptyp_constr (Lident Type_kind.internal_gadt_name |> Located.mk) t_params
   in
   let field_type = ptyp_constr (Lident "field" |> Located.mk) t_params in
+  let globalize0 =
+    let var_arrow_type = t_type_constr in
+    let constr_arrow_type =
+      ptyp_constr
+        (Lident Type_kind.internal_gadt_name |> Located.mk)
+        (List.map t_params ~f:(fun core_type ->
+           match Ppxlib_jane.Shim.Core_type_desc.of_parsetree core_type.ptyp_desc with
+           | Ptyp_var (name, _) ->
+             { core_type with ptyp_desc = Ptyp_constr (Located.mk (Lident name), []) }
+           | _ -> core_type))
+    in
+    Typed_deriver.generate_new_typed_function
+      ~loc
+      ~function_name:"globalize0"
+      ~core_type_params
+      ~unique_parameter_id
+      ~arg_modes:Ppxlib_jane.Shim.Modes.local
+      ~result_modes:[]
+      ~var_arrow_type
+      ~constr_arrow_type
+      ~function_body:
+        (Specific_generator.globalize0_function_body ~loc ~elements_to_convert)
+      ~name_of_first_parameter:(Lident Type_kind.internal_gadt_name)
+      ()
+  in
+  let globalize =
+    let body =
+      eabstract (List.map t_params ~f:(fun _ -> ppat_any)) [%expr fun t -> globalize0 t]
+    in
+    [%stri let globalize = [%e body]]
+  in
   let packed =
     let packed_field =
       let td =
@@ -747,25 +803,55 @@ let generate_str_body
           Base.List.compare Base.Int.compare (__ord x1) (__ord x2)
         ;;]
     in
+    let compare__local =
+      [%stri
+        let compare__local { f = T x1 } { f = T x2 } =
+          Base.List.compare__local Base.Int.compare__local (__ord x1) (__ord x2)
+        ;;]
+    in
     let equal =
       [%stri let equal packed_1 packed_2 = compare packed_1 packed_2 |> Base.Int.equal 0]
     in
-    let pack =
-      let function_body = Specific_generator.pack_body ~loc ~elements_to_convert in
+    let equal__local =
+      [%stri
+        let equal__local packed_1 packed_2 =
+          compare__local packed_1 packed_2 |> Base.Int.equal 0
+        ;;]
+    in
+    let pack ~local =
+      let function_body = Specific_generator.pack_body ~loc ~elements_to_convert ~local in
       let arrow_type = ptyp_constr (Lident "t" |> Located.mk) [] in
+      let modes = if local then Ppxlib_jane.Shim.Modes.local else [] in
       Typed_deriver.generate_new_typed_function
         ~loc
-        ~function_name:"pack"
+        ~function_name:(Names.localize "pack" ~local)
         ~core_type_params
         ~unique_parameter_id
+        ~arg_modes:modes
+        ~result_modes:modes
         ~constr_arrow_type:arrow_type
         ~var_arrow_type:arrow_type
         ~function_body
         ~name_of_first_parameter:(Lident "field")
+        ()
     in
-    let sexp_of_packed =
-      let function_body = Specific_generator.sexp_of_t_body ~loc ~elements_to_convert in
-      [%stri let sexp_of_t packed = [%e function_body]]
+    let globalize_packed =
+      [%stri
+        let globalize : t -> t =
+          [%e Specific_generator.globalize_packed_function_body ~loc ~elements_to_convert]
+        ;;]
+    in
+    let sexp_of_packed ~local =
+      let function_body =
+        Specific_generator.sexp_of_t_body ~loc ~elements_to_convert ~local
+      in
+      let name = Names.localize "sexp_of_t" ~local in
+      let pat =
+        match local with
+        | false -> [%pat? packed]
+        | true -> ppat_constraint [%pat? packed] None Ppxlib_jane.Shim.Modes.local
+      in
+      [%stri let [%p pvar name] = fun [%p pat] -> [%e function_body]]
     in
     let packed_of_sexp =
       let function_body = Specific_generator.t_of_sexp_body ~loc ~elements_to_convert in
@@ -790,9 +876,14 @@ let generate_str_body
               ; t_type_declaration
               ; all
               ; compare
+              ; compare__local
               ; equal
-              ; pack
-              ; sexp_of_packed
+              ; equal__local
+              ; pack ~local:false
+              ; pack ~local:true
+              ; globalize_packed
+              ; sexp_of_packed ~local:false
+              ; sexp_of_packed ~local:true
               ; packed_of_sexp
               ; comparator
               ]))
@@ -823,7 +914,19 @@ let generate_str_body
   let internal_gadt_rename = pstr_type Recursive [ internal_gadt_rename ] in
   [ upper; t; upper_rename ]
   @ Specific_generator.extra_structure_items_to_insert loc
-  @ [ path; name; ord; get; create; type_ids; packed; which; names; internal_gadt_rename ]
+  @ [ path
+    ; name
+    ; ord
+    ; get
+    ; create
+    ; type_ids
+    ; globalize0
+    ; globalize
+    ; packed
+    ; which
+    ; names
+    ; internal_gadt_rename
+    ]
 ;;
 
 let generate_anonymous_record_str ~loc td_case =
