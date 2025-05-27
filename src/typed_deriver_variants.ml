@@ -328,7 +328,7 @@ module Name_and_arity = struct
       { name : string
       ; arity : int
       }
-    [@@deriving compare, sexp]
+    [@@deriving compare ~localize, sexp]
   end
 
   include T
