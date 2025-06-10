@@ -90,7 +90,7 @@ struct
 
   let get
       (type %{each n "t%i "} r)
-      (T : (%{each n "t%i,"} r) t @@ local)
+      (T : (%{each n "t%i,"} r) t @ local)
       (t : %{params n "t%i"} derived_on)
       : r option
     = Some t
@@ -98,7 +98,7 @@ struct
 
   let create
       (type %{each n "t%i "} r)
-      (T : (%{each n "t%i,"} r) t @@ local)
+      (T : (%{each n "t%i,"} r) t @ local)
       (t : r)
       : %{params n "t%i"} derived_on
     = t
@@ -118,8 +118,8 @@ module Singleton (T : sig
 struct
   include Typed_fields_lib.Singleton (T)
 
-  let get (type r) (T : r t @@ local) (t : derived_on) : r option = Some t
-  let create (type r) (T : r t @@ local) (t : r) : derived_on = t
+  let get (type r) (T : r t @ local) (t : derived_on) : r option = Some t
+  let create (type r) (T : r t @ local) (t : r) : derived_on = t
   let which _ = { Packed.f = Packed.T T }
 end
 
@@ -129,8 +129,8 @@ module Singleton1 (T1 : sig
 struct
   include Typed_fields_lib.Singleton1 (T1)
 
-  let get (type t1 r) (T : (t1, r) t @@ local) (t : t1 derived_on) : r option = Some t
-  let create (type t1 r) (T : (t1, r) t @@ local) (t : r) : t1 derived_on = t
+  let get (type t1 r) (T : (t1, r) t @ local) (t : t1 derived_on) : r option = Some t
+  let create (type t1 r) (T : (t1, r) t @ local) (t : r) : t1 derived_on = t
   let which _ = { Packed.f = Packed.T T }
 end
 
@@ -140,12 +140,11 @@ module Singleton2 (T2 : sig
 struct
   include Typed_fields_lib.Singleton2 (T2)
 
-  let get (type t1 t2 r) (T : (t1, t2, r) t @@ local) (t : (t1, t2) derived_on) : r option
-    =
+  let get (type t1 t2 r) (T : (t1, t2, r) t @ local) (t : (t1, t2) derived_on) : r option =
     Some t
   ;;
 
-  let create (type t1 t2 r) (T : (t1, t2, r) t @@ local) (t : r) : (t1, t2) derived_on = t
+  let create (type t1 t2 r) (T : (t1, t2, r) t @ local) (t : r) : (t1, t2) derived_on = t
   let which _ = { Packed.f = Packed.T T }
 end
 
@@ -155,13 +154,13 @@ module Singleton3 (T3 : sig
 struct
   include Typed_fields_lib.Singleton3 (T3)
 
-  let get (type t1 t2 t3 r) (T : (t1, t2, t3, r) t @@ local) (t : (t1, t2, t3) derived_on)
+  let get (type t1 t2 t3 r) (T : (t1, t2, t3, r) t @ local) (t : (t1, t2, t3) derived_on)
     : r option
     =
     Some t
   ;;
 
-  let create (type t1 t2 t3 r) (T : (t1, t2, t3, r) t @@ local) (t : r)
+  let create (type t1 t2 t3 r) (T : (t1, t2, t3, r) t @ local) (t : r)
     : (t1, t2, t3) derived_on
     =
     t
@@ -178,14 +177,14 @@ struct
 
   let get
     (type t1 t2 t3 t4 r)
-    (T : (t1, t2, t3, t4, r) t @@ local)
+    (T : (t1, t2, t3, t4, r) t @ local)
     (t : (t1, t2, t3, t4) derived_on)
     : r option
     =
     Some t
   ;;
 
-  let create (type t1 t2 t3 t4 r) (T : (t1, t2, t3, t4, r) t @@ local) (t : r)
+  let create (type t1 t2 t3 t4 r) (T : (t1, t2, t3, t4, r) t @ local) (t : r)
     : (t1, t2, t3, t4) derived_on
     =
     t
@@ -202,14 +201,14 @@ struct
 
   let get
     (type t1 t2 t3 t4 t5 r)
-    (T : (t1, t2, t3, t4, t5, r) t @@ local)
+    (T : (t1, t2, t3, t4, t5, r) t @ local)
     (t : (t1, t2, t3, t4, t5) derived_on)
     : r option
     =
     Some t
   ;;
 
-  let create (type t1 t2 t3 t4 t5 r) (T : (t1, t2, t3, t4, t5, r) t @@ local) (t : r)
+  let create (type t1 t2 t3 t4 t5 r) (T : (t1, t2, t3, t4, t5, r) t @ local) (t : r)
     : (t1, t2, t3, t4, t5) derived_on
     =
     t
