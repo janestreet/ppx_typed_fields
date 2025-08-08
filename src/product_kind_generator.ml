@@ -663,7 +663,7 @@ let pack_body
                  [%e bottom_constructor_with_record])
             }]
       in
-      case ~lhs ~guard:None ~rhs:(Type_kind.exclave_if ~loc ~local rhs))
+      case ~lhs ~guard:None ~rhs:(Type_kind.exclave_if_local ~loc ~local rhs))
   in
   pexp_function cases
 ;;
@@ -680,7 +680,7 @@ let sexp_of_t_body
   (module Specific_implementation : Product_kind.S with type t = a)
   ~loc
   ~elements_to_convert
-  ~local
+  ~stack
   =
   let open (val Syntax.builder loc) in
   let cases =
@@ -713,14 +713,14 @@ let sexp_of_t_body
             pexp_ident
               (Ldot
                  ( Ldot (Lident subproduct_module_name, "Packed")
-                 , Names.localize "sexp_of_t" ~local )
+                 , Names.stackify "sexp_of_t" ~stack )
                |> Located.mk)
           in
           let subproduct_pack_subproductor_function =
             pexp_ident
               (Ldot
                  ( Ldot (Lident subproduct_module_name, "Packed")
-                 , Names.localize "pack" ~local )
+                 , Names.localize "pack" ~local:stack )
                |> Located.mk)
           in
           [%expr
@@ -730,7 +730,7 @@ let sexp_of_t_body
                   ([%e subproduct_pack_subproductor_function] subproduct)
               ]]
       in
-      case ~lhs:pattern ~guard:None ~rhs:(Type_kind.exclave_if ~loc ~local rhs))
+      case ~lhs:pattern ~guard:None ~rhs:(Type_kind.exclave_if_stack ~loc ~stack rhs))
   in
   pexp_match [%expr packed] cases
 ;;

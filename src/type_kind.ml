@@ -168,8 +168,14 @@ let or_patterns (patterns : pattern list) ~(loc : Location.t) =
   List.reduce_exn patterns ~f:ppat_or
 ;;
 
-let exclave_if exp ~loc ~local =
+let exclave_if_local exp ~loc ~local =
   match local with
+  | false -> exp
+  | true -> [%expr [%e exp]]
+;;
+
+let exclave_if_stack exp ~loc ~stack =
+  match stack with
   | false -> exp
   | true -> [%expr [%e exp]]
 ;;

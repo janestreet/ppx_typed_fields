@@ -46,7 +46,7 @@ module Nothing = struct
     let equal t1 t2 = compare t1 t2 = 0
     let equal__local t1 t2 = compare__local t1 t2 = 0
 
-    let sexp_of_t__local packed =
+    let sexp_of_t__stack packed =
       match packed with
       | (_ : t) -> .
     ;;
@@ -90,7 +90,7 @@ struct
 
   let get
       (type %{each n "t%i "} r)
-      (T : (%{each n "t%i,"} r) t @@ local)
+      (T : (%{each n "t%i,"} r) t @ local)
       (t : %{params n "t%i"} derived_on)
       : r option
     = Some t
@@ -98,7 +98,7 @@ struct
 
   let create
       (type %{each n "t%i "} r)
-      (T : (%{each n "t%i,"} r) t @@ local)
+      (T : (%{each n "t%i,"} r) t @ local)
       (t : r)
       : %{params n "t%i"} derived_on
     = t
@@ -252,7 +252,7 @@ struct
 
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
-    let sexp_of_t__local t = exclave_ M.Packed.sexp_of_t__local (m_of_packed__local t)
+    let sexp_of_t__stack t = exclave_ M.Packed.sexp_of_t__stack (m_of_packed__local t)
     let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
     let globalize { f = T field } = { f = T (globalize0 field) }
     let pack field = { f = T field }
@@ -306,7 +306,7 @@ module S_of_S1 (M : S1) (T1 : T) :
 
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
-    let sexp_of_t__local t = M.Packed.sexp_of_t__local (m_of_packed__local t)
+    let sexp_of_t__stack t = M.Packed.sexp_of_t__stack (m_of_packed__local t)
     let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
     let globalize { f = T field } = { f = T (globalize0 field) }
     let pack field = { f = T field }
@@ -357,7 +357,7 @@ struct
 
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
-    let sexp_of_t__local t = M.Packed.sexp_of_t__local (m_of_packed__local t)
+    let sexp_of_t__stack t = M.Packed.sexp_of_t__stack (m_of_packed__local t)
     let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
     let globalize { f = T field } = { f = T (globalize0 field) }
     let pack field = { f = T field }
@@ -409,7 +409,7 @@ module S_of_S3 (M : S3) (T1 : T) (T2 : T) (T3 : T) :
 
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
-    let sexp_of_t__local t = M.Packed.sexp_of_t__local (m_of_packed__local t)
+    let sexp_of_t__stack t = M.Packed.sexp_of_t__stack (m_of_packed__local t)
     let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
     let globalize { f = T field } = { f = T (globalize0 field) }
     let pack field = { f = T field }
@@ -461,7 +461,7 @@ module S_of_S4 (M : S4) (T1 : T) (T2 : T) (T3 : T) (T4 : T) :
 
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
-    let sexp_of_t__local t = M.Packed.sexp_of_t__local (m_of_packed__local t)
+    let sexp_of_t__stack t = M.Packed.sexp_of_t__stack (m_of_packed__local t)
     let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
     let globalize { f = T field } = { f = T (globalize0 field) }
     let pack field = { f = T field }
@@ -513,7 +513,7 @@ module S_of_S5 (M : S5) (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) :
 
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
-    let sexp_of_t__local t = M.Packed.sexp_of_t__local (m_of_packed__local t)
+    let sexp_of_t__stack t = M.Packed.sexp_of_t__stack (m_of_packed__local t)
     let t_of_sexp sexp = packed_of_m (M.Packed.t_of_sexp sexp)
     let globalize { f = T field } = { f = T (globalize0 field) }
     let pack field = { f = T field }

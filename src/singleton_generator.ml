@@ -124,7 +124,7 @@ let packed ~loc ~core_type_params ~unique_id ~minimum_needed_parameters =
   let all = [%stri let all = [ { f = T T } ]] in
   let globalize = [%stri let globalize _ = { f = T T }] in
   let sexp_of_t = [%stri let sexp_of_t _ = Sexplib.Sexp.Atom "this"] in
-  let sexp_of_t__local = [%stri let sexp_of_t__local _ = Sexplib.Sexp.Atom "this"] in
+  let sexp_of_t__stack = [%stri let sexp_of_t__stack _ = Sexplib.Sexp.Atom "this"] in
   let t_of_sexp = [%stri let t_of_sexp _ = { f = T T }] in
   let pack = [%stri let pack _ = { f = T T }] in
   let pack__local = [%stri let pack__local _ = { f = T T }] in
@@ -143,7 +143,7 @@ let packed ~loc ~core_type_params ~unique_id ~minimum_needed_parameters =
             ; all
             ; globalize
             ; sexp_of_t
-            ; sexp_of_t__local
+            ; sexp_of_t__stack
             ; t_of_sexp
             ; pack
             ; pack__local

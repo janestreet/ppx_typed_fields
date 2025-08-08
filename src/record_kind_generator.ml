@@ -104,12 +104,12 @@ let pack_body ~loc ~elements_to_convert ~local =
     ~local
 ;;
 
-let sexp_of_t_body ~loc ~elements_to_convert ~local =
+let sexp_of_t_body ~loc ~elements_to_convert ~stack =
   Product_kind_generator.sexp_of_t_body
     (module Record_generator)
     ~loc
     ~elements_to_convert
-    ~local
+    ~stack
 ;;
 
 let t_of_sexp_body ~loc ~elements_to_convert =

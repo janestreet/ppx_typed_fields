@@ -164,7 +164,7 @@ let gen_partial_sig ~loc ~params ~t_name =
         psig_type Recursive [ td ]
       in
       let sexp_of_t = [%sigi: val sexp_of_t : t -> Sexplib.Sexp.t] in
-      let sexp_of_t__local = [%sigi: val sexp_of_t__local : t -> Sexplib.Sexp.t] in
+      let sexp_of_t__stack = [%sigi: val sexp_of_t__stack : t -> Sexplib.Sexp.t] in
       let t_of_sexp = [%sigi: val t_of_sexp : Sexplib.Sexp.t -> t] in
       let all = [%sigi: val all : t list] in
       let pack =
@@ -183,7 +183,7 @@ let gen_partial_sig ~loc ~params ~t_name =
            ; pack
            ; pack__local
            ; sexp_of_t
-           ; sexp_of_t__local
+           ; sexp_of_t__stack
            ; t_of_sexp
            ; all
            ])
@@ -659,13 +659,13 @@ let generate_str_body
           [%e Specific_generator.globalize_packed_function_body ~loc ~elements_to_convert]
         ;;]
     in
-    let sexp_of_packed ~local =
+    let sexp_of_packed ~stack =
       let function_body =
-        Specific_generator.sexp_of_t_body ~loc ~elements_to_convert ~local
+        Specific_generator.sexp_of_t_body ~loc ~elements_to_convert ~stack
       in
-      let name = Names.localize "sexp_of_t" ~local in
+      let name = Names.stackify "sexp_of_t" ~stack in
       let pat =
-        match local with
+        match stack with
         | false -> [%pat? packed]
         | true -> ppat_constraint [%pat? packed] None Ppxlib_jane.Shim.Modes.local
       in
@@ -700,8 +700,8 @@ let generate_str_body
               ; pack ~local:false
               ; pack ~local:true
               ; globalize_packed
-              ; sexp_of_packed ~local:false
-              ; sexp_of_packed ~local:true
+              ; sexp_of_packed ~stack:false
+              ; sexp_of_packed ~stack:true
               ; packed_of_sexp
               ; comparator
               ]))

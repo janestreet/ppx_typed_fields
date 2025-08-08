@@ -92,10 +92,8 @@ module For_records = struct
       {[
         let module Map = Typed_field_map.Make (Typed_field) (Deferred) in
         let map = Map.create { f } in
-        Map.As_applicative.transpose
-          (module Deferred)
-          map
-          ~create:(fun { f } -> Typed_field.create { f })
+        Map.As_applicative.transpose (module Deferred) map ~create:(fun { f } ->
+          Typed_field.create { f })
       ]}
 
       To:

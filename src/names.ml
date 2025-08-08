@@ -7,3 +7,9 @@ let localize name ~local =
   | false -> name
   | true -> name ^ "__local"
 ;;
+
+let stackify name ~stack =
+  match stack with
+  | false -> name
+  | true -> name ^ "__stack"
+;;

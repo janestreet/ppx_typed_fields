@@ -47,7 +47,7 @@ module type %{this n "S"} = sig
     type %{params n "'t%i"} t' = T : (%{each n "'t%i,"} 'a) field -> %{params n "'t%i"} t'
 
     type t = { f : %{poly n "'t%i"} %{params n "'t%i"} t' }
-    [@@deriving compare ~localize, enumerate, equal ~localize, globalize, sexp ~localize]
+    [@@deriving compare ~localize, enumerate, equal ~localize, globalize, sexp ~stackify]
     [@@unboxed]
 
     include Comparator.S with type t := t
@@ -90,7 +90,7 @@ module type S = sig
     type t' = T : 'a field -> t'
 
     type t = { f : t' }
-    [@@deriving compare ~localize, enumerate, equal ~localize, globalize, sexp ~localize]
+    [@@deriving compare ~localize, enumerate, equal ~localize, globalize, sexp ~stackify]
     [@@unboxed]
 
     include Comparator.S with type t := t
@@ -127,7 +127,7 @@ module type S1 = sig
     type 't1 t' = T : ('t1, 'a) field -> 't1 t'
 
     type t = { f : 't1. 't1 t' }
-    [@@deriving compare ~localize, enumerate, equal ~localize, globalize, sexp ~localize]
+    [@@deriving compare ~localize, enumerate, equal ~localize, globalize, sexp ~stackify]
     [@@unboxed]
 
     include Comparator.S with type t := t
@@ -164,7 +164,7 @@ module type S2 = sig
     type ('t1, 't2) t' = T : ('t1, 't2, 'a) field -> ('t1, 't2) t'
 
     type t = { f : 't1 't2. ('t1, 't2) t' }
-    [@@deriving compare ~localize, enumerate, equal ~localize, globalize, sexp ~localize]
+    [@@deriving compare ~localize, enumerate, equal ~localize, globalize, sexp ~stackify]
     [@@unboxed]
 
     include Comparator.S with type t := t
@@ -201,7 +201,7 @@ module type S3 = sig
     type ('t1, 't2, 't3) t' = T : ('t1, 't2, 't3, 'a) field -> ('t1, 't2, 't3) t'
 
     type t = { f : 't1 't2 't3. ('t1, 't2, 't3) t' }
-    [@@deriving compare ~localize, enumerate, equal ~localize, globalize, sexp ~localize]
+    [@@deriving compare ~localize, enumerate, equal ~localize, globalize, sexp ~stackify]
     [@@unboxed]
 
     include Comparator.S with type t := t
@@ -240,7 +240,7 @@ module type S4 = sig
       | T : ('t1, 't2, 't3, 't4, 'a) field -> ('t1, 't2, 't3, 't4) t'
 
     type t = { f : 't1 't2 't3 't4. ('t1, 't2, 't3, 't4) t' }
-    [@@deriving compare ~localize, enumerate, equal ~localize, globalize, sexp ~localize]
+    [@@deriving compare ~localize, enumerate, equal ~localize, globalize, sexp ~stackify]
     [@@unboxed]
 
     include Comparator.S with type t := t
@@ -279,7 +279,7 @@ module type S5 = sig
       | T : ('t1, 't2, 't3, 't4, 't5, 'a) field -> ('t1, 't2, 't3, 't4, 't5) t'
 
     type t = { f : 't1 't2 't3 't4 't5. ('t1, 't2, 't3, 't4, 't5) t' }
-    [@@deriving compare ~localize, enumerate, equal ~localize, globalize, sexp ~localize]
+    [@@deriving compare ~localize, enumerate, equal ~localize, globalize, sexp ~stackify]
     [@@unboxed]
 
     include Comparator.S with type t := t

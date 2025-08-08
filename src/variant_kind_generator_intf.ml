@@ -205,7 +205,7 @@ module Definitions = struct
       :  loc:location
       -> elements_to_convert:
            (supported_constructor_declaration * Type_kind.granularity) list
-      -> local:bool
+      -> stack:bool
       -> expression
 
     (** Generates the body for the t_of_sexp function inside of packed.

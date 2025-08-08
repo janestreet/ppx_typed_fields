@@ -51,7 +51,7 @@ module type %{this n "S"} = sig
     -> 'a
     -> %{params n "'t%i"} derived_on
 
-  val create : %{params n "'t%i"} creator -> %{params n "'t%i"} derived_on
+  val create : local_ %{params n "'t%i"} creator -> %{params n "'t%i"} derived_on
 
   val create_local
     :  local_ %{params n "'t%i"} creator

@@ -178,7 +178,7 @@ val sexp_of_t_body
   :  (module Product_kind.S with type t = 'a)
   -> loc:location
   -> elements_to_convert:('a * Type_kind.granularity) list
-  -> local:bool
+  -> stack:bool
   -> expression
 
 (** {v

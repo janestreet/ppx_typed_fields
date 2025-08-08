@@ -39,11 +39,7 @@ let generate_str ~loc ~typ_name ~fields ~params ~super =
            | Shallow -> None
          in
          case
-           ~lhs:
-             (ppat_constraint
-                (ppat_construct constr pat_payload)
-                None
-                Ppxlib_jane.Shim.Modes.local)
+           ~lhs:(ppat_construct constr pat_payload)
            ~rhs:[%expr [%e pexp_construct constr expr_payload]]
            ~guard:None))
   in

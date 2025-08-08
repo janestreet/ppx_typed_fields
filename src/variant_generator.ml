@@ -568,7 +568,7 @@ let globalize_packed_function_body ~loc ~elements_to_convert =
   pexp_function cases
 ;;
 
-let sexp_of_t_body ~loc ~elements_to_convert ~local =
+let sexp_of_t_body ~loc ~elements_to_convert ~stack =
   let open (val Syntax.builder loc) in
   let cases =
     List.map elements_to_convert ~f:(fun (element, _) ->
@@ -594,12 +594,14 @@ let sexp_of_t_body ~loc ~elements_to_convert ~local =
             pexp_ident
               (Ldot
                  ( Ldot (Lident subvariant_name, "Packed")
-                 , Names.localize "sexp_of_t" ~local )
+                 , Names.stackify "sexp_of_t" ~stack )
                |> Located.mk)
           in
           let pack_function =
             pexp_ident
-              (Ldot (Ldot (Lident subvariant_name, "Packed"), Names.localize "pack" ~local)
+              (Ldot
+                 ( Ldot (Lident subvariant_name, "Packed")
+                 , Names.localize "pack" ~local:stack )
                |> Located.mk)
           in
           [%expr
@@ -610,7 +612,7 @@ let sexp_of_t_body ~loc ~elements_to_convert ~local =
               ]]
         | _ -> [%expr Sexplib.Sexp.Atom [%e estring variant_name]]
       in
-      case ~lhs:pattern ~guard:None ~rhs:(Type_kind.exclave_if ~loc ~local rhs))
+      case ~lhs:pattern ~guard:None ~rhs:(Type_kind.exclave_if_stack ~loc ~stack rhs))
   in
   pexp_match [%expr packed] cases
 ;;
@@ -698,7 +700,7 @@ let pack_body ~loc ~elements_to_convert ~local =
             (Some (pexp_construct (Lident constructor_name |> Located.mk) None))
           |> wrap_t_struct_around_expression ~loc
       in
-      case ~lhs ~guard:None ~rhs:(Type_kind.exclave_if ~loc ~local rhs))
+      case ~lhs ~guard:None ~rhs:(Type_kind.exclave_if_local ~loc ~local rhs))
   in
   pexp_function cases
 ;;
