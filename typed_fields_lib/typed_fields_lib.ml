@@ -48,6 +48,17 @@ module Unit = struct
 
     let equal p1 p2 = compare p1 p2 = 0
     let equal__local p1 p2 = compare__local p1 p2 = 0
+
+    let hash_fold_t _ packed =
+      match packed with
+      | (_ : t) -> .
+    ;;
+
+    let hash packed =
+      match packed with
+      | (_ : t) -> .
+    ;;
+
     let pack : type a. a field -> t = unreachable_code
     let pack__local : type a. a field -> t = unreachable_code
     let globalize { f = T field } = globalize0 field
@@ -145,6 +156,8 @@ struct
     let compare__local _ _ = 0
     let equal _ _ = true
     let equal__local _ _ = true
+    let hash_fold_t state _ = Int.hash_fold_t state 0
+    let hash t = Hash.of_fold hash_fold_t t
     let all = [ { f = T T } ]
     let sexp_of_t _ = Sexp.Atom "this"
     let sexp_of_t__stack _ = exclave_ Sexp.Atom "this"
@@ -202,6 +215,8 @@ struct
     let compare__local _ _ = 0
     let equal _ _ = true
     let equal__local _ _ = true
+    let hash_fold_t state _ = Int.hash_fold_t state 0
+    let hash t = Hash.of_fold hash_fold_t t
     let all = [ { f = T T } ]
     let sexp_of_t _ = Sexp.Atom "this"
     let sexp_of_t__stack _ = Sexp.Atom "this"
@@ -255,6 +270,8 @@ struct
     let compare__local _ _ = 0
     let equal _ _ = true
     let equal__local _ _ = true
+    let hash_fold_t state _ = Int.hash_fold_t state 0
+    let hash t = Hash.of_fold hash_fold_t t
     let all = [ { f = T T } ]
     let sexp_of_t _ = Sexp.Atom "this"
     let sexp_of_t__stack _ = Sexp.Atom "this"
@@ -316,6 +333,8 @@ struct
     let compare__local _ _ = 0
     let equal _ _ = true
     let equal__local _ _ = true
+    let hash_fold_t state _ = Int.hash_fold_t state 0
+    let hash t = Hash.of_fold hash_fold_t t
     let all = [ { f = T T } ]
     let sexp_of_t _ = Sexp.Atom "this"
     let sexp_of_t__stack _ = Sexp.Atom "this"
@@ -379,6 +398,8 @@ struct
     let compare__local _ _ = 0
     let equal _ _ = true
     let equal__local _ _ = true
+    let hash_fold_t state _ = Int.hash_fold_t state 0
+    let hash t = Hash.of_fold hash_fold_t t
     let all = [ { f = T T } ]
     let sexp_of_t _ = Sexp.Atom "this"
     let sexp_of_t__stack _ = Sexp.Atom "this"
@@ -468,6 +489,8 @@ struct
     let compare__local _ _ = 0
     let equal _ _ = true
     let equal__local _ _ = true
+    let hash_fold_t state _ = Int.hash_fold_t state 0
+    let hash t = Hash.of_fold hash_fold_t t
     let all = [ { f = T T } ]
     let sexp_of_t _ = Sexp.Atom "this"
     let sexp_of_t__stack _ = Sexp.Atom "this"
@@ -566,6 +589,8 @@ struct
     let compare__local _ _ = 0
     let equal _ _ = true
     let equal__local _ _ = true
+    let hash_fold_t state _ = Int.hash_fold_t state 0
+    let hash t = Hash.of_fold hash_fold_t t
     let all = [ { f = T T } ]
     let sexp_of_t _ = Sexp.Atom "this"
     let sexp_of_t__stack _ = Sexp.Atom "this"
@@ -640,6 +665,8 @@ struct
       M.Packed.equal__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
     ;;
 
+    let hash_fold_t state t = M.Packed.hash_fold_t state (m_of_packed t)
+    let hash t = Hash.of_fold hash_fold_t t
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
     let sexp_of_t__stack t = exclave_ M.Packed.sexp_of_t__stack (m_of_packed__local t)
@@ -705,6 +732,8 @@ module S_of_S1 (M : S1) (T1 : T) :
       M.Packed.equal__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
     ;;
 
+    let hash_fold_t state t = M.Packed.hash_fold_t state (m_of_packed t)
+    let hash t = Hash.of_fold hash_fold_t t
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
     let sexp_of_t__stack t = M.Packed.sexp_of_t__stack (m_of_packed__local t)
@@ -767,6 +796,8 @@ struct
       M.Packed.equal__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
     ;;
 
+    let hash_fold_t state t = M.Packed.hash_fold_t state (m_of_packed t)
+    let hash t = Hash.of_fold hash_fold_t t
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
     let sexp_of_t__stack t = M.Packed.sexp_of_t__stack (m_of_packed__local t)
@@ -830,6 +861,8 @@ module S_of_S3 (M : S3) (T1 : T) (T2 : T) (T3 : T) :
       M.Packed.equal__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
     ;;
 
+    let hash_fold_t state t = M.Packed.hash_fold_t state (m_of_packed t)
+    let hash t = Hash.of_fold hash_fold_t t
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
     let sexp_of_t__stack t = M.Packed.sexp_of_t__stack (m_of_packed__local t)
@@ -897,6 +930,8 @@ module S_of_S4 (M : S4) (T1 : T) (T2 : T) (T3 : T) (T4 : T) :
       M.Packed.equal__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
     ;;
 
+    let hash_fold_t state t = M.Packed.hash_fold_t state (m_of_packed t)
+    let hash t = Hash.of_fold hash_fold_t t
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
     let sexp_of_t__stack t = M.Packed.sexp_of_t__stack (m_of_packed__local t)
@@ -964,6 +999,8 @@ module S_of_S5 (M : S5) (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) :
       M.Packed.equal__local (m_of_packed__local a) (m_of_packed__local b) [@nontail]
     ;;
 
+    let hash_fold_t state t = M.Packed.hash_fold_t state (m_of_packed t)
+    let hash t = Hash.of_fold hash_fold_t t
     let all = List.map M.Packed.all ~f:packed_of_m
     let sexp_of_t t = M.Packed.sexp_of_t (m_of_packed t)
     let sexp_of_t__stack t = M.Packed.sexp_of_t__stack (m_of_packed__local t)

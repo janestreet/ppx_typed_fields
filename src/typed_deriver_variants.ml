@@ -818,6 +818,13 @@ let generate_str_body
           compare__local packed_1 packed_2 |> Base.Int.equal 0
         ;;]
     in
+    let hash_fold_t =
+      [%stri
+        let hash_fold_t state { f = T x } =
+          Base.List.hash_fold_t Base.Int.hash_fold_t state (__ord x)
+        ;;]
+    in
+    let hash = [%stri let hash t = Base.Hash.of_fold hash_fold_t t] in
     let pack ~local =
       let function_body = Specific_generator.pack_body ~loc ~elements_to_convert ~local in
       let arrow_type = ptyp_constr (Lident "t" |> Located.mk) [] in
@@ -879,6 +886,8 @@ let generate_str_body
               ; compare__local
               ; equal
               ; equal__local
+              ; hash_fold_t
+              ; hash
               ; pack ~local:false
               ; pack ~local:true
               ; globalize_packed

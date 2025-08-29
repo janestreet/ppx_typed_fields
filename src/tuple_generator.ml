@@ -15,6 +15,7 @@ let get_rhs_expression ~loc ~index ~element:_ ~number_of_elements =
       Closed
   in
   pexp_let
+    Immutable
     Nonrecursive
     [ value_binding ~pat:pattern ~expr:[%expr record] ~modes:[] ]
     [%expr x]
@@ -41,6 +42,7 @@ let set_rhs_expression ~loc ~index ~element:_ ~number_of_elements ~expression_to
            else Lident (generate_temp_idenfier i) |> Located.mk |> pexp_ident )))
   in
   pexp_let
+    Immutable
     Nonrecursive
     [ value_binding ~pat:pattern ~expr:[%expr record] ~modes:[] ]
     tuple_building_expression
@@ -92,6 +94,7 @@ let create_expression ~loc ~constructor_declarations ~local =
               }]
       in
       pexp_let
+        Immutable
         Nonrecursive
         [ value_binding
             ~pat:(pvar (generate_temp_idenfier unreversed_index))

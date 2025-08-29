@@ -121,6 +121,8 @@ let packed ~loc ~core_type_params ~unique_id ~minimum_needed_parameters =
   let compare__local = [%stri let compare__local _ _ = 0] in
   let equal = [%stri let equal _ _ = true] in
   let equal__local = [%stri let equal__local _ _ = true] in
+  let hash_fold_t = [%stri let hash_fold_t state _ = Base.Int.hash_fold_t state 0] in
+  let hash = [%stri let hash t = Base.Hash.of_fold hash_fold_t t] in
   let all = [%stri let all = [ { f = T T } ]] in
   let globalize = [%stri let globalize _ = { f = T T }] in
   let sexp_of_t = [%stri let sexp_of_t _ = Sexplib.Sexp.Atom "this"] in
@@ -140,6 +142,8 @@ let packed ~loc ~core_type_params ~unique_id ~minimum_needed_parameters =
             ; compare__local
             ; equal
             ; equal__local
+            ; hash_fold_t
+            ; hash
             ; all
             ; globalize
             ; sexp_of_t

@@ -383,6 +383,7 @@ let create_function_body ~loc ~constructor_declarations ~local:_ =
           in
           List.fold label_declarations ~init:constructor ~f:(fun acc ld ->
             pexp_let
+              Immutable
               Nonrecursive
               [ (let pat = ppat_var (ld.pld_name.txt |> Located.mk) in
                  let expr =
