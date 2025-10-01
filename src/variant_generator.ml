@@ -237,14 +237,12 @@ let generate_tuple_expression ~loc number_of_elements =
 
 let generate_variant_generic ~loc ~element ~subpattern ~on_construct ~on_variant =
   let open (val Syntax.builder loc) in
-  let variant_name =
-    Variant_kind_generator.supported_constructor_name element |> String.capitalize
-  in
+  let variant_name = Variant_kind_generator.supported_constructor_name element in
   match element with
   | Tuple_values_constructor _ | Anonymous_record_constructor _
   | No_values_constructor { is_polymorphic = false; _ }
   | Single_value_constructor { is_polymorphic = false; _ } ->
-    on_construct (Lident variant_name |> Located.mk) subpattern
+    on_construct (Lident (String.capitalize variant_name) |> Located.mk) subpattern
   | Single_value_constructor { is_polymorphic = true; _ }
   | No_values_constructor { is_polymorphic = true; _ } ->
     on_variant variant_name subpattern
