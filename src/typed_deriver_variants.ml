@@ -170,8 +170,8 @@ let gen_partial_sig ~loc ~params =
         psig_type Recursive [ td ]
       in
       let sexp_of_t = [%sigi: val sexp_of_t : t -> Sexplib.Sexp.t] in
-      let sexp_of_t__local =
-        [%sigi: val sexp_of_t__local : t @ local -> Sexplib.Sexp.t @ local]
+      let sexp_of_t__stack =
+        [%sigi: val sexp_of_t__stack : t @ local -> Sexplib.Sexp.t @ local]
       in
       let t_of_sexp = [%sigi: val t_of_sexp : Sexplib.Sexp.t -> t] in
       let all = [%sigi: val all : t list] in
@@ -191,7 +191,7 @@ let gen_partial_sig ~loc ~params =
            ; pack
            ; pack__local
            ; sexp_of_t
-           ; sexp_of_t__local
+           ; sexp_of_t__stack
            ; t_of_sexp
            ; all
            ])
@@ -824,6 +824,13 @@ let generate_str_body
           compare__local packed_1 packed_2 |> Base.Int.equal 0
         ;;]
     in
+    let hash_fold_t =
+      [%stri
+        let hash_fold_t state { f = T x } =
+          Base.List.hash_fold_t Base.Int.hash_fold_t state (__ord x)
+        ;;]
+    in
+    let hash = [%stri let hash t = Base.Hash.of_fold hash_fold_t t] in
     let pack ~local =
       let function_body = Specific_generator.pack_body ~loc ~elements_to_convert ~local in
       let arrow_type = ptyp_constr (Lident "t" |> Located.mk) [] in
@@ -847,13 +854,13 @@ let generate_str_body
           [%e Specific_generator.globalize_packed_function_body ~loc ~elements_to_convert]
         ;;]
     in
-    let sexp_of_packed ~local =
+    let sexp_of_packed ~stack =
       let function_body =
-        Specific_generator.sexp_of_t_body ~loc ~elements_to_convert ~local
+        Specific_generator.sexp_of_t_body ~loc ~elements_to_convert ~stack
       in
-      let name = Names.localize "sexp_of_t" ~local in
+      let name = Names.stackify "sexp_of_t" ~stack in
       let pat =
-        match local with
+        match stack with
         | false -> [%pat? packed]
         | true -> ppat_constraint [%pat? packed] None Ppxlib_jane.Shim.Modes.local
       in
@@ -885,11 +892,13 @@ let generate_str_body
               ; compare__local
               ; equal
               ; equal__local
+              ; hash_fold_t
+              ; hash
               ; pack ~local:false
               ; pack ~local:true
               ; globalize_packed
-              ; sexp_of_packed ~local:false
-              ; sexp_of_packed ~local:true
+              ; sexp_of_packed ~stack:false
+              ; sexp_of_packed ~stack:true
               ; packed_of_sexp
               ; comparator
               ]))

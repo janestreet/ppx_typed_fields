@@ -75,5 +75,9 @@ let create_expression ~loc ~constructor_declarations ~local =
                     __ppx_typed_fields_creator_f [%e constructor_expression] [@nontail])
               }]
       in
-      pexp_let Nonrecursive [ value_binding ~pat:(pvar pld_name.txt) ~expr ~modes:[] ] acc)
+      pexp_let
+        Immutable
+        Nonrecursive
+        [ value_binding ~pat:(pvar pld_name.txt) ~expr ~modes:[] ]
+        acc)
 ;;

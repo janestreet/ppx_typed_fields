@@ -237,14 +237,12 @@ let generate_tuple_expression ~loc number_of_elements =
 
 let generate_variant_generic ~loc ~element ~subpattern ~on_construct ~on_variant =
   let open (val Syntax.builder loc) in
-  let variant_name =
-    Variant_kind_generator.supported_constructor_name element |> String.capitalize
-  in
+  let variant_name = Variant_kind_generator.supported_constructor_name element in
   match element with
   | Tuple_values_constructor _ | Anonymous_record_constructor _
   | No_values_constructor { is_polymorphic = false; _ }
   | Single_value_constructor { is_polymorphic = false; _ } ->
-    on_construct (Lident variant_name |> Located.mk) subpattern
+    on_construct (Lident (String.capitalize variant_name) |> Located.mk) subpattern
   | Single_value_constructor { is_polymorphic = true; _ }
   | No_values_constructor { is_polymorphic = true; _ } ->
     on_variant variant_name subpattern
@@ -383,6 +381,7 @@ let create_function_body ~loc ~constructor_declarations ~local:_ =
           in
           List.fold label_declarations ~init:constructor ~f:(fun acc ld ->
             pexp_let
+              Immutable
               Nonrecursive
               [ (let pat = ppat_var (ld.pld_name.txt |> Located.mk) in
                  let expr =
@@ -568,7 +567,7 @@ let globalize_packed_function_body ~loc ~elements_to_convert =
   pexp_function cases
 ;;
 
-let sexp_of_t_body ~loc ~elements_to_convert ~local =
+let sexp_of_t_body ~loc ~elements_to_convert ~stack =
   let open (val Syntax.builder loc) in
   let cases =
     List.map elements_to_convert ~f:(fun (element, _) ->
@@ -594,12 +593,14 @@ let sexp_of_t_body ~loc ~elements_to_convert ~local =
             pexp_ident
               (Ldot
                  ( Ldot (Lident subvariant_name, "Packed")
-                 , Names.localize "sexp_of_t" ~local )
+                 , Names.stackify "sexp_of_t" ~stack )
                |> Located.mk)
           in
           let pack_function =
             pexp_ident
-              (Ldot (Ldot (Lident subvariant_name, "Packed"), Names.localize "pack" ~local)
+              (Ldot
+                 ( Ldot (Lident subvariant_name, "Packed")
+                 , Names.localize "pack" ~local:stack )
                |> Located.mk)
           in
           [%expr
@@ -610,7 +611,7 @@ let sexp_of_t_body ~loc ~elements_to_convert ~local =
               ]]
         | _ -> [%expr Sexplib.Sexp.Atom [%e estring variant_name]]
       in
-      case ~lhs:pattern ~guard:None ~rhs:(Type_kind.exclave_if ~loc ~local rhs))
+      case ~lhs:pattern ~guard:None ~rhs:(Type_kind.exclave_if_stack ~loc ~stack rhs))
   in
   pexp_match [%expr packed] cases
 ;;
@@ -698,7 +699,7 @@ let pack_body ~loc ~elements_to_convert ~local =
             (Some (pexp_construct (Lident constructor_name |> Located.mk) None))
           |> wrap_t_struct_around_expression ~loc
       in
-      case ~lhs ~guard:None ~rhs:(Type_kind.exclave_if ~loc ~local rhs))
+      case ~lhs ~guard:None ~rhs:(Type_kind.exclave_if_local ~loc ~local rhs))
   in
   pexp_function cases
 ;;

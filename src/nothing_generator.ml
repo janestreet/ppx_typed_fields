@@ -29,7 +29,7 @@ let type_ids ~loc:_ ~elements_to_convert:_ ~core_type_params:_ = []
 let type_id_function_body ~loc ~elements_to_convert:_ = [%expr unreachable_code]
 let globalize0_function_body ~loc ~elements_to_convert:_ = [%expr unreachable_code]
 
-let sexp_of_t_body ~loc ~elements_to_convert:_ ~local:_ =
+let sexp_of_t_body ~loc ~elements_to_convert:_ ~stack:_ =
   [%expr
     match packed with
     | (_ : t) -> .]

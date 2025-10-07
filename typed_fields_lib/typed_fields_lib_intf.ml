@@ -51,7 +51,7 @@ module type %{this n "S"} = sig
     -> 'a
     -> %{params n "'t%i"} derived_on
 
-  val create : %{params n "'t%i"} creator -> %{params n "'t%i"} derived_on
+  val create : local_ %{params n "'t%i"} creator -> %{params n "'t%i"} derived_on
 
   val create_local
     :  local_ %{params n "'t%i"} creator
@@ -70,7 +70,7 @@ module type S = sig
 
   val get : 'a t @ local -> derived_on -> 'a
   val set : 'a t @ local -> derived_on -> 'a -> derived_on
-  val create : creator -> derived_on
+  val create : local_ creator -> derived_on
   val create_local : local_ creator -> local_ derived_on
 end
 
@@ -81,7 +81,7 @@ module type S1 = sig
 
   val get : ('t1, 'a) t @ local -> 't1 derived_on -> 'a
   val set : ('t1, 'a) t @ local -> 't1 derived_on -> 'a -> 't1 derived_on
-  val create : 't1 creator -> 't1 derived_on
+  val create : local_ 't1 creator -> 't1 derived_on
   val create_local : local_ 't1 creator -> local_ 't1 derived_on
 end
 
@@ -98,7 +98,7 @@ module type S2 = sig
     -> 'a
     -> ('t1, 't2) derived_on
 
-  val create : ('t1, 't2) creator -> ('t1, 't2) derived_on
+  val create : local_ ('t1, 't2) creator -> ('t1, 't2) derived_on
   val create_local : local_ ('t1, 't2) creator -> local_ ('t1, 't2) derived_on
 end
 
@@ -115,7 +115,7 @@ module type S3 = sig
     -> 'a
     -> ('t1, 't2, 't3) derived_on
 
-  val create : ('t1, 't2, 't3) creator -> ('t1, 't2, 't3) derived_on
+  val create : local_ ('t1, 't2, 't3) creator -> ('t1, 't2, 't3) derived_on
   val create_local : local_ ('t1, 't2, 't3) creator -> local_ ('t1, 't2, 't3) derived_on
 end
 
@@ -132,7 +132,7 @@ module type S4 = sig
     -> 'a
     -> ('t1, 't2, 't3, 't4) derived_on
 
-  val create : ('t1, 't2, 't3, 't4) creator -> ('t1, 't2, 't3, 't4) derived_on
+  val create : local_ ('t1, 't2, 't3, 't4) creator -> ('t1, 't2, 't3, 't4) derived_on
 
   val create_local
     :  local_ ('t1, 't2, 't3, 't4) creator
@@ -156,7 +156,9 @@ module type S5 = sig
     -> 'a
     -> ('t1, 't2, 't3, 't4, 't5) derived_on
 
-  val create : ('t1, 't2, 't3, 't4, 't5) creator -> ('t1, 't2, 't3, 't4, 't5) derived_on
+  val create
+    :  local_ ('t1, 't2, 't3, 't4, 't5) creator
+    -> ('t1, 't2, 't3, 't4, 't5) derived_on
 
   val create_local
     :  local_ ('t1, 't2, 't3, 't4, 't5) creator

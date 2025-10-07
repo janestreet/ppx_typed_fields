@@ -192,7 +192,7 @@ module Definitions = struct
     val sexp_of_t_body
       :  loc:location
       -> elements_to_convert:(t * granularity) list
-      -> local:bool
+      -> stack:bool
       -> expression
 
     (** Generates the body for the t_of_sexp function inside of packed.
@@ -314,5 +314,6 @@ module type Type_kind = sig
   val generate_unique_id : core_type list -> string
 
   val or_patterns : pattern list -> loc:Location.t -> pattern
-  val exclave_if : expression -> loc:Location.t -> local:bool -> expression
+  val exclave_if_local : expression -> loc:Location.t -> local:bool -> expression
+  val exclave_if_stack : expression -> loc:Location.t -> stack:bool -> expression
 end
