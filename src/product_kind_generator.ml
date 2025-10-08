@@ -501,7 +501,7 @@ let type_id_function_body
       in
       case ~lhs:pattern ~guard:None ~rhs)
   in
-  pexp_function cases
+  pexp_function_cases cases
 ;;
 
 (**
@@ -599,7 +599,7 @@ let pack_body
       in
       case ~lhs ~guard:None ~rhs)
   in
-  pexp_function cases
+  pexp_function_cases cases
 ;;
 
 (**

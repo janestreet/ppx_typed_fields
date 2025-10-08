@@ -469,7 +469,7 @@ let type_id_function_body ~loc ~elements_to_convert =
       in
       case ~lhs:pattern ~guard:None ~rhs)
   in
-  pexp_function cases
+  pexp_function_cases cases
 ;;
 
 let sexp_of_t_body ~loc ~elements_to_convert =
@@ -591,7 +591,7 @@ let pack_body ~loc ~elements_to_convert =
       in
       case ~lhs ~guard:None ~rhs)
   in
-  pexp_function cases
+  pexp_function_cases cases
 ;;
 
 let t_of_sexp_body ~loc ~elements_to_convert =
@@ -684,7 +684,7 @@ let which_function_body ~loc ~elements_to_convert ~number_of_params:_ =
       in
       case ~lhs ~guard:None ~rhs)
   in
-  pexp_function cases
+  pexp_function_cases cases
 ;;
 
 (* Disables unused function warning *)
