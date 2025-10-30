@@ -1,5 +1,6 @@
 open! Base
 open Ppxlib
+open Ppxlib_jane
 include Typed_deriver_intf.Definitions
 
 let generate_packed_field_type_declaration
@@ -19,6 +20,7 @@ let generate_packed_field_type_declaration
     ~kind:Ptype_abstract
     ~private_:Public
     ~manifest:(Some t_type_constr)
+    ()
 ;;
 
 let generate_packed_t_prime_type_declaration ~loc ~params ~core_type_params ~field_type =
@@ -38,6 +40,22 @@ let generate_packed_t_prime_type_declaration ~loc ~params ~core_type_params ~fie
                   [ field_type |> Ppxlib_jane.Shim.Pcstr_tuple_arg.of_core_type ])
              ~res:(Some (ptyp_constr (Lident "t'" |> Located.mk) core_type_params))
          ])
+    ~jkind_annotation:
+      { pjkind_loc = loc
+      ; pjkind_desc =
+          Pjk_mod
+            ( { pjkind_loc = loc; pjkind_desc = Pjk_abbreviation "value" }
+            , [ Loc.make ~loc (Mode "contended")
+              ; Loc.make ~loc (Mode "non_float")
+              ; Loc.make ~loc (Mode "portable")
+              ] )
+      }
+    ~attrs:
+      [ attribute
+          ~name:(Loc.make ~loc "unsafe_allow_any_mode_crossing")
+          ~payload:(PStr [])
+      ]
+    ()
 ;;
 
 let generate_packed_t_type_declaration ~loc ~core_type_params =
@@ -65,6 +83,7 @@ let generate_packed_t_type_declaration ~loc ~core_type_params =
                     (ptyp_constr (Lident "t'" |> Located.mk) core_type_params))
                ~modalities:[]
            ])
+      ()
   in
   let attribute = attribute ~name:(Located.mk "unboxed") ~payload:(PStr []) in
   { ty with ptype_attributes = [ attribute ] }

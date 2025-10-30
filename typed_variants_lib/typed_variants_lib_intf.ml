@@ -51,7 +51,7 @@ open Base
     [%string
       {|
 
-module type %{this n "S"} = sig
+module type %{this n "S"} = sig @@ portable
   include Typed_fields_lib.Common.%{this n "S"}
 
   val get : (%{each n "'t%i,"} 'a) t @ local -> %{params n "'t%i"} derived_on -> 'a option

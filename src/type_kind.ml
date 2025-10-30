@@ -65,7 +65,7 @@ let generate_creator_type_declaration
              ptyp_constr
                (Located.mk (Lident t_name))
                (core_type_params @ [ ptyp_var unique_parameter_id ])
-         ; arg_modes = Ppxlib_jane.Shim.Modes.local
+         ; arg_modes = Ppxlib_jane.Shim.Modes.local ~loc
          }
          { result_type = ptyp_var unique_parameter_id; result_modes = [] })
   in
@@ -83,6 +83,7 @@ let generate_creator_type_declaration
              ~type_:creator_function_type
              ~modalities:[]
          ])
+    ()
 ;;
 
 let attribute_remover =
@@ -116,6 +117,7 @@ let upper ~loc ~manifest_type ~original_kind ~params ~name =
     ~kind:original_kind
     ~private_:Public
     ~manifest:manifest_type
+    ()
 ;;
 
 let append_functor_parameter prefix = [%string "%{prefix}_subproduct"]

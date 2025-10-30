@@ -48,8 +48,8 @@ let generate_str ~loc ~typ_name ~fields ~params ~super =
     ~function_name
     ~core_type_params
     ~unique_parameter_id
-    ~arg_modes:Ppxlib_jane.Shim.Modes.local
-    ~result_modes:Ppxlib_jane.Shim.Modes.local
+    ~arg_modes:(Ppxlib_jane.Shim.Modes.local ~loc)
+    ~result_modes:(Ppxlib_jane.Shim.Modes.local ~loc)
     ~var_arrow_type
     ~constr_arrow_type
     ~name_of_first_parameter:(Ldot (Lident [%string "Typed_field%{of_suffix}"], "t"))
@@ -85,9 +85,11 @@ let generate_sig ~loc ~typ_name ~params ~super =
              ptyp_constr
                (Located.mk typed_fields)
                (core_type_params @ [ ptyp_var unique_parameter_id ])
-         ; arg_modes = Ppxlib_jane.Shim.Modes.local
+         ; arg_modes = Ppxlib_jane.Shim.Modes.local ~loc
          }
-         { result_type = var_arrow_type; result_modes = Ppxlib_jane.Shim.Modes.local })
+         { result_type = var_arrow_type
+         ; result_modes = Ppxlib_jane.Shim.Modes.local ~loc
+         })
   in
   psig_value
     (Ppxlib_jane.Shim.Value_description.create

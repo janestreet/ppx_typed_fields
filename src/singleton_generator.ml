@@ -65,7 +65,8 @@ let type_ids ~loc ~number_of_parameters ~unique_id =
     pmod_structure
       [ [%stri
           let type_id : [%t type_equal_type] =
-            Base.Type_equal.Id.create ~name:"this" (fun _ -> Sexplib.Sexp.Atom "<opaque>")
+            Base.Type_equal.Id.create__portable ~name:"this" (fun _ ->
+              Sexplib.Sexp.Atom "<opaque>")
           ;;]
       ; type_id
       ]
@@ -165,6 +166,7 @@ let common ~loc ~minimum_needed_parameters ~core_type_params ~ctype ~unique_id =
         ~kind:Ptype_abstract
         ~private_:Public
         ~manifest:(Some ctype)
+        ()
     in
     pstr_type Recursive [ td ]
   in
@@ -186,6 +188,7 @@ let common ~loc ~minimum_needed_parameters ~core_type_params ~ctype ~unique_id =
         ~kind:(Ptype_variant [ constructor ])
         ~private_:Public
         ~manifest:None
+        ()
     in
     pstr_type Recursive [ td ]
   in
@@ -200,6 +203,7 @@ let common ~loc ~minimum_needed_parameters ~core_type_params ~ctype ~unique_id =
         ~kind:Ptype_abstract
         ~private_:Public
         ~manifest:(Some type_)
+        ()
     in
     pstr_type Recursive [ td ]
   in
@@ -214,6 +218,7 @@ let common ~loc ~minimum_needed_parameters ~core_type_params ~ctype ~unique_id =
         ~manifest:
           (Some
              (ptyp_constr (Lident "typed_common_original" |> Located.mk) core_type_params))
+        ()
     in
     pstr_type Recursive [ td ]
   in
@@ -243,7 +248,7 @@ let common ~loc ~minimum_needed_parameters ~core_type_params ~ctype ~unique_id =
       ~function_name:"globalize0"
       ~core_type_params
       ~unique_parameter_id
-      ~arg_modes:Ppxlib_jane.Shim.Modes.local
+      ~arg_modes:(Ppxlib_jane.Shim.Modes.local ~loc)
       ~result_modes:[]
       ~var_arrow_type
       ~constr_arrow_type

@@ -1,5 +1,6 @@
 open! Base
 open Ppxlib
+open Ppxlib_jane
 
 (* Generates `type _ t = A : a |  B : b ...` type *)
 let gen_t
@@ -26,6 +27,31 @@ let gen_t
     generate_constructors ~loc ~elements_to_convert ~core_type_params
   in
   let t =
+    let is_immediate =
+      List.for_all constructor_declarations ~f:(fun (_, decl) ->
+        match decl.pcd_args with
+        | Pcstr_tuple [] -> true
+        | _ -> false)
+    in
+    let jkind_annotation, attributes =
+      if is_immediate
+      then None, []
+      else
+        ( Some
+            { pjkind_loc = loc
+            ; pjkind_desc =
+                Pjk_mod
+                  ( { pjkind_loc = loc; pjkind_desc = Pjk_abbreviation "value" }
+                  , [ Loc.make ~loc (Mode "contended")
+                    ; Loc.make ~loc (Mode "non_float")
+                    ; Loc.make ~loc (Mode "portable")
+                    ] )
+            }
+        , [ attribute
+              ~name:{ loc; txt = "unsafe_allow_any_mode_crossing" }
+              ~payload:(PStr [])
+          ] )
+    in
     type_declaration
       ~private_:Public
       ~manifest:None
@@ -33,6 +59,9 @@ let gen_t
       ~params:(params @ [ ptyp_any, (NoVariance, Injective) ])
       ~cstrs:[]
       ~kind:(Ptype_variant (List.map constructor_declarations ~f:snd))
+      ?jkind_annotation
+      ~attrs:attributes
+      ()
   in
   let internal_gadt_rename =
     let unique_id =
@@ -51,6 +80,7 @@ let gen_t
            (ptyp_constr
               (Lident Type_kind.internal_gadt_name |> Located.mk)
               core_type_params))
+      ()
   in
   let internal_gadt_rename =
     { internal_gadt_rename with

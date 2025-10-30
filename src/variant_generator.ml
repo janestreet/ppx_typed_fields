@@ -429,6 +429,7 @@ let type_ids ~loc ~elements_to_convert ~core_type_params =
                 ~kind:Ptype_abstract
                 ~private_:Public
                 ~manifest:(Some (mapper#core_type param))
+                ()
             in
             pmod_structure [ pstr_type Recursive [ td ] ]
           in
@@ -459,7 +460,7 @@ let type_ids ~loc ~elements_to_convert ~core_type_params =
                   (Variant_kind_generator.supported_constructor_type element)]
                 Base.Type_equal.Id.t)
           =
-          Base.Type_equal.Id.create
+          Base.Type_equal.Id.create__portable
             ~name:
               [%e
                 estring
@@ -968,6 +969,7 @@ let generate_parameter_modules ~loc ~elements_to_convert ~expand_typed_variants 
               ~kind:Ptype_abstract
               ~private_:Public
               ~manifest:(Some return_value_type_with_original_attributes)
+              ()
           ]
       in
       let name =
@@ -1054,6 +1056,7 @@ let generate_base_module_type_for_singleton ~loc ~minimum_needed_parameters ~cty
       ~kind:Ptype_abstract
       ~private_:Public
       ~manifest:(Some ctype)
+      ()
   in
   let constructor =
     constructor_declaration
@@ -1072,6 +1075,7 @@ let generate_base_module_type_for_singleton ~loc ~minimum_needed_parameters ~cty
       ~kind:(Ptype_variant [ constructor ])
       ~private_:Public
       ~manifest:None
+      ()
   in
   pmty_signature
     (signature
@@ -1234,6 +1238,7 @@ let generate_base_module_expr_for_singleton ~loc ~minimum_needed_parameters ~cty
         ~kind:Ptype_abstract
         ~private_:Public
         ~manifest:(Some ctype)
+        ()
     in
     pmod_apply
       (pmod_ident (Ldot (Lident "Typed_variants_lib", singleton_name) |> Located.mk))

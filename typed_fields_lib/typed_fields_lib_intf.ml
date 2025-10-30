@@ -38,7 +38,7 @@ open Base
     [%string
       {|
 
-module type %{this n "S"} = sig
+module type %{this n "S"} = sig @@ portable
   include Typed_common_lib_intf.%{this n "S"}
 
   type %{params n "'t%i"} creator = { f : 'a. (%{each n "'t%i,"} 'a) t @ local -> 'a }
