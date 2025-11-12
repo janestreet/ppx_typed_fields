@@ -858,3 +858,7 @@ module For_testing = struct
     Ppx_typed_variants.For_testing.expand_anonymous_struct
   ;;
 end
+
+module For_ppxs = struct
+  let sanitize_type_declarations = Typed_deriver_variants.sanitize_type_declarations
+end

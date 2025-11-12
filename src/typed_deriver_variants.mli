@@ -98,3 +98,8 @@ val generate_packed_with_value_type
   -> type_declaration
 
 include Typed_deriver.S
+
+val sanitize_type_declarations
+  :  loc:location
+  -> type_declaration list
+  -> type_declaration list

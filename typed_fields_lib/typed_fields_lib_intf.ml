@@ -38,7 +38,7 @@ open Base
     [%string
       {|
 
-module type %{this n "S"} = sig
+module type %{this n "S"} = sig @@ portable
   include Typed_common_lib_intf.%{this n "S"}
 
   type %{params n "'t%i"} creator = { f : 'a. (%{each n "'t%i,"} 'a) t @ local -> 'a }
@@ -63,7 +63,7 @@ end
   done
 *)
 
-module type S = sig
+module type S = sig @@ portable
   include Typed_common_lib_intf.S
 
   type creator = { f : 'a. 'a t @ local -> 'a }
@@ -74,7 +74,7 @@ module type S = sig
   val create_local : local_ creator -> local_ derived_on
 end
 
-module type S1 = sig
+module type S1 = sig @@ portable
   include Typed_common_lib_intf.S1
 
   type 't1 creator = { f : 'a. ('t1, 'a) t @ local -> 'a }
@@ -85,7 +85,7 @@ module type S1 = sig
   val create_local : local_ 't1 creator -> local_ 't1 derived_on
 end
 
-module type S2 = sig
+module type S2 = sig @@ portable
   include Typed_common_lib_intf.S2
 
   type ('t1, 't2) creator = { f : 'a. ('t1, 't2, 'a) t @ local -> 'a }
@@ -102,7 +102,7 @@ module type S2 = sig
   val create_local : local_ ('t1, 't2) creator -> local_ ('t1, 't2) derived_on
 end
 
-module type S3 = sig
+module type S3 = sig @@ portable
   include Typed_common_lib_intf.S3
 
   type ('t1, 't2, 't3) creator = { f : 'a. ('t1, 't2, 't3, 'a) t @ local -> 'a }
@@ -119,7 +119,7 @@ module type S3 = sig
   val create_local : local_ ('t1, 't2, 't3) creator -> local_ ('t1, 't2, 't3) derived_on
 end
 
-module type S4 = sig
+module type S4 = sig @@ portable
   include Typed_common_lib_intf.S4
 
   type ('t1, 't2, 't3, 't4) creator = { f : 'a. ('t1, 't2, 't3, 't4, 'a) t @ local -> 'a }
@@ -139,7 +139,7 @@ module type S4 = sig
     -> local_ ('t1, 't2, 't3, 't4) derived_on
 end
 
-module type S5 = sig
+module type S5 = sig @@ portable
   include Typed_common_lib_intf.S5
 
   type ('t1, 't2, 't3, 't4, 't5) creator =
@@ -167,7 +167,7 @@ end
 
 (*$*)
 
-module type Typed_fields_lib = sig
+module type Typed_fields_lib = sig @@ portable
   module type S = S
   module type S1 = S1
   module type S2 = S2

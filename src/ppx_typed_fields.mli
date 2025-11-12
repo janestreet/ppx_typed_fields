@@ -38,3 +38,10 @@ module For_testing : sig
     -> type_declaration list
     -> module_expr
 end
+
+module For_ppxs : sig
+  val sanitize_type_declarations
+    :  loc:location
+    -> type_declaration list
+    -> type_declaration list
+end

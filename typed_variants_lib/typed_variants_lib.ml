@@ -30,7 +30,10 @@ module Nothing = struct
 
   module Packed = struct
     type 'a field = 'a t
-    type t' = T : 'a field -> t'
+
+    type t' : value mod contended portable = T : 'a field -> t'
+    [@@unsafe_allow_any_mode_crossing]
+
     type t = { f : t' } [@@unboxed]
 
     let all = []
@@ -74,7 +77,7 @@ module Nothing = struct
            ])
     ;;
 
-    include Comparator.Make (struct
+    include%template Comparator.Make [@mode portable] (struct
         type nonrec t = t
 
         let compare = compare
@@ -247,7 +250,9 @@ struct
 
   module Packed = struct
     type 'a field = 'a t
-    type t' = T : 'a field -> t'
+    type t' : value mod contended portable = T : 'a field -> t'
+    [@@unsafe_allow_any_mode_crossing
+      ]
     type t = { f : t' } [@@unboxed]
 
     let m_of_packed { f = T field } = M.Packed.pack field
@@ -275,7 +280,7 @@ struct
     let pack field = { f = T field }
     let pack__local field = exclave_ { f = T field }
 
-    include Comparator.Make (struct
+    include%template Comparator.Make [@mode portable] (struct
         type nonrec t = t
         let compare = compare
         let sexp_of_t = sexp_of_t
@@ -303,7 +308,10 @@ module S_of_S1 (M : S1) (T1 : T) :
 
   module Packed = struct
     type 'a field = 'a t
-    type t' = T : 'a field -> t'
+
+    type t' : value mod contended portable = T : 'a field -> t'
+    [@@unsafe_allow_any_mode_crossing]
+
     type t = { f : t' } [@@unboxed]
 
     let m_of_packed { f = T field } = M.Packed.pack field
@@ -331,7 +339,7 @@ module S_of_S1 (M : S1) (T1 : T) :
     let pack field = { f = T field }
     let pack__local field = exclave_ { f = T field }
 
-    include Comparator.Make (struct
+    include%template Comparator.Make [@mode portable] (struct
         type nonrec t = t
 
         let compare = compare
@@ -356,7 +364,10 @@ struct
 
   module Packed = struct
     type 'a field = 'a t
-    type t' = T : 'a field -> t'
+
+    type t' : value mod contended portable = T : 'a field -> t'
+    [@@unsafe_allow_any_mode_crossing]
+
     type t = { f : t' } [@@unboxed]
 
     let m_of_packed { f = T field } = M.Packed.pack field
@@ -384,7 +395,7 @@ struct
     let pack field = { f = T field }
     let pack__local field = exclave_ { f = T field }
 
-    include Comparator.Make (struct
+    include%template Comparator.Make [@mode portable] (struct
         type nonrec t = t
 
         let compare = compare
@@ -410,7 +421,10 @@ module S_of_S3 (M : S3) (T1 : T) (T2 : T) (T3 : T) :
 
   module Packed = struct
     type 'a field = 'a t
-    type t' = T : 'a field -> t'
+
+    type t' : value mod contended portable = T : 'a field -> t'
+    [@@unsafe_allow_any_mode_crossing]
+
     type t = { f : t' } [@@unboxed]
 
     let m_of_packed { f = T field } = M.Packed.pack field
@@ -438,7 +452,7 @@ module S_of_S3 (M : S3) (T1 : T) (T2 : T) (T3 : T) :
     let pack field = { f = T field }
     let pack__local field = exclave_ { f = T field }
 
-    include Comparator.Make (struct
+    include%template Comparator.Make [@mode portable] (struct
         type nonrec t = t
 
         let compare = compare
@@ -464,7 +478,10 @@ module S_of_S4 (M : S4) (T1 : T) (T2 : T) (T3 : T) (T4 : T) :
 
   module Packed = struct
     type 'a field = 'a t
-    type t' = T : 'a field -> t'
+
+    type t' : value mod contended portable = T : 'a field -> t'
+    [@@unsafe_allow_any_mode_crossing]
+
     type t = { f : t' } [@@unboxed]
 
     let m_of_packed { f = T field } = M.Packed.pack field
@@ -492,7 +509,7 @@ module S_of_S4 (M : S4) (T1 : T) (T2 : T) (T3 : T) (T4 : T) :
     let pack field = { f = T field }
     let pack__local field = exclave_ { f = T field }
 
-    include Comparator.Make (struct
+    include%template Comparator.Make [@mode portable] (struct
         type nonrec t = t
 
         let compare = compare
@@ -518,7 +535,10 @@ module S_of_S5 (M : S5) (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) :
 
   module Packed = struct
     type 'a field = 'a t
-    type t' = T : 'a field -> t'
+
+    type t' : value mod contended portable = T : 'a field -> t'
+    [@@unsafe_allow_any_mode_crossing]
+
     type t = { f : t' } [@@unboxed]
 
     let m_of_packed { f = T field } = M.Packed.pack field
@@ -546,7 +566,7 @@ module S_of_S5 (M : S5) (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) :
     let pack field = { f = T field }
     let pack__local field = exclave_ { f = T field }
 
-    include Comparator.Make (struct
+    include%template Comparator.Make [@mode portable] (struct
         type nonrec t = t
 
         let compare = compare

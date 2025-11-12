@@ -22,7 +22,7 @@ module type S_plain = sig
 
   type creator = { f : 'a. 'a Key.t @ local -> 'a Data.t }
 
-  val create : ?sexper:sexper -> creator -> t
+  val create : ?sexper:sexper -> creator @ local -> t
   val set : t -> key:'a Key.t @ local -> data:'a Data.t -> t
 
   (** Find will always succeed *)
@@ -117,9 +117,9 @@ module type The_map = sig
   module type S = S
   module type S_plain = S_plain
 
-  module Make (Key : Typed_fields_lib.Common.S) (Data : Data) :
+  module%template.portable Make (Key : Typed_fields_lib.Common.S) (Data : Data) :
     S with module Key = Key and module Data = Data
 
-  module Make_for_records (Key : Typed_fields_lib.S) (Data : Data) :
+  module%template.portable Make_for_records (Key : Typed_fields_lib.S) (Data : Data) :
     For_records.S with module Key = Key and module Data = Data
 end

@@ -1,7 +1,11 @@
 open! Base
 include The_map_intf
 
-module Make_plain (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
+module%template.portable
+  [@modality p] Make_plain
+    (Key : Typed_fields_lib.Common.S)
+    (Data : Data) =
+struct
   module Key_mod = struct
     include Key
 
@@ -10,7 +14,7 @@ module Make_plain (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
   end
 
   include
-    Univ_map.Make
+    Univ_map.Make [@mode p]
       (Key_mod)
       (struct
         include Data
@@ -27,15 +31,20 @@ module Make_plain (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
   type creator = { f : 'a. 'a Key.t @ local -> 'a Data.t }
 
   let create creator =
-    List.fold Key.Packed.all ~init:empty ~f:(fun acc { f = Key.Packed.T t } ->
+    List.fold Key.Packed.all ~init:(get_empty ()) ~f:(fun acc { f = Key.Packed.T t } ->
       add_exn acc ~key:t ~data:(creator.f t))
+    [@nontail]
   ;;
 end
 
-module Make (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
+module%template.portable
+  [@modality p] Make
+    (Key : Typed_fields_lib.Common.S)
+    (Data : Data) =
+struct
   module Key = Key
   module Data = Data
-  module Base = Make_plain (Key) (Data)
+  module Base = Make_plain [@modality p] (Key) (Data)
 
   type creator = Base.creator = { f : 'a. 'a Key.t @ local -> 'a Data.t }
 
@@ -77,7 +86,7 @@ module Make (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
       type 'a t = 'a
     end
 
-    module Id_map = Make_plain (Key) (Id)
+    module Id_map = Make_plain [@mode p] (Key) (Id)
 
     type creator = { f : 'a. 'a Key.t @ local -> 'a }
 
@@ -129,11 +138,15 @@ module Make (Key : Typed_fields_lib.Common.S) (Data : Data) = struct
   ;;
 end
 
-module Make_for_records (Key : Typed_fields_lib.S) (Data : Data) = struct
+module%template.portable
+  [@modality p] Make_for_records
+    (Key : Typed_fields_lib.S)
+    (Data : Data) =
+struct
   let create_derived_on = Key.create
 
   module Original_key = Key
-  include Make (Key) (Data)
+  include Make [@modality p] (Key) (Data)
 
   let transpose_applicative { f } (module A : As_applicative.S) =
     let t = create { f } in

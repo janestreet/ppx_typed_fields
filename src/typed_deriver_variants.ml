@@ -16,6 +16,7 @@ let gen_sig_t ~loc ~params =
         ~kind:Ptype_abstract
         ~private_:Public
         ~manifest:None
+        ()
     ]
 ;;
 
@@ -58,6 +59,7 @@ let generate_packed_with_value_type ~loc ~params ~core_type_params ~unique_param
                      (Lident "packed_with_value" |> Located.mk)
                      core_type_params))
          ])
+    ()
 ;;
 
 (** Generates a partial signature without the upper level t and without the upper level
@@ -199,7 +201,14 @@ let gen_partial_sig ~loc ~params =
     psig_module (module_declaration (Some "Packed" |> Located.mk) signature)
   in
   let which = [%sigi: val which : [%t variant_type_constr] -> Packed.t] in
-  [ name; path; ord; get; create; type_ids; globalize0; packed; which; names ]
+  [ [%sigi:
+      include
+        [%m
+      pmty_signature
+        (signature
+           [ name; path; ord; get; create; type_ids; globalize0; packed; which; names ])] @@ 
+      portable]
+  ]
 ;;
 
 (** Either generates either `include Typed_variants_lib.SN with type original := original`
@@ -320,6 +329,7 @@ let generate_anonymous_record_type_declarations ~loc ~elements_to_convert =
           ~private_:Public
           ~manifest:None
           ~kind:(Ptype_record label_declarations)
+          ()
       in
       let attributes = if typed_fields then [ typed_fields_attribute ~loc ] else [] in
       let td = { td with ptype_attributes = attributes } in
@@ -414,6 +424,7 @@ let sanitize_type_declarations ~loc (type_declarations : type_declaration list) 
           ~kind:Ptype_abstract
           ~private_:Public
           ~manifest:(Some manifest)
+          ()
       in
       new_td :: acc)
   in
@@ -488,6 +499,7 @@ let generate_tuple_type_declarations ~loc ~elements_to_convert =
           ~private_:Public
           ~manifest:(Some return_value_type)
           ~kind:Ptype_abstract
+          ()
       in
       let attributes =
         if typed_fields
@@ -569,7 +581,7 @@ let generate_str_body
       ~function_name:"name"
       ~core_type_params
       ~unique_parameter_id
-      ~arg_modes:Ppxlib_jane.Shim.Modes.local
+      ~arg_modes:(Ppxlib_jane.Shim.Modes.local ~loc)
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
@@ -588,7 +600,7 @@ let generate_str_body
       ~function_name:"path"
       ~core_type_params
       ~unique_parameter_id
-      ~arg_modes:Ppxlib_jane.Shim.Modes.local
+      ~arg_modes:(Ppxlib_jane.Shim.Modes.local ~loc)
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
@@ -607,7 +619,7 @@ let generate_str_body
       ~function_name:"__ord"
       ~core_type_params
       ~unique_parameter_id
-      ~arg_modes:Ppxlib_jane.Shim.Modes.local
+      ~arg_modes:(Ppxlib_jane.Shim.Modes.local ~loc)
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
@@ -632,7 +644,7 @@ let generate_str_body
       ~function_name:"get"
       ~core_type_params
       ~unique_parameter_id
-      ~arg_modes:Ppxlib_jane.Shim.Modes.local
+      ~arg_modes:(Ppxlib_jane.Shim.Modes.local ~loc)
       ~constr_arrow_type:
         (ptyp_arrow
            { arg_label = Nolabel; arg_type = constr_variant_type; arg_modes = [] }
@@ -664,7 +676,7 @@ let generate_str_body
       ~function_name:"create"
       ~core_type_params
       ~unique_parameter_id
-      ~arg_modes:Ppxlib_jane.Shim.Modes.local
+      ~arg_modes:(Ppxlib_jane.Shim.Modes.local ~loc)
       ~constr_arrow_type:
         (ptyp_arrow
            { arg_label = Nolabel
@@ -708,7 +720,7 @@ let generate_str_body
                []))
         ~unique_parameter_id
         ~function_body
-        ~arg_modes:Ppxlib_jane.Shim.Modes.local
+        ~arg_modes:(Ppxlib_jane.Shim.Modes.local ~loc)
         ~constr_arrow_type:
           (ptyp_constr
              type_equal_t
@@ -754,7 +766,7 @@ let generate_str_body
       ~function_name:"globalize0"
       ~core_type_params
       ~unique_parameter_id
-      ~arg_modes:Ppxlib_jane.Shim.Modes.local
+      ~arg_modes:(Ppxlib_jane.Shim.Modes.local ~loc)
       ~result_modes:[]
       ~var_arrow_type
       ~constr_arrow_type
@@ -790,7 +802,11 @@ let generate_str_body
           ~core_type_params
           ~field_type
       in
-      let td = { td with ptype_attributes = [ Typed_deriver.disable_warning_37 ~loc ] } in
+      let td =
+        { td with
+          ptype_attributes = Typed_deriver.disable_warning_37 ~loc :: td.ptype_attributes
+        }
+      in
       pstr_type Recursive [ td ]
     in
     let t_type_declaration =
@@ -834,7 +850,7 @@ let generate_str_body
     let pack ~local =
       let function_body = Specific_generator.pack_body ~loc ~elements_to_convert ~local in
       let arrow_type = ptyp_constr (Lident "t" |> Located.mk) [] in
-      let modes = if local then Ppxlib_jane.Shim.Modes.local else [] in
+      let modes = if local then Ppxlib_jane.Shim.Modes.local ~loc else [] in
       Typed_deriver.generate_new_typed_function
         ~loc
         ~function_name:(Names.localize "pack" ~local)
@@ -862,7 +878,7 @@ let generate_str_body
       let pat =
         match stack with
         | false -> [%pat? packed]
-        | true -> ppat_constraint [%pat? packed] None Ppxlib_jane.Shim.Modes.local
+        | true -> ppat_constraint [%pat? packed] None (Ppxlib_jane.Shim.Modes.local ~loc)
       in
       [%stri let [%p pvar name] = fun [%p pat] -> [%e function_body]]
     in
@@ -872,7 +888,7 @@ let generate_str_body
     in
     let comparator =
       [%stri
-        include Base.Comparator.Make (struct
+        include Base.Comparator.Make__portable (struct
             type nonrec t = t
 
             let compare = compare
@@ -923,6 +939,7 @@ let generate_str_body
         ~manifest:
           (Some
              (ptyp_constr (Lident "typed_common_original" |> Located.mk) core_type_params))
+        ()
     in
     pstr_type Recursive [ td ]
   in

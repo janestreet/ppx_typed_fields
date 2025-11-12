@@ -51,7 +51,7 @@ open Base
     [%string
       {|
 
-module type %{this n "S"} = sig
+module type %{this n "S"} = sig @@ portable
   include Typed_fields_lib.Common.%{this n "S"}
 
   val get : (%{each n "'t%i,"} 'a) t @ local -> %{params n "'t%i"} derived_on -> 'a option
@@ -64,7 +64,7 @@ end
   done
 *)
 
-module type S = sig
+module type S = sig @@ portable
   include Typed_fields_lib.Common.S
 
   val get : 'a t @ local -> derived_on -> 'a option
@@ -72,7 +72,7 @@ module type S = sig
   val which : derived_on -> Packed.t
 end
 
-module type S1 = sig
+module type S1 = sig @@ portable
   include Typed_fields_lib.Common.S1
 
   val get : ('t1, 'a) t @ local -> 't1 derived_on -> 'a option
@@ -80,7 +80,7 @@ module type S1 = sig
   val which : 't1 derived_on -> Packed.t
 end
 
-module type S2 = sig
+module type S2 = sig @@ portable
   include Typed_fields_lib.Common.S2
 
   val get : ('t1, 't2, 'a) t @ local -> ('t1, 't2) derived_on -> 'a option
@@ -88,7 +88,7 @@ module type S2 = sig
   val which : ('t1, 't2) derived_on -> Packed.t
 end
 
-module type S3 = sig
+module type S3 = sig @@ portable
   include Typed_fields_lib.Common.S3
 
   val get : ('t1, 't2, 't3, 'a) t @ local -> ('t1, 't2, 't3) derived_on -> 'a option
@@ -96,7 +96,7 @@ module type S3 = sig
   val which : ('t1, 't2, 't3) derived_on -> Packed.t
 end
 
-module type S4 = sig
+module type S4 = sig @@ portable
   include Typed_fields_lib.Common.S4
 
   val get
@@ -108,7 +108,7 @@ module type S4 = sig
   val which : ('t1, 't2, 't3, 't4) derived_on -> Packed.t
 end
 
-module type S5 = sig
+module type S5 = sig @@ portable
   include Typed_fields_lib.Common.S5
 
   val get

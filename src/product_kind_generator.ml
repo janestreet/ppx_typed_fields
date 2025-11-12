@@ -392,6 +392,7 @@ let subproduct_type_id_modules
                            ~kind:Ptype_abstract
                            ~private_:Public
                            ~manifest:(Some (mapper#core_type param))
+                           ()
                        ]
                    ]
                in
@@ -436,7 +437,7 @@ let type_ids
                 [%t mapper#core_type (Specific_implementation.to_type element)]
                   Base.Type_equal.Id.t)
             =
-            Base.Type_equal.Id.create
+            Base.Type_equal.Id.create__portable
               ~name:[%e estring (Specific_implementation.name index element)]
               Sexplib.Conv.sexp_of_opaque
           ;;])
@@ -982,6 +983,7 @@ let generate_parameter_modules
                         ~kind:Ptype_abstract
                         ~private_:Public
                         ~manifest:(Some original_type_with_attributes)
+                        ()
                     ]
                 ] )
         in
@@ -1099,6 +1101,7 @@ let generate_base_module_type_for_singleton ~loc ~minimum_needed_parameters ~cty
       ~kind:Ptype_abstract
       ~private_:Public
       ~manifest:(Some ctype)
+      ()
   in
   let constructor =
     constructor_declaration
@@ -1117,6 +1120,7 @@ let generate_base_module_type_for_singleton ~loc ~minimum_needed_parameters ~cty
       ~kind:(Ptype_variant [ constructor ])
       ~private_:Public
       ~manifest:None
+      ()
   in
   pmty_signature
     (signature
@@ -1292,6 +1296,7 @@ let generate_base_module_expr_for_singleton ~loc ~minimum_needed_parameters ~cty
         ~kind:Ptype_abstract
         ~private_:Public
         ~manifest:(Some ctype)
+        ()
     in
     pmod_apply
       (pmod_ident (Ldot (Lident "Typed_fields_lib", singleton_name) |> Located.mk))
