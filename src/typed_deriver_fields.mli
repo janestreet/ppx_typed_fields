@@ -1,7 +1,7 @@
 open! Base
 open Ppxlib
 
-(* Generate a Typed_fields(_t | of_x) structure item given a specific implementation
+(*=Generate a Typed_fields(_t | of_x) structure item given a specific implementation
    module for how to handle the specific conversions like how the names for the
    typed_fields constructors are determined and how setter/getter functions work.*)
 val gen_str

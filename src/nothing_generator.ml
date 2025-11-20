@@ -1,8 +1,8 @@
 open! Base
 open Ppxlib
 
-(* The structure items will be inserted after the type type
-   definitions and before any other items.*)
+(* The structure items will be inserted after the type type definitions and before any
+   other items. *)
 let extra_structure_items_to_insert loc =
   [ [%stri
       let unreachable_code = function
@@ -88,24 +88,14 @@ let full_depth_signature ~loc ~elements_to_convert:_ ~expand_typed_variants:_ =
   [ [%sigi: include module type of Deep] ]
 ;;
 
-(*  Generates the signature for the singleton modules sent to Shallow
+(* Generates the signature for the singleton modules sent to Shallow
 
-    [
-    module Singleton_for_t_1 : sig ... end;
-    module Singleton_for_t_2 : sig ... end;
-    ...
-
-    ]
+   [ module Singleton_for_t_1 : sig ... end; module Singleton_for_t_2 : sig ... end; ... ]
 *)
 let singleton_modules_signatures ~loc:_ ~elements_to_convert:_ = []
 
-(*  Generates the structure for the sigleton modules sent to Shallow
+(* Generates the structure for the sigleton modules sent to Shallow
 
-    [
-    module Singleton_for_t_1 = struct ... end;
-    module Singleton_for_t_2 = struct ... end;
-    ...
-
-    ]
+   [ module Singleton_for_t_1 = struct ... end; module Singleton_for_t_2 = struct ... end; ... ]
 *)
 let singleton_modules_structures ~loc:_ ~elements_to_convert:_ = []

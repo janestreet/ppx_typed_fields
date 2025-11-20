@@ -1337,14 +1337,9 @@ let generate_clean_params ~loc ~params =
     ptyp_var [%string "t%{(i + 1)#Int}"], (NoVariance, NoInjectivity))
 ;;
 
-(*  Generates the signature for the singleton modules sent to Shallow
+(* Generates the signature for the singleton modules sent to Shallow
 
-    [
-    module Singleton_for_t_1 : sig ... end;
-    module Singleton_for_t_2 : sig ... end;
-    ...
-
-    ]
+   [ module Singleton_for_t_1 : sig ... end; module Singleton_for_t_2 : sig ... end; ... ]
 *)
 let singleton_modules_signatures
   (type a)
@@ -1383,14 +1378,9 @@ let singleton_modules_signatures
       Some (psig_module (module_declaration name type_), label))
 ;;
 
-(*  Generates the structure for the sigleton modules sent to Shallow
+(* Generates the structure for the sigleton modules sent to Shallow
 
-    [
-    module Singleton_for_t_1 = struct ... end;
-    module Singleton_for_t_2 = struct ... end;
-    ...
-
-    ]
+   [ module Singleton_for_t_1 = struct ... end; module Singleton_for_t_2 = struct ... end; ... ]
 *)
 let singleton_modules_structures
   (type a)

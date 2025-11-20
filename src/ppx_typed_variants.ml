@@ -163,13 +163,12 @@ let raise_if_subvariant_is_seen =
   end
 ;;
 
-(*  Given a core type, checks that its subvariants annotations are correct. The subvariant
-    annotations are correct if the following hold:
+(* Given a core type, checks that its subvariants annotations are correct. The subvariant
+   annotations are correct if the following hold:
 
-    1. Subvariant annotations may only exist on polymorphic types or on constr's.
-    2. Subvariant annotations' parent must either also be a constr and
-    have a subvariant annotation or be the top-most annotation while
-    deriving typed variants.
+   1. Subvariant annotations may only exist on polymorphic types or on constr's.
+   2. Subvariant annotations' parent must either also be a constr and have a subvariant
+      annotation or be the top-most annotation while deriving typed variants.
 *)
 
 let rec check_subvariant_annotations_for_row_field row_field =
@@ -369,7 +368,7 @@ let identify_row_field ~loc rf params
   =
   check_subvariant_annotations_for_row_field rf;
   match rf.prf_desc with
-  (*  Polymorphic constructor with no payload. *)
+  (* Polymorphic constructor with no payload. *)
   | Rtag (label, true, []) ->
     raise_if_subvariant_is_seen#row_field rf;
     raise_if_typed_fields_is_seen_on_row_field rf;
@@ -378,7 +377,7 @@ let identify_row_field ~loc rf params
       ; return_value_type = [%type: unit]
       ; is_polymorphic = true
       }
-  (* Polymorphic constructor with a single constr as payload.  *)
+  (* Polymorphic constructor with a single constr as payload. *)
   | Rtag
       (label, false, [ ({ ptyp_desc = Ptyp_constr (ident, inner_params); _ } as single) ])
     ->
@@ -842,8 +841,8 @@ module Gen_anonymous_struct = struct
         "'typed_variants' rewriter can only be applied on type definitions of either \
          variants or polymorphic variants."
     | [ td ] ->
-      (* Needs to be an identifier that does not collide with any other types
-         from the Typed_fields_lib.S signature. *)
+      (* Needs to be an identifier that does not collide with any other types from the
+         Typed_fields_lib.S signature. *)
       let local_type_name = Type_kind.generate_local_type_name td in
       let td = { td with ptype_name = { td.ptype_name with txt = local_type_name } } in
       let module_expr =

@@ -3,8 +3,8 @@ open Ppxlib
 
 type t = core_type
 
-(* The structure items will be inserted after the type type
-   definitions and before any other items.*)
+(* The structure items will be inserted after the type type definitions and before any
+   other items. *)
 let extra_structure_items_to_insert _ = []
 
 let constructor_declarations ~loc ~elements_to_convert ~core_type_params =

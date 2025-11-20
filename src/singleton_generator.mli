@@ -16,7 +16,7 @@ type common_items =
   ; packed : structure_item
   }
 
-(*Creates the common top level items between typed variants and types fields. *)
+(* Creates the common top level items between typed variants and types fields. *)
 val common
   :  loc:location
   -> minimum_needed_parameters:(core_type * (variance * injectivity)) list

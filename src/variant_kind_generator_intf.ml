@@ -11,7 +11,7 @@ module Definitions = struct
     | Polymorphic_deep
 
   type supported_constructor_declaration =
-    (* | C of {a : int} *)
+    (*=| C of {a : int} *)
     | Anonymous_record_constructor of
         { constructor_name : string
         ; return_value_type : core_type
@@ -20,7 +20,7 @@ module Definitions = struct
         ; label_declarations : label_declaration list
         ; typed_fields : bool
         }
-    (* | C of (int * int * int) *)
+    (*=| C of (int * int * int) *)
     | Single_value_constructor of
         { constructor_name : string
         ; return_value_type : core_type
@@ -31,7 +31,7 @@ module Definitions = struct
         ; typed_fields : bool
         ; is_polymorphic : bool
         }
-    (* | C of int * int * int *)
+    (*=| C of int * int * int *)
     | Tuple_values_constructor of
         { constructor_name : string
         ; return_value_type : core_type
@@ -40,7 +40,7 @@ module Definitions = struct
         ; tuple_types : core_type list
         ; typed_fields : bool
         }
-    (* | C *)
+    (*=| C *)
     | No_values_constructor of
         { constructor_name : string
         ; return_value_type : core_type

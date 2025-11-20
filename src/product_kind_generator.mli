@@ -234,14 +234,9 @@ val full_depth_signature
   -> elements_to_convert:('a * Type_kind.granularity) list
   -> signature_item list
 
-(*  Generates the signature for the sigleton modules sent to Shallow
+(* Generates the signature for the sigleton modules sent to Shallow
 
-    [
-    module Singleton_for_t_1 : sig ... end;
-    module Singleton_for_t_2 : sig ... end;
-    ...
-
-    ]
+   [ module Singleton_for_t_1 : sig ... end; module Singleton_for_t_2 : sig ... end; ... ]
 *)
 val singleton_modules_signatures
   :  (module Product_kind.S with type t = 'a)
@@ -249,14 +244,9 @@ val singleton_modules_signatures
   -> elements_to_convert:('a * Type_kind.granularity) list
   -> (signature_item * label) list
 
-(*  Generates the structure for the sigleton modules sent to Shallow
+(* Generates the structure for the sigleton modules sent to Shallow
 
-    [
-    module Singleton_for_t_1 = struct ... end;
-    module Singleton_for_t_2 = struct ... end;
-    ...
-
-    ]
+   [ module Singleton_for_t_1 = struct ... end; module Singleton_for_t_2 = struct ... end; ... ]
 *)
 val singleton_modules_structures
   :  (module Product_kind.S with type t = 'a)

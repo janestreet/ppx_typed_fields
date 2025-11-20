@@ -56,8 +56,7 @@ let opaque_attribute =
 
    For example:
 
-   total_params = ('a, 'b, 'c, 'd)
-   core_type = ('b * int * ('d * 'd))
+   total_params = ('a, 'b, 'c, 'd) core_type = ('b * int * ('d * 'd))
 
    Since only 'b and 'd are needed, the output is:
 
