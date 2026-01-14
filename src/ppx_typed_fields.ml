@@ -56,8 +56,7 @@ let opaque_attribute =
 
    For example:
 
-   total_params = ('a, 'b, 'c, 'd)
-   core_type = ('b * int * ('d * 'd))
+   total_params = ('a, 'b, 'c, 'd) core_type = ('b * int * ('d * 'd))
 
    Since only 'b and 'd are needed, the output is:
 
@@ -856,4 +855,8 @@ module For_testing = struct
   let expand_variant_anonymous_struct =
     Ppx_typed_variants.For_testing.expand_anonymous_struct
   ;;
+end
+
+module For_ppxs = struct
+  let sanitize_type_declarations = Typed_deriver_variants.sanitize_type_declarations
 end

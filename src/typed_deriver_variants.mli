@@ -70,7 +70,7 @@ val generate_tuples_str
   -> elements_to_convert:Variant_kind_generator.supported_constructor_declaration list
   -> structure_item list
 
-(* Generate a Typed_fields(_t | of_x) structure item given a specific implementation
+(*=Generate a Typed_fields(_t | of_x) structure item given a specific implementation
    module for how to handle the specific conversions like how the names for the
    typed_fields constructors are determined and how setter/getter functions work.*)
 val gen_str
@@ -85,7 +85,7 @@ val gen_str
   -> td_case:Variant_kind_generator.type_case
   -> structure_item list
 
-(* Generates packed with value type, e.g.
+(*=Generates packed with value type, e.g.
 
    type ('a, 'b, 'c, 'd) packed_with_value =
    | T : ('a, 'b, 'c, 'd, 'r) t * 'r -> ('a, 'b, 'c, 'd) packed_with_value
@@ -98,3 +98,8 @@ val generate_packed_with_value_type
   -> type_declaration
 
 include Typed_deriver.S
+
+val sanitize_type_declarations
+  :  loc:location
+  -> type_declaration list
+  -> type_declaration list

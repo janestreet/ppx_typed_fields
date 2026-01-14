@@ -9,8 +9,8 @@ module Definitions = struct
        used to generate the constructor for each element. *)
     val name : int -> t -> label
 
-    (* Retrieves the type of an element. This is the type that defines the type of
-       each constructor in the t GADT.*)
+    (* Retrieves the type of an element. This is the type that defines the type of each
+       constructor in the t GADT. *)
     val to_type : t -> core_type
 
     (* Generates the expression which sets an element in the original tuple/record.

@@ -2,7 +2,7 @@ open! Base
 open Ppxlib
 open Ppxlib_jane
 
-(* Generates `type _ t = A : a |  B : b ...` type *)
+(*=Generates `type _ t = A : a |  B : b ...` type *)
 let gen_t
   (type a)
   ~loc

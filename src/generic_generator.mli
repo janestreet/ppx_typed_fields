@@ -1,7 +1,7 @@
 open! Base
 open Ppxlib
 
-(* Generates top level type definitions
+(*=Generates top level type definitions
    `type record = t` and
    `type _ t = A : a |  B : b ...`  *)
 val gen_t
@@ -18,9 +18,9 @@ val gen_t
   -> upper_name:label
   -> 'a Type_kind.gen_t_result
 
-(* Generates a signature for an opaque type. (e.g. type ('a, 'b, 'c) inner_weird)
-   The parameter name is the name of the type (e.g. inner weird), and the
-   params are the type parameters of the type (e.g. ('a, 'b, 'c))
+(* Generates a signature for an opaque type. (e.g. type ('a, 'b, 'c) inner_weird) The
+   parameter name is the name of the type (e.g. inner weird), and the params are the type
+   parameters of the type (e.g. ('a, 'b, 'c))
 *)
 val opaque_signature
   :  (module Typed_deriver.S)

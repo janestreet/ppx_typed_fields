@@ -1,8 +1,8 @@
 open! Base
 open Ppxlib
 
-(* The structure items will be inserted after the type type
-   definitions and before any other items.*)
+(* The structure items will be inserted after the type type definitions and before any
+   other items. *)
 let extra_structure_items_to_insert _ = []
 
 let generate_constructor_declarations ~loc ~elements_to_convert ~core_type_params =
@@ -172,12 +172,11 @@ let ord_function_body ~loc ~elements_to_convert =
 
    e.g. given
 
-   a : int
-   b : float
+   a : int b : float
 
    generates:
 
-   {a; b}
+   [{a; b}]
 *)
 let generate_record_pattern ~loc label_declarations =
   let open (val Syntax.builder loc) in
@@ -194,12 +193,11 @@ let generate_record_pattern ~loc label_declarations =
 
    e.g. given
 
-   a : int
-   b : float
+   a : int b : float
 
    generates:
 
-   {a; b}
+   [{a; b}]
 *)
 let generate_record_expression ~loc label_declarations =
   let open (val Syntax.builder loc) in
@@ -212,9 +210,9 @@ let generate_record_expression ~loc label_declarations =
   pexp_record record_contents None
 ;;
 
-(*Generates a tuple pattern that looks like this:
+(* Generates a tuple pattern that looks like this:
 
-  x0, x1, x2, ... , xn
+   x0, x1, x2, ... , xn
 *)
 let generate_tuple_pattern ~loc number_of_elements =
   let open (val Syntax.builder loc) in
@@ -224,9 +222,9 @@ let generate_tuple_pattern ~loc number_of_elements =
     Closed
 ;;
 
-(*Generates a tuple expression that looks like this:
+(* Generates a tuple expression that looks like this:
 
-  x0, x1, x2, ... , xn
+   x0, x1, x2, ... , xn
 *)
 let generate_tuple_expression ~loc number_of_elements =
   let open (val Syntax.builder loc) in
@@ -248,8 +246,8 @@ let generate_variant_generic ~loc ~element ~subpattern ~on_construct ~on_variant
     on_variant variant_name subpattern
 ;;
 
-(*Generates either a constructor pattern or a variant pattern as needed
-  e.g. A contents vs `A contents.
+(* Generates either a constructor pattern or a variant pattern as needed e.g. A contents
+   vs `A contents.
 *)
 let generate_variant_pattern ~loc element subpattern =
   let open (val Syntax.builder loc) in
@@ -261,8 +259,8 @@ let generate_variant_pattern ~loc element subpattern =
     ~on_variant:ppat_variant
 ;;
 
-(*Generates either a constructor expression or a variant pattern as needed
-  e.g. A contents vs `A contents.
+(* Generates either a constructor expression or a variant pattern as needed e.g. A
+   contents vs `A contents.
 *)
 let generate_variant_expression ~loc element subpattern =
   let open (val Syntax.builder loc) in
@@ -397,11 +395,10 @@ let create_function_body ~loc ~constructor_declarations ~local:_ =
   let body =
     [%expr fun t value -> [%e pexp_match (pexp_ident (Located.mk (Lident "t"))) cases]]
   in
-  (* Preserve attributes that the parser inserts on [body]. Jane Street's compiler
-     encodes changes to the parsetree via attributes, so we don't want to drop these.
-     Ppxlib and Jane Street's compiler logically treat later-occurring attributes
-     as "outer", so to get the new attribute to be the outermost one, we append
-     it to the end of the list.
+  (* Preserve attributes that the parser inserts on [body]. Jane Street's compiler encodes
+     changes to the parsetree via attributes, so we don't want to drop these. Ppxlib and
+     Jane Street's compiler logically treat later-occurring attributes as "outer", so to
+     get the new attribute to be the outermost one, we append it to the end of the list.
   *)
   { body with pexp_attributes = body.pexp_attributes @ [ disable_warning_27 ~loc ] }
 ;;
@@ -822,10 +819,9 @@ module Subproduct_element = struct
         }
 end
 
-(*
-   Generates a Deep functor by repeatedly applying the functor function for
-   each subvariant in elements to convert. This is generic since the same
-   functor must be produced for both the signature and the struct implementation.
+(* Generates a Deep functor by repeatedly applying the functor function for each
+   subvariant in elements to convert. This is generic since the same functor must be
+   produced for both the signature and the struct implementation.
 
    e.g. (Name_subvariant : <type>) (Name2_subvariant : <type>) = <inital_expression>
 *)
@@ -1271,14 +1267,9 @@ let generate_clean_params ~loc ~params =
     ptyp_var [%string "t%{(i + 1)#Int}"], (NoVariance, NoInjectivity))
 ;;
 
-(*  Generates the signature for the sigleton modules sent to Shallow
+(* Generates the signature for the sigleton modules sent to Shallow
 
-    [
-    module Singleton_for_t_1 : sig ... end;
-    module Singleton_for_t_2 : sig ... end;
-    ...
-
-    ]
+   [ module Singleton_for_t_1 : sig ... end; module Singleton_for_t_2 : sig ... end; ... ]
 *)
 let singleton_modules_signatures ~loc ~elements_to_convert =
   let open (val Syntax.builder loc) in
@@ -1308,14 +1299,9 @@ let singleton_modules_signatures ~loc ~elements_to_convert =
     | _ -> None)
 ;;
 
-(*  Generates the structure for the sigleton modules sent to Shallow
+(* Generates the structure for the sigleton modules sent to Shallow
 
-    [
-    module Singleton_for_t_1 = struct ... end;
-    module Singleton_for_t_2 = struct ... end;
-    ...
-
-    ]
+   [ module Singleton_for_t_1 = struct ... end; module Singleton_for_t_2 = struct ... end; ... ]
 *)
 let singleton_modules_structures ~loc ~elements_to_convert =
   let open (val Syntax.builder loc) in
