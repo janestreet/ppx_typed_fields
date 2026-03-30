@@ -41,10 +41,12 @@ let generate_packed_t_prime_type_declaration ~loc ~params ~core_type_params ~fie
              ~res:(Some (ptyp_constr (Lident "t'" |> Located.mk) core_type_params))
          ])
     ~jkind_annotation:
-      { pjkind_loc = loc
-      ; pjkind_desc =
+      { pjka_loc = loc
+      ; pjka_desc =
           Pjk_mod
-            ( { pjkind_loc = loc; pjkind_desc = Pjk_abbreviation "value" }
+            ( { pjka_loc = loc
+              ; pjka_desc = Pjk_abbreviation { txt = Lident "value"; loc }
+              }
             , [ Loc.make ~loc (Mode "contended")
               ; Loc.make ~loc (Mode "non_float")
               ; Loc.make ~loc (Mode "portable")

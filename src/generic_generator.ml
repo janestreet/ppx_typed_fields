@@ -38,10 +38,12 @@ let gen_t
       then None, []
       else
         ( Some
-            { pjkind_loc = loc
-            ; pjkind_desc =
+            { pjka_loc = loc
+            ; pjka_desc =
                 Pjk_mod
-                  ( { pjkind_loc = loc; pjkind_desc = Pjk_abbreviation "value" }
+                  ( { pjka_loc = loc
+                    ; pjka_desc = Pjk_abbreviation { txt = Lident "value"; loc }
+                    }
                   , [ Loc.make ~loc (Mode "contended")
                     ; Loc.make ~loc (Mode "non_float")
                     ; Loc.make ~loc (Mode "portable")

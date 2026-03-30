@@ -117,6 +117,8 @@ module type The_map = sig
   module type S = S
   module type S_plain = S_plain
 
+  module For_records = For_records
+
   module%template.portable Make (Key : Typed_fields_lib.Common.S) (Data : Data) :
     S with module Key = Key and module Data = Data
 

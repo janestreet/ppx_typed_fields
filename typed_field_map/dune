@@ -3,4 +3,5 @@
  (public_name ppx_typed_fields.typed_field_map)
  (libraries base sexplib typed_fields_lib univ_map)
  (preprocess
-  (pps ppx_base ppx_pipebang ppx_sexp_message)))
+  (pps ppx_base ppx_pipebang ppx_sexp_message
+    -compare-require-explicit-locality)))
