@@ -4,4 +4,4 @@
  (libraries base sexplib0)
  (preprocess
   (pps ppx_compare ppx_enumerate ppx_globalize ppx_hash ppx_sexp_conv
-    ppx_template)))
+    ppx_template -compare-require-explicit-locality)))
