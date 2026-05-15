@@ -3,6 +3,8 @@ open Ppxlib
 
 type t = core_type
 
+let is_non_value (_ : t) = false
+
 (* The structure items will be inserted after the type type definitions and before any
    other items. *)
 let extra_structure_items_to_insert loc =
@@ -37,7 +39,9 @@ let sexp_of_t_body ~loc ~elements_to_convert:_ ~stack:_ =
 ;;
 
 let all_body ~loc ~constructor_declarations:_ = [%expr []]
+let all_body_any = all_body
 let pack_body ~loc ~elements_to_convert:_ ~local:_ = [%expr unreachable_code]
+let pack_body_any = pack_body
 
 let globalize_packed_function_body ~loc ~elements_to_convert:_ =
   [%expr
@@ -45,12 +49,17 @@ let globalize_packed_function_body ~loc ~elements_to_convert:_ =
     | (_ : t) -> .]
 ;;
 
+let globalize_packed_any_function_body = globalize_packed_function_body
+let sexp_of_t_body_any = sexp_of_t_body
+
 let t_of_sexp_body ~loc ~elements_to_convert:_ =
   [%expr
     Base.raise_s
       (Sexplib.Sexp.List
          [ Sexplib.Sexp.Atom "Unit has no fields, so cannot convert to field."; sexp ])]
 ;;
+
+let t_of_sexp_body_any = t_of_sexp_body
 
 let deep_functor_structure ~loc:_ ~elements_to_convert:_ ~module_expression =
   module_expression

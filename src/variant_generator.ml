@@ -8,6 +8,15 @@ let extra_structure_items_to_insert _ = []
 let generate_constructor_declarations ~loc ~elements_to_convert ~core_type_params =
   let open (val Syntax.builder loc) in
   let unique_parameter_name = Type_kind.generate_unique_id core_type_params in
+  let unique_parameter_any =
+    Ppxlib_jane.Ast_builder.Default.Latest.ptyp_var
+      ~loc
+      unique_parameter_name
+      (Some
+         { pjka_loc = loc
+         ; pjka_desc = Pjk_abbreviation ({ txt = Lident "any"; loc }, [])
+         })
+  in
   List.map elements_to_convert ~f:(fun (element, _) ->
     let args =
       match (element : Variant_kind_generator.supported_constructor_declaration) with
@@ -20,7 +29,7 @@ let generate_constructor_declarations ~loc ~elements_to_convert ~core_type_param
         Pcstr_tuple
           [ ptyp_constr
               (Ldot (Lident subproduct_module_name, "t") |> Located.mk)
-              (params @ [ ptyp_var unique_parameter_name ])
+              (params @ [ unique_parameter_any ])
             |> Ppxlib_jane.Shim.Pcstr_tuple_arg.of_core_type
           ]
       | Single_value_constructor
@@ -36,7 +45,7 @@ let generate_constructor_declarations ~loc ~elements_to_convert ~core_type_param
         Pcstr_tuple
           [ ptyp_constr
               (Ldot (Lident subproduct_module_name, "t") |> Located.mk)
-              (core_type_minimum_params @ [ ptyp_var unique_parameter_name ])
+              (core_type_minimum_params @ [ unique_parameter_any ])
             |> Ppxlib_jane.Shim.Pcstr_tuple_arg.of_core_type
           ]
       | _ -> Pcstr_tuple []
@@ -45,21 +54,45 @@ let generate_constructor_declarations ~loc ~elements_to_convert ~core_type_param
       match element with
       | Single_value_constructor { granularity = Constr_deep _; _ }
       | Single_value_constructor { granularity = Polymorphic_deep; _ } ->
-        ptyp_var unique_parameter_name
+        unique_parameter_any
       | _ -> Variant_kind_generator.supported_constructor_type element
     in
-    ( (element, Type_kind.Shallow)
-    , constructor_declaration
-        ~name:
-          (Variant_kind_generator.supported_constructor_name element
-           |> String.capitalize
-           |> Located.mk)
-        ~args
-        ~res:
-          (Some
-             (ptyp_constr
-                (Located.mk (Lident Type_kind.internal_gadt_name))
-                (core_type_params @ [ last_type ]))) ))
+    let name =
+      Variant_kind_generator.supported_constructor_name element
+      |> String.capitalize
+      |> Located.mk
+    in
+    let res =
+      Some
+        (ptyp_constr
+           (Located.mk (Lident Type_kind.internal_gadt_name))
+           (core_type_params @ [ last_type ]))
+    in
+    let constructor_decl =
+      (* To have the existential type variable be [any], all variables must be universally
+         quantified. *)
+      match element with
+      | Single_value_constructor { granularity = Constr_deep _; _ }
+      | Single_value_constructor { granularity = Polymorphic_deep; _ } ->
+        let param_vars =
+          List.filter_map core_type_params ~f:(fun param ->
+            match Ppxlib_jane.Shim.Core_type_desc.of_parsetree param.ptyp_desc with
+            | Ptyp_var (name, _) -> Some (Located.mk name, None)
+            | _ -> None)
+        in
+        let existential_var =
+          ( Located.mk unique_parameter_name
+          , Some
+              ({ pjka_loc = loc
+               ; pjka_desc = Pjk_abbreviation ({ txt = Lident "any"; loc }, [])
+               }
+               : Ppxlib_jane.Shim.jkind_annotation) )
+        in
+        let vars = param_vars @ [ existential_var ] in
+        Ppxlib_jane.Shim.Constructor_declaration.create ~name ~vars ~args ~res ~loc
+      | _ -> constructor_declaration ~name ~args ~res
+    in
+    (element, Type_kind.Shallow), constructor_decl)
 ;;
 
 (* Disables unused variable warning. *)
@@ -526,7 +559,7 @@ let globalize0_function_body ~loc ~elements_to_convert =
   pexp_function cases
 ;;
 
-let globalize_packed_function_body ~loc ~elements_to_convert =
+let globalize_packed_function_body_generic ~loc ~elements_to_convert ~packed_module_name =
   let open (val Syntax.builder loc) in
   let cases =
     List.map elements_to_convert ~f:(fun (element, _) ->
@@ -550,8 +583,9 @@ let globalize_packed_function_body ~loc ~elements_to_convert =
           let exp =
             pexp_construct (Located.mk (Lident variant_name)) (Some [%expr subvariant])
           in
+          let pack_name = packed_module_name ^ ".pack" in
           [%expr
-            let subvariant = [%e f "Packed.pack"] ([%e f "globalize0"] subvariant) in
+            let subvariant = [%e f pack_name] ([%e f "globalize0"] subvariant) in
             { f =
                 (let { f = T subvariant } = subvariant in
                  T [%e exp])
@@ -565,7 +599,14 @@ let globalize_packed_function_body ~loc ~elements_to_convert =
   pexp_function cases
 ;;
 
-let sexp_of_t_body ~loc ~elements_to_convert ~stack =
+let globalize_packed_function_body ~loc ~elements_to_convert =
+  globalize_packed_function_body_generic
+    ~loc
+    ~elements_to_convert
+    ~packed_module_name:"Packed"
+;;
+
+let sexp_of_t_body_generic ~loc ~elements_to_convert ~stack ~packed_module_name =
   let open (val Syntax.builder loc) in
   let cases =
     List.map elements_to_convert ~f:(fun (element, _) ->
@@ -590,14 +631,14 @@ let sexp_of_t_body ~loc ~elements_to_convert ~stack =
           let sexp_of_t_function =
             pexp_ident
               (Ldot
-                 ( Ldot (Lident subvariant_name, "Packed")
+                 ( Ldot (Lident subvariant_name, packed_module_name)
                  , Names.stackify "sexp_of_t" ~stack )
                |> Located.mk)
           in
           let pack_function =
             pexp_ident
               (Ldot
-                 ( Ldot (Lident subvariant_name, "Packed")
+                 ( Ldot (Lident subvariant_name, packed_module_name)
                  , Names.localize "pack" ~local:stack )
                |> Located.mk)
           in
@@ -614,7 +655,11 @@ let sexp_of_t_body ~loc ~elements_to_convert ~stack =
   pexp_match [%expr packed] cases
 ;;
 
-let all_body ~loc ~constructor_declarations =
+let sexp_of_t_body ~loc ~elements_to_convert ~stack =
+  sexp_of_t_body_generic ~loc ~elements_to_convert ~stack ~packed_module_name:"Packed"
+;;
+
+let all_body_generic ~loc ~constructor_declarations ~packed_module_name =
   let open (val Syntax.builder loc) in
   let packed_fields =
     List.map constructor_declarations ~f:(fun ((element, _), _) ->
@@ -623,7 +668,8 @@ let all_body ~loc ~constructor_declarations =
       | Single_value_constructor { granularity = Polymorphic_deep; _ } ->
         let subvariant_name = generate_subvariant_name element in
         let all_expr =
-          pexp_ident (Ldot (Ldot (Lident subvariant_name, "Packed"), "all") |> Located.mk)
+          pexp_ident
+            (Ldot (Ldot (Lident subvariant_name, packed_module_name), "all") |> Located.mk)
         in
         let inner_constructor =
           pexp_construct
@@ -652,12 +698,16 @@ let all_body ~loc ~constructor_declarations =
   [%expr Base.List.concat [%e elist packed_fields]]
 ;;
 
+let all_body ~loc ~constructor_declarations =
+  all_body_generic ~loc ~constructor_declarations ~packed_module_name:"Packed"
+;;
+
 let wrap_t_struct_around_expression ~loc expression =
   let open (val Syntax.builder loc) in
   pexp_record [ Lident "f" |> Located.mk, expression ] None
 ;;
 
-let pack_body ~loc ~elements_to_convert ~local =
+let pack_body_generic ~loc ~elements_to_convert ~local ~packed_module_name =
   let open (val Syntax.builder loc) in
   let cases =
     List.map elements_to_convert ~f:(fun (element, _) ->
@@ -676,7 +726,9 @@ let pack_body ~loc ~elements_to_convert ~local =
           let subvariant_name = generate_subvariant_name element in
           let pack_function =
             pexp_ident
-              (Ldot (Ldot (Lident subvariant_name, "Packed"), Names.localize "pack" ~local)
+              (Ldot
+                 ( Ldot (Lident subvariant_name, packed_module_name)
+                 , Names.localize "pack" ~local )
                |> Located.mk)
           in
           let inner_constructor =
@@ -702,7 +754,11 @@ let pack_body ~loc ~elements_to_convert ~local =
   pexp_function cases
 ;;
 
-let t_of_sexp_body ~loc ~elements_to_convert =
+let pack_body ~loc ~elements_to_convert ~local =
+  pack_body_generic ~loc ~elements_to_convert ~local ~packed_module_name:"Packed"
+;;
+
+let t_of_sexp_body_generic ~loc ~elements_to_convert ~packed_module_name =
   let open (val Syntax.builder loc) in
   let cases =
     List.map elements_to_convert ~f:(fun (element, _) ->
@@ -729,7 +785,8 @@ let t_of_sexp_body ~loc ~elements_to_convert =
           let subvariant_name = generate_subvariant_name element in
           let t_of_sexp_function =
             pexp_ident
-              (Ldot (Ldot (Lident subvariant_name, "Packed"), "t_of_sexp") |> Located.mk)
+              (Ldot (Ldot (Lident subvariant_name, packed_module_name), "t_of_sexp")
+               |> Located.mk)
           in
           let inner_constructor =
             pexp_construct
@@ -754,6 +811,33 @@ let t_of_sexp_body ~loc ~elements_to_convert =
   let catch_all = case ~lhs:[%pat? _] ~guard:None ~rhs:[%expr assert false] in
   let cases = cases @ [ catch_all ] in
   pexp_match [%expr sexp] cases
+;;
+
+let t_of_sexp_body ~loc ~elements_to_convert =
+  t_of_sexp_body_generic ~loc ~elements_to_convert ~packed_module_name:"Packed"
+;;
+
+let globalize_packed_any_function_body ~loc ~elements_to_convert =
+  globalize_packed_function_body_generic
+    ~loc
+    ~elements_to_convert
+    ~packed_module_name:"Packed_any"
+;;
+
+let all_body_any ~loc ~constructor_declarations =
+  all_body_generic ~loc ~constructor_declarations ~packed_module_name:"Packed_any"
+;;
+
+let pack_body_any ~loc ~elements_to_convert ~local =
+  pack_body_generic ~loc ~elements_to_convert ~local ~packed_module_name:"Packed_any"
+;;
+
+let sexp_of_t_body_any ~loc ~elements_to_convert ~stack =
+  sexp_of_t_body_generic ~loc ~elements_to_convert ~stack ~packed_module_name:"Packed_any"
+;;
+
+let t_of_sexp_body_any ~loc ~elements_to_convert =
+  t_of_sexp_body_generic ~loc ~elements_to_convert ~packed_module_name:"Packed_any"
 ;;
 
 let which_function_body ~loc ~elements_to_convert ~number_of_params:_ =
@@ -1061,7 +1145,8 @@ let generate_base_module_type_for_singleton ~loc ~minimum_needed_parameters ~cty
       ~res:(Some (ptyp_constr (Lident "t" |> Located.mk) (core_type_params @ [ ctype ])))
   in
   let t_params =
-    minimum_needed_parameters @ [ ptyp_var unique_id, (NoVariance, NoInjectivity) ]
+    minimum_needed_parameters
+    @ [ Helpers.ptyp_var_any ~loc unique_id, (NoVariance, NoInjectivity) ]
   in
   let t_type_declaration =
     type_declaration
@@ -1078,7 +1163,9 @@ let generate_base_module_type_for_singleton ~loc ~minimum_needed_parameters ~cty
        ([ psig_type Nonrecursive [ upper ]; psig_type Recursive [ t_type_declaration ] ]
         @ Typed_deriver_variants.generate_include_signature
             ~loc
-            ~params:minimum_needed_parameters))
+            ~params:minimum_needed_parameters
+            ~has_non_value_fields:false
+            ()))
 ;;
 
 let generate_base_module_expr_for_singleton_for_any_arity
@@ -1101,6 +1188,7 @@ let generate_base_module_expr_for_singleton_for_any_arity
        ; globalize
        ; type_ids
        ; packed
+       ; packed_any
        }
         : Singleton_generator.common_items)
     =
@@ -1211,6 +1299,7 @@ let generate_base_module_expr_for_singleton_for_any_arity
     ; globalize0
     ; globalize
     ; packed
+    ; packed_any
     ; names
     ; which
     ]

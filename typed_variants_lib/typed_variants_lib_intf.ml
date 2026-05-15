@@ -136,7 +136,7 @@ module type Typed_variants_lib = sig
         {|
 
   module %{this n "S_of_S"} (M : %{this n "S"}) %{each n "(T%i : T)"} : S
-    with type 'a t = (%{each n "T%i.t,"} 'a) M.t
+    with type ('a : any) t = (%{each n "T%i.t,"} 'a) M.t
      and type derived_on = %{params n "T%i.t"} M.derived_on
 
       |}]
@@ -176,12 +176,12 @@ module type Typed_variants_lib = sig
       type %{params n "'t%i"} t
     end) :
   sig
-    type (%{each n "'t%i,"} 'r) t =
+    type (%{each n "'t%i,"} 'r : any) t =
       | T : (%{each n "'t%i,"} %{params n "'t%i"} %{this n "T"}.t) t
 
     include %{this n "S"}
       with type %{params n "'t%i"} derived_on = %{params n "'t%i"} %{this n "T"}.t
-       and type (%{each n "'t%i,"} 'r) t := (%{each n "'t%i,"} 'r) t
+       and type (%{each n "'t%i,"} 'r : any) t := (%{each n "'t%i,"} 'r) t
   end
 
       |}]

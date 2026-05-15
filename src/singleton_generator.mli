@@ -14,6 +14,7 @@ type common_items =
   ; globalize : structure_item
   ; type_ids : structure_item
   ; packed : structure_item
+  ; packed_any : structure_item
   }
 
 (* Creates the common top level items between typed variants and types fields. *)

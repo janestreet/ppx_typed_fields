@@ -28,6 +28,18 @@ let create_function_body ~loc ~constructor_declarations:_ ~local:_ =
 let type_ids ~loc:_ ~elements_to_convert:_ ~core_type_params:_ = []
 let type_id_function_body ~loc ~elements_to_convert:_ = [%expr unreachable_code]
 let globalize0_function_body ~loc ~elements_to_convert:_ = [%expr unreachable_code]
+let all_body ~loc ~constructor_declarations:_ = [%expr []]
+let all_body_any = all_body
+let pack_body ~loc ~elements_to_convert:_ ~local:_ = [%expr unreachable_code]
+let pack_body_any = pack_body
+
+let globalize_packed_function_body ~loc ~elements_to_convert:_ =
+  [%expr
+    function
+    | (_ : t) -> .]
+;;
+
+let globalize_packed_any_function_body = globalize_packed_function_body
 
 let sexp_of_t_body ~loc ~elements_to_convert:_ ~stack:_ =
   [%expr
@@ -35,14 +47,7 @@ let sexp_of_t_body ~loc ~elements_to_convert:_ ~stack:_ =
     | (_ : t) -> .]
 ;;
 
-let all_body ~loc ~constructor_declarations:_ = [%expr []]
-let pack_body ~loc ~elements_to_convert:_ ~local:_ = [%expr unreachable_code]
-
-let globalize_packed_function_body ~loc ~elements_to_convert:_ =
-  [%expr
-    function
-    | (_ : t) -> .]
-;;
+let sexp_of_t_body_any = sexp_of_t_body
 
 let t_of_sexp_body ~loc ~elements_to_convert:_ =
   [%expr
@@ -52,6 +57,8 @@ let t_of_sexp_body ~loc ~elements_to_convert:_ =
          ; sexp
          ])]
 ;;
+
+let t_of_sexp_body_any = t_of_sexp_body
 
 let which_function_body ~loc ~elements_to_convert:_ ~number_of_params =
   match number_of_params with

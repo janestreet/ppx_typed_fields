@@ -138,61 +138,81 @@ val globalize0_function_body
   -> elements_to_convert:('a * Type_kind.granularity) list
   -> expression
 
-val globalize_packed_function_body
-  :  (module Product_kind.S with type t = 'a)
+type 'a globalize_packed_function_body :=
+  (module Product_kind.S with type t = 'a)
   -> loc:location
   -> elements_to_convert:('a * Type_kind.granularity) list
   -> expression
 
-(** Generates the body for the all function inside of packed.
+val globalize_packed_function_body : _ globalize_packed_function_body
+val globalize_packed_any_function_body : _ globalize_packed_function_body
+
+(** Generates the body for the [Packed.all] function.
 
     [T Constr1 ; T Name] *)
-val all_body
-  :  (module Product_kind.S with type t = 'a)
+type 'a all_body :=
+  (module Product_kind.S with type t = 'a)
   -> loc:location
   -> constructor_declarations:
        (('a * Type_kind.granularity) * constructor_declaration) list
   -> expression
 
-(** {v
-   Generates the pack function body. (e.g.):
+val all_body : _ all_body
 
-   match t with
-   | Name -> {f = T Name}
-    v} *)
-val pack_body
-  :  (module Product_kind.S with type t = 'a)
+(** Generates the body for the [Packed_any.all] function. *)
+val all_body_any : _ all_body
+
+(** Generates the [Packed.pack] function body. E.g.:
+    {[
+      match t with
+      | Name -> { f = T Name }
+    ]} *)
+type 'a pack_body :=
+  (module Product_kind.S with type t = 'a)
   -> loc:location
   -> elements_to_convert:('a * Type_kind.granularity) list
   -> local:bool
   -> expression
 
-(** {v
-   Generates the body for the sexp_of_t function inside of packed.
+val pack_body : _ pack_body
 
-   match t with
-   | Constr1 -> Sexplib.Sexp.Atom "Constr1"
-   | ...
-    v} *)
-val sexp_of_t_body
-  :  (module Product_kind.S with type t = 'a)
+(** Generates the [Packed_any.pack] function body. *)
+val pack_body_any : _ pack_body
+
+(** Generates the body for the [Packed.sexp_of_t] function. E.g.:
+    {[
+      match t with
+      | Constr1 -> Sexplib.Sexp.Atom "Constr1"
+      | ...
+    ]} *)
+type 'a sexp_of_t_body :=
+  (module Product_kind.S with type t = 'a)
   -> loc:location
   -> elements_to_convert:('a * Type_kind.granularity) list
   -> stack:bool
   -> expression
 
-(** {v
-   Generates the body for the t_of_sexp function inside of packed.
+val sexp_of_t_body : _ sexp_of_t_body
 
-   match t with
-   | Sexplib.Sexp.Atom "Constr1" -> Constr1
-   | ...
-    v} *)
-val t_of_sexp_body
-  :  (module Product_kind.S with type t = 'a)
+(** Generates the body for the [Packed_any.sexp_of_t] function. *)
+val sexp_of_t_body_any : _ sexp_of_t_body
+
+(** Generates the body for the [Packed.t_of_sexp] function. E.g.:
+    {[
+      match t with
+      | Sexplib.Sexp.Atom "Constr1" -> Constr1
+      | ...
+    ]} *)
+type 'a t_of_sexp_body :=
+  (module Product_kind.S with type t = 'a)
   -> loc:location
   -> elements_to_convert:('a * Type_kind.granularity) list
   -> expression
+
+val t_of_sexp_body : _ t_of_sexp_body
+
+(** Generates the body for the [Packed_any.t_of_sexp] function. *)
+val t_of_sexp_body_any : _ t_of_sexp_body
 
 (** Generates the deep functor signature. e.g.
 

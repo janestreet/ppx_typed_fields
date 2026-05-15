@@ -227,42 +227,45 @@ let get_function_body
   =
   let open (val Syntax.builder loc) in
   let cases =
-    List.mapi elements_to_convert ~f:(fun index (element, granularity) ->
-      let variant_name =
-        Specific_implementation.name index element |> String.capitalize
-      in
-      let pattern =
-        ppat_construct
-          (Located.mk (Lident variant_name))
-          (generate_constructor_payload ~loc granularity)
-      in
-      let rhs =
-        match granularity with
-        | Type_kind.Shallow ->
-          Specific_implementation.get_rhs_expression
-            ~loc
-            ~index
-            ~element
-            ~number_of_elements:(List.length elements_to_convert)
-        | Type_kind.Deep _ ->
-          let subproduct_function =
-            generate_subproduct_function
-              (module Specific_implementation)
+    List.filter_mapi elements_to_convert ~f:(fun index (element, granularity) ->
+      if Specific_implementation.is_non_value element
+      then None
+      else (
+        let variant_name =
+          Specific_implementation.name index element |> String.capitalize
+        in
+        let pattern =
+          ppat_construct
+            (Located.mk (Lident variant_name))
+            (generate_constructor_payload ~loc granularity)
+        in
+        let rhs =
+          match granularity with
+          | Type_kind.Shallow ->
+            Specific_implementation.get_rhs_expression
               ~loc
               ~index
               ~element
-              ~name:"get"
-          in
-          [%expr
-            [%e
-              Specific_implementation.get_rhs_expression
+              ~number_of_elements:(List.length elements_to_convert)
+          | Type_kind.Deep _ ->
+            let subproduct_function =
+              generate_subproduct_function
+                (module Specific_implementation)
                 ~loc
                 ~index
                 ~element
-                ~number_of_elements:(List.length elements_to_convert)]
-            |> [%e subproduct_function] subproduct]
-      in
-      case ~lhs:pattern ~guard:None ~rhs)
+                ~name:"get"
+            in
+            [%expr
+              [%e
+                Specific_implementation.get_rhs_expression
+                  ~loc
+                  ~index
+                  ~element
+                  ~number_of_elements:(List.length elements_to_convert)]
+              |> [%e subproduct_function] subproduct]
+        in
+        Some (case ~lhs:pattern ~guard:None ~rhs)))
   in
   [%expr fun t record -> [%e pexp_match (pexp_ident (Located.mk (Lident "t"))) cases]]
 ;;
@@ -282,53 +285,56 @@ let set_function_body
   =
   let open (val Syntax.builder loc) in
   let cases =
-    List.mapi elements_to_convert ~f:(fun index (element, granularity) ->
-      let variant_name =
-        Specific_implementation.name index element |> String.capitalize
-      in
-      let pattern =
-        ppat_construct
-          (Located.mk (Lident variant_name))
-          (generate_constructor_payload ~loc granularity)
-      in
-      let rhs =
-        match granularity with
-        | Type_kind.Shallow ->
-          Specific_implementation.set_rhs_expression
-            ~loc
-            ~index
-            ~element
-            ~number_of_elements:(List.length elements_to_convert)
-            ~expression_to_set:[%expr value]
-        | Type_kind.Deep _ ->
-          let subproduct_function_expression =
-            generate_subproduct_function
-              (module Specific_implementation)
+    List.filter_mapi elements_to_convert ~f:(fun index (element, granularity) ->
+      if Specific_implementation.is_non_value element
+      then None
+      else (
+        let variant_name =
+          Specific_implementation.name index element |> String.capitalize
+        in
+        let pattern =
+          ppat_construct
+            (Located.mk (Lident variant_name))
+            (generate_constructor_payload ~loc granularity)
+        in
+        let rhs =
+          match granularity with
+          | Type_kind.Shallow ->
+            Specific_implementation.set_rhs_expression
               ~loc
               ~index
               ~element
-              ~name:"set"
-          in
-          let expression_to_set =
-            [%expr
-              [%e subproduct_function_expression]
-                subproduct
-                [%e
-                  Specific_implementation.get_rhs_expression
-                    ~loc
-                    ~index
-                    ~element
-                    ~number_of_elements:(List.length elements_to_convert)]
-                value]
-          in
-          Specific_implementation.set_rhs_expression
-            ~loc
-            ~index
-            ~element
-            ~number_of_elements:(List.length elements_to_convert)
-            ~expression_to_set
-      in
-      case ~lhs:pattern ~guard:None ~rhs)
+              ~number_of_elements:(List.length elements_to_convert)
+              ~expression_to_set:[%expr value]
+          | Type_kind.Deep _ ->
+            let subproduct_function_expression =
+              generate_subproduct_function
+                (module Specific_implementation)
+                ~loc
+                ~index
+                ~element
+                ~name:"set"
+            in
+            let expression_to_set =
+              [%expr
+                [%e subproduct_function_expression]
+                  subproduct
+                  [%e
+                    Specific_implementation.get_rhs_expression
+                      ~loc
+                      ~index
+                      ~element
+                      ~number_of_elements:(List.length elements_to_convert)]
+                  value]
+            in
+            Specific_implementation.set_rhs_expression
+              ~loc
+              ~index
+              ~element
+              ~number_of_elements:(List.length elements_to_convert)
+              ~expression_to_set
+        in
+        Some (case ~lhs:pattern ~guard:None ~rhs)))
   in
   [%expr
     fun t record value -> [%e pexp_match (pexp_ident (Located.mk (Lident "t"))) cases]]
@@ -431,6 +437,11 @@ let type_ids
     match granularity with
     | Type_kind.Deep _ -> None
     | Type_kind.Shallow ->
+      let sexp_converter =
+        if Specific_implementation.is_non_value element
+        then [%expr fun _ -> Sexplib.Conv.sexp_of_opaque ()]
+        else [%expr Sexplib.Conv.sexp_of_opaque]
+      in
       Some
         [%stri
           let ([%p pvar (Specific_implementation.name index element)] :
@@ -439,7 +450,7 @@ let type_ids
             =
             Base.Type_equal.Id.create__portable
               ~name:[%e estring (Specific_implementation.name index element)]
-              Sexplib.Conv.sexp_of_opaque
+              [%e sexp_converter]
           ;;])
 ;;
 
@@ -524,94 +535,232 @@ let globalize0_function_body
   pexp_function cases
 ;;
 
+let globalize_packed_function_body_generic
+  (type a)
+  (module Specific_implementation : Product_kind.S with type t = a)
+  ~loc
+  ~elements_to_convert
+  ~packed_module_name
+  ~filter_non_value
+  =
+  let open (val Syntax.builder loc) in
+  let cases =
+    List.filter_mapi elements_to_convert ~f:(fun index (element, granularity) ->
+      if filter_non_value && Specific_implementation.is_non_value element
+      then None
+      else (
+        let variant_name =
+          Specific_implementation.name index element |> String.capitalize
+        in
+        let lhs =
+          let pat =
+            ppat_construct
+              (Located.mk (Lident variant_name))
+              (generate_constructor_payload ~loc granularity)
+          in
+          [%pat? { f = T [%p pat] }]
+        in
+        let rhs =
+          match (granularity : Type_kind.granularity) with
+          | Shallow ->
+            let exp = pexp_construct (Located.mk (Lident variant_name)) None in
+            [%expr { f = T [%e exp] }]
+          | Deep _ ->
+            let module_name =
+              generate_subproduct_module_name
+                (module Specific_implementation)
+                index
+                element
+            in
+            let f name = evar (String.concat ~sep:"." [ module_name; name ]) in
+            let exp =
+              pexp_construct (Located.mk (Lident variant_name)) (Some [%expr subproduct])
+            in
+            let pack_name = packed_module_name ^ ".pack" in
+            [%expr
+              let subproduct = [%e f pack_name] ([%e f "globalize0"] subproduct) in
+              { f =
+                  (let { f = T subproduct } = subproduct in
+                   T [%e exp])
+              }]
+        in
+        Some (case ~lhs ~guard:None ~rhs)))
+  in
+  pexp_function cases
+;;
+
 let globalize_packed_function_body
   (type a)
   (module Specific_implementation : Product_kind.S with type t = a)
   ~loc
   ~elements_to_convert
   =
-  let open (val Syntax.builder loc) in
-  let cases =
-    List.mapi elements_to_convert ~f:(fun index (element, granularity) ->
-      let variant_name =
-        Specific_implementation.name index element |> String.capitalize
-      in
-      let lhs =
-        let pat =
-          ppat_construct
-            (Located.mk (Lident variant_name))
-            (generate_constructor_payload ~loc granularity)
-        in
-        [%pat? { f = T [%p pat] }]
-      in
-      let rhs =
-        match (granularity : Type_kind.granularity) with
-        | Shallow ->
-          let exp = pexp_construct (Located.mk (Lident variant_name)) None in
-          [%expr { f = T [%e exp] }]
-        | Deep _ ->
-          let module_name =
-            generate_subproduct_module_name (module Specific_implementation) index element
-          in
-          let f name = evar (String.concat ~sep:"." [ module_name; name ]) in
-          let exp =
-            pexp_construct (Located.mk (Lident variant_name)) (Some [%expr subproduct])
-          in
-          [%expr
-            let subproduct = [%e f "Packed.pack"] ([%e f "globalize0"] subproduct) in
-            { f =
-                (let { f = T subproduct } = subproduct in
-                 T [%e exp])
-            }]
-      in
-      case ~lhs ~guard:None ~rhs)
-  in
-  pexp_function cases
+  globalize_packed_function_body_generic
+    (module Specific_implementation)
+    ~loc
+    ~elements_to_convert
+    ~packed_module_name:"Packed"
+    ~filter_non_value:true
+;;
+
+let globalize_packed_any_function_body
+  (type a)
+  (module Specific_implementation : Product_kind.S with type t = a)
+  ~loc
+  ~elements_to_convert
+  =
+  globalize_packed_function_body_generic
+    (module Specific_implementation)
+    ~loc
+    ~elements_to_convert
+    ~packed_module_name:"Packed"
+    ~filter_non_value:false
 ;;
 
 (** Generates the body for the all function inside of packed.
 
     [T Constr1 ; T Name] *)
+let all_body_generic
+  (type a)
+  (module Specific_implementation : Product_kind.S with type t = a)
+  ~loc
+  ~constructor_declarations
+  ~filter_non_value
+  =
+  let open (val Syntax.builder loc) in
+  let packed_fields =
+    List.filter_mapi
+      constructor_declarations
+      ~f:(fun index ((element, granularity), constructor) ->
+        if filter_non_value && Specific_implementation.is_non_value element
+        then None
+        else
+          Some
+            (match granularity with
+             | Type_kind.Shallow -> [%expr [ { f = T [%e econstruct constructor None] } ]]
+             | Type_kind.Deep _ ->
+               let subproduct_module_name =
+                 generate_subproduct_module_name
+                   (module Specific_implementation)
+                   index
+                   element
+               in
+               let constructor_expression =
+                 pexp_construct
+                   (Lident
+                      (Specific_implementation.name index element |> String.capitalize)
+                    |> Located.mk)
+                   (Some (Lident "subproduct" |> Located.mk |> pexp_ident))
+               in
+               let subproduct_packed_all =
+                 pexp_ident
+                   (Ldot (Ldot (Lident subproduct_module_name, "Packed"), "all")
+                    |> Located.mk)
+               in
+               [%expr
+                 Base.List.map [%e subproduct_packed_all] ~f:(fun { f = subproduct } ->
+                   { f =
+                       (let (T subproduct) = subproduct in
+                        T [%e constructor_expression])
+                   })]))
+  in
+  [%expr Base.List.concat [%e elist packed_fields]]
+;;
+
 let all_body
   (type a)
   (module Specific_implementation : Product_kind.S with type t = a)
   ~loc
   ~constructor_declarations
   =
-  let open (val Syntax.builder loc) in
-  let packed_fields =
-    List.mapi
-      constructor_declarations
-      ~f:(fun index ((element, granularity), constructor) ->
-        match granularity with
-        | Type_kind.Shallow -> [%expr [ { f = T [%e econstruct constructor None] } ]]
-        | Type_kind.Deep _ ->
-          let subproduct_module_name =
-            generate_subproduct_module_name (module Specific_implementation) index element
-          in
-          let constructor_expression =
-            pexp_construct
-              (Lident (Specific_implementation.name index element |> String.capitalize)
-               |> Located.mk)
-              (Some (Lident "subproduct" |> Located.mk |> pexp_ident))
-          in
-          let subproduct_packed_all =
-            pexp_ident
-              (Ldot (Ldot (Lident subproduct_module_name, "Packed"), "all") |> Located.mk)
-          in
-          [%expr
-            Base.List.map [%e subproduct_packed_all] ~f:(fun { f = subproduct } ->
-              { f =
-                  (let (T subproduct) = subproduct in
-                   T [%e constructor_expression])
-              })])
-  in
-  [%expr Base.List.concat [%e elist packed_fields]]
+  all_body_generic
+    (module Specific_implementation)
+    ~loc
+    ~constructor_declarations
+    ~filter_non_value:true
+;;
+
+let all_body_any
+  (type a)
+  (module Specific_implementation : Product_kind.S with type t = a)
+  ~loc
+  ~constructor_declarations
+  =
+  all_body_generic
+    (module Specific_implementation)
+    ~loc
+    ~constructor_declarations
+    ~filter_non_value:false
 ;;
 
 let wrap_t_struct_around_expression ~loc expression =
   let open (val Syntax.builder loc) in
   pexp_record [ Lident "f" |> Located.mk, expression ] None
+;;
+
+let pack_body_generic
+  (type a)
+  (module Specific_implementation : Product_kind.S with type t = a)
+  ~loc
+  ~elements_to_convert
+  ~local
+  ~packed_module_name
+  ~filter_non_value
+  =
+  let open (val Syntax.builder loc) in
+  let cases =
+    List.filter_mapi elements_to_convert ~f:(fun index (element, granularity) ->
+      if filter_non_value && Specific_implementation.is_non_value element
+      then None
+      else (
+        let constructor_name =
+          Specific_implementation.name index element |> String.capitalize
+        in
+        let lhs =
+          ppat_construct
+            (Lident constructor_name |> Located.mk)
+            (generate_constructor_payload ~loc granularity)
+        in
+        let rhs =
+          let bottom_constructor_with_record =
+            let inner_constructor =
+              match granularity with
+              | Shallow -> None
+              | Deep _ -> Some [%expr subproduct]
+            in
+            pexp_construct
+              (Lident "T" |> Located.mk)
+              (Some
+                 (pexp_construct
+                    (Lident constructor_name |> Located.mk)
+                    inner_constructor))
+          in
+          match granularity with
+          | Shallow -> wrap_t_struct_around_expression ~loc bottom_constructor_with_record
+          | Deep _ ->
+            let parameter_module_name =
+              generate_subproduct_module_name
+                (module Specific_implementation)
+                index
+                element
+            in
+            let pack_function_ident =
+              pexp_ident
+                (Ldot
+                   ( Ldot (Lident parameter_module_name, packed_module_name)
+                   , Names.localize "pack" ~local )
+                 |> Located.mk)
+            in
+            [%expr
+              let subproduct = [%e pack_function_ident] subproduct in
+              { f =
+                  (let { f = T subproduct } = subproduct in
+                   [%e bottom_constructor_with_record])
+              }]
+        in
+        Some (case ~lhs ~guard:None ~rhs:(Type_kind.exclave_if_local ~loc ~local rhs))))
+  in
+  pexp_function cases
 ;;
 
 let pack_body
@@ -621,52 +770,29 @@ let pack_body
   ~elements_to_convert
   ~local
   =
-  let open (val Syntax.builder loc) in
-  let cases =
-    List.mapi elements_to_convert ~f:(fun index (element, granularity) ->
-      let constructor_name =
-        Specific_implementation.name index element |> String.capitalize
-      in
-      let lhs =
-        ppat_construct
-          (Lident constructor_name |> Located.mk)
-          (generate_constructor_payload ~loc granularity)
-      in
-      let rhs =
-        let bottom_constructor_with_record =
-          let inner_constructor =
-            match granularity with
-            | Shallow -> None
-            | Deep _ -> Some [%expr subproduct]
-          in
-          pexp_construct
-            (Lident "T" |> Located.mk)
-            (Some
-               (pexp_construct (Lident constructor_name |> Located.mk) inner_constructor))
-        in
-        match granularity with
-        | Shallow -> wrap_t_struct_around_expression ~loc bottom_constructor_with_record
-        | Deep _ ->
-          let parameter_module_name =
-            generate_subproduct_module_name (module Specific_implementation) index element
-          in
-          let pack_function_ident =
-            pexp_ident
-              (Ldot
-                 ( Ldot (Lident parameter_module_name, "Packed")
-                 , Names.localize "pack" ~local )
-               |> Located.mk)
-          in
-          [%expr
-            let subproduct = [%e pack_function_ident] subproduct in
-            { f =
-                (let { f = T subproduct } = subproduct in
-                 [%e bottom_constructor_with_record])
-            }]
-      in
-      case ~lhs ~guard:None ~rhs:(Type_kind.exclave_if_local ~loc ~local rhs))
-  in
-  pexp_function cases
+  pack_body_generic
+    (module Specific_implementation)
+    ~loc
+    ~elements_to_convert
+    ~local
+    ~packed_module_name:"Packed"
+    ~filter_non_value:true
+;;
+
+let pack_body_any
+  (type a)
+  (module Specific_implementation : Product_kind.S with type t = a)
+  ~loc
+  ~elements_to_convert
+  ~local
+  =
+  pack_body_generic
+    (module Specific_implementation)
+    ~loc
+    ~elements_to_convert
+    ~local
+    ~packed_module_name:"Packed"
+    ~filter_non_value:false
 ;;
 
 (** {v
@@ -676,6 +802,80 @@ let pack_body
    | Constr1 -> Sexplib.Sexp.Atom "Constr1"
    | ...
     v} *)
+let sexp_of_t_body_generic
+  (type a)
+  (module Specific_implementation : Product_kind.S with type t = a)
+  ~loc
+  ~elements_to_convert
+  ~stack
+  ~packed_module_name
+  ~filter_non_value
+  =
+  let open (val Syntax.builder loc) in
+  let cases =
+    List.filter_mapi elements_to_convert ~f:(fun index (element, granularity) ->
+      if filter_non_value && Specific_implementation.is_non_value element
+      then None
+      else (
+        let variant_name =
+          Specific_implementation.name index element |> String.capitalize
+        in
+        let constructor_option =
+          match granularity with
+          | Type_kind.Shallow -> None
+          | Type_kind.Deep _ -> Some (ppat_var ("subproduct" |> Located.mk))
+        in
+        let pattern =
+          [%pat?
+            { f =
+                T
+                  [%p
+                    ppat_construct (Located.mk (Lident variant_name)) constructor_option]
+            }]
+        in
+        let rhs =
+          match granularity with
+          | Type_kind.Shallow -> [%expr Sexplib.Sexp.Atom [%e estring variant_name]]
+          | Type_kind.Deep _ ->
+            let atom_name_expression =
+              Specific_implementation.name index element |> String.capitalize |> estring
+            in
+            let subproduct_module_name =
+              generate_subproduct_module_name
+                (module Specific_implementation)
+                index
+                element
+            in
+            let sexp_of_t_subproduct_function =
+              pexp_ident
+                (Ldot
+                   ( Ldot (Lident subproduct_module_name, packed_module_name)
+                   , Names.stackify "sexp_of_t" ~stack )
+                 |> Located.mk)
+            in
+            let subproduct_pack_subproductor_function =
+              pexp_ident
+                (Ldot
+                   ( Ldot (Lident subproduct_module_name, packed_module_name)
+                   , Names.localize "pack" ~local:stack )
+                 |> Located.mk)
+            in
+            [%expr
+              Sexplib.Sexp.List
+                [ Sexplib.Sexp.Atom [%e atom_name_expression]
+                ; [%e sexp_of_t_subproduct_function]
+                    ([%e subproduct_pack_subproductor_function] subproduct)
+                ]]
+        in
+        Some
+          (case
+             ~lhs:pattern
+             ~guard:None
+             ~rhs:(Type_kind.exclave_if_stack ~loc ~stack rhs))))
+  in
+  pexp_match [%expr packed] cases
+;;
+
 let sexp_of_t_body
   (type a)
   (module Specific_implementation : Product_kind.S with type t = a)
@@ -683,57 +883,29 @@ let sexp_of_t_body
   ~elements_to_convert
   ~stack
   =
-  let open (val Syntax.builder loc) in
-  let cases =
-    List.mapi elements_to_convert ~f:(fun index (element, granularity) ->
-      let variant_name =
-        Specific_implementation.name index element |> String.capitalize
-      in
-      let constructor_option =
-        match granularity with
-        | Type_kind.Shallow -> None
-        | Type_kind.Deep _ -> Some (ppat_var ("subproduct" |> Located.mk))
-      in
-      let pattern =
-        [%pat?
-          { f =
-              T [%p ppat_construct (Located.mk (Lident variant_name)) constructor_option]
-          }]
-      in
-      let rhs =
-        match granularity with
-        | Type_kind.Shallow -> [%expr Sexplib.Sexp.Atom [%e estring variant_name]]
-        | Type_kind.Deep _ ->
-          let atom_name_expression =
-            Specific_implementation.name index element |> String.capitalize |> estring
-          in
-          let subproduct_module_name =
-            generate_subproduct_module_name (module Specific_implementation) index element
-          in
-          let sexp_of_t_subproduct_function =
-            pexp_ident
-              (Ldot
-                 ( Ldot (Lident subproduct_module_name, "Packed")
-                 , Names.stackify "sexp_of_t" ~stack )
-               |> Located.mk)
-          in
-          let subproduct_pack_subproductor_function =
-            pexp_ident
-              (Ldot
-                 ( Ldot (Lident subproduct_module_name, "Packed")
-                 , Names.localize "pack" ~local:stack )
-               |> Located.mk)
-          in
-          [%expr
-            Sexplib.Sexp.List
-              [ Sexplib.Sexp.Atom [%e atom_name_expression]
-              ; [%e sexp_of_t_subproduct_function]
-                  ([%e subproduct_pack_subproductor_function] subproduct)
-              ]]
-      in
-      case ~lhs:pattern ~guard:None ~rhs:(Type_kind.exclave_if_stack ~loc ~stack rhs))
-  in
-  pexp_match [%expr packed] cases
+  sexp_of_t_body_generic
+    (module Specific_implementation)
+    ~loc
+    ~elements_to_convert
+    ~stack
+    ~packed_module_name:"Packed"
+    ~filter_non_value:true
+;;
+
+let sexp_of_t_body_any
+  (type a)
+  (module Specific_implementation : Product_kind.S with type t = a)
+  ~loc
+  ~elements_to_convert
+  ~stack
+  =
+  sexp_of_t_body_generic
+    (module Specific_implementation)
+    ~loc
+    ~elements_to_convert
+    ~stack
+    ~packed_module_name:"Packed"
+    ~filter_non_value:false
 ;;
 
 (** {v
@@ -743,61 +915,103 @@ let sexp_of_t_body
    | Sexplib.Sexp.Atom "Constr1" -> Constr1
    | ...
     v} *)
+let t_of_sexp_body_generic
+  (type a)
+  (module Specific_implementation : Product_kind.S with type t = a)
+  ~loc
+  ~elements_to_convert
+  ~packed_module_name
+  ~filter_non_value
+  =
+  let open (val Syntax.builder loc) in
+  let cases =
+    List.filter_mapi elements_to_convert ~f:(fun index (element, granularity) ->
+      let constructor = Specific_implementation.name index element |> String.capitalize in
+      if filter_non_value && Specific_implementation.is_non_value element
+      then None
+      else
+        Some
+          (let acceptable_sexp_atoms =
+             [ constructor; constructor |> String.uncapitalize ]
+           in
+           let pattern =
+             let sexp_pattern =
+               List.map acceptable_sexp_atoms ~f:(fun sexp_atom -> pstring sexp_atom)
+               |> Type_kind.or_patterns ~loc
+             in
+             match granularity with
+             | Type_kind.Shallow -> [%pat? Sexplib.Sexp.Atom [%p sexp_pattern]]
+             | Type_kind.Deep _ ->
+               let variant_atom_name = [%pat? Sexplib.Sexp.Atom [%p sexp_pattern]] in
+               [%pat? Sexplib.Sexp.List ([%p variant_atom_name] :: subproduct_sexp_list)]
+           in
+           let rhs =
+             match granularity with
+             | Type_kind.Shallow ->
+               [%expr
+                 { f = T [%e pexp_construct (Located.mk (Lident constructor)) None] }]
+             | Type_kind.Deep _ ->
+               let subproduct_module_name =
+                 generate_subproduct_module_name
+                   (module Specific_implementation)
+                   index
+                   element
+               in
+               let subproduct_t_of_sexp_function_expression =
+                 pexp_ident
+                   (Ldot
+                      ( Ldot (Lident subproduct_module_name, packed_module_name)
+                      , "t_of_sexp" )
+                    |> Located.mk)
+               in
+               let nested_constructor =
+                 pexp_construct
+                   (Lident constructor |> Located.mk)
+                   (Some (pexp_ident (Lident "subproduct_constructor" |> Located.mk)))
+               in
+               [%expr
+                 let subproduct_constructor =
+                   [%e subproduct_t_of_sexp_function_expression]
+                     (Typed_fields_lib.Private.list_to_sexp subproduct_sexp_list)
+                 in
+                 { f =
+                     (let { f = T subproduct_constructor } = subproduct_constructor in
+                      T [%e nested_constructor])
+                 }]
+           in
+           case ~lhs:pattern ~guard:None ~rhs))
+  in
+  let catch_all = case ~lhs:[%pat? _] ~guard:None ~rhs:[%expr assert false] in
+  let cases = cases @ [ catch_all ] in
+  pexp_match [%expr sexp] cases
+;;
+
 let t_of_sexp_body
   (type a)
   (module Specific_implementation : Product_kind.S with type t = a)
   ~loc
   ~elements_to_convert
   =
-  let open (val Syntax.builder loc) in
-  let cases =
-    List.mapi elements_to_convert ~f:(fun index (element, granularity) ->
-      let constructor = Specific_implementation.name index element |> String.capitalize in
-      let acceptable_sexp_atoms = [ constructor; constructor |> String.uncapitalize ] in
-      let pattern =
-        let sexp_pattern =
-          List.map acceptable_sexp_atoms ~f:(fun sexp_atom -> pstring sexp_atom)
-          |> Type_kind.or_patterns ~loc
-        in
-        match granularity with
-        | Type_kind.Shallow -> [%pat? Sexplib.Sexp.Atom [%p sexp_pattern]]
-        | Type_kind.Deep _ ->
-          let variant_atom_name = [%pat? Sexplib.Sexp.Atom [%p sexp_pattern]] in
-          [%pat? Sexplib.Sexp.List ([%p variant_atom_name] :: subproduct_sexp_list)]
-      in
-      let rhs =
-        match granularity with
-        | Type_kind.Shallow ->
-          [%expr { f = T [%e pexp_construct (Located.mk (Lident constructor)) None] }]
-        | Type_kind.Deep _ ->
-          let subproduct_module_name =
-            generate_subproduct_module_name (module Specific_implementation) index element
-          in
-          let subproduct_t_of_sexp_function_expression =
-            pexp_ident
-              (Ldot (Ldot (Lident subproduct_module_name, "Packed"), "t_of_sexp")
-               |> Located.mk)
-          in
-          let nested_constructor =
-            pexp_construct
-              (Lident constructor |> Located.mk)
-              (Some (pexp_ident (Lident "subproduct_constructor" |> Located.mk)))
-          in
-          [%expr
-            let subproduct_constructor =
-              [%e subproduct_t_of_sexp_function_expression]
-                (Typed_fields_lib.Private.list_to_sexp subproduct_sexp_list)
-            in
-            { f =
-                (let { f = T subproduct_constructor } = subproduct_constructor in
-                 T [%e nested_constructor])
-            }]
-      in
-      case ~lhs:pattern ~guard:None ~rhs)
-  in
-  let catch_all = case ~lhs:[%pat? _] ~guard:None ~rhs:[%expr assert false] in
-  let cases = cases @ [ catch_all ] in
-  pexp_match [%expr sexp] cases
+  t_of_sexp_body_generic
+    (module Specific_implementation)
+    ~loc
+    ~elements_to_convert
+    ~packed_module_name:"Packed"
+    ~filter_non_value:true
+;;
+
+let t_of_sexp_body_any
+  (type a)
+  (module Specific_implementation : Product_kind.S with type t = a)
+  ~loc
+  ~elements_to_convert
+  =
+  t_of_sexp_body_generic
+    (module Specific_implementation)
+    ~loc
+    ~elements_to_convert
+    ~packed_module_name:"Packed"
+    ~filter_non_value:false
 ;;
 
 let disable_warning_32 ~loc =
@@ -1110,7 +1324,8 @@ let generate_base_module_type_for_singleton ~loc ~minimum_needed_parameters ~cty
       ~res:(Some (ptyp_constr (Lident "t" |> Located.mk) (core_type_params @ [ ctype ])))
   in
   let t_params =
-    minimum_needed_parameters @ [ ptyp_var unique_id, (NoVariance, NoInjectivity) ]
+    minimum_needed_parameters
+    @ [ Helpers.ptyp_var_any ~loc unique_id, (NoVariance, NoInjectivity) ]
   in
   let t_type_declaration =
     type_declaration
@@ -1127,7 +1342,9 @@ let generate_base_module_type_for_singleton ~loc ~minimum_needed_parameters ~cty
        ([ psig_type Nonrecursive [ upper ]; psig_type Recursive [ t_type_declaration ] ]
         @ Typed_deriver_fields.generate_include_signature
             ~loc
-            ~params:minimum_needed_parameters))
+            ~params:minimum_needed_parameters
+            ~has_non_value_fields:false
+            ()))
 ;;
 
 let generate_base_module_expr_for_singleton_for_any_parameter_length
@@ -1150,6 +1367,7 @@ let generate_base_module_expr_for_singleton_for_any_parameter_length
        ; globalize
        ; type_ids
        ; packed
+       ; packed_any
        }
         : Singleton_generator.common_items)
     =
@@ -1274,6 +1492,7 @@ let generate_base_module_expr_for_singleton_for_any_parameter_length
     ; globalize0
     ; globalize
     ; packed
+    ; packed_any
     ; names
     ]
 ;;

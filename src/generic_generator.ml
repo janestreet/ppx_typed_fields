@@ -42,7 +42,7 @@ let gen_t
             ; pjka_desc =
                 Pjk_mod
                   ( { pjka_loc = loc
-                    ; pjka_desc = Pjk_abbreviation { txt = Lident "value"; loc }
+                    ; pjka_desc = Pjk_abbreviation ({ txt = Lident "value"; loc }, [])
                     }
                   , [ Loc.make ~loc (Mode "contended")
                     ; Loc.make ~loc (Mode "non_float")
@@ -58,7 +58,7 @@ let gen_t
       ~private_:Public
       ~manifest:None
       ~name:(Located.mk Type_kind.internal_gadt_name)
-      ~params:(params @ [ ptyp_any, (NoVariance, Injective) ])
+      ~params:(params @ [ [%type: _], (NoVariance, Injective) ])
       ~cstrs:[]
       ~kind:(Ptype_variant (List.map constructor_declarations ~f:snd))
       ?jkind_annotation
@@ -69,7 +69,9 @@ let gen_t
     let unique_id =
       Type_kind.generate_unique_id (Type_kind.generate_core_type_params params)
     in
-    let t_params = params @ [ ptyp_var unique_id, (NoVariance, NoInjectivity) ] in
+    let t_params =
+      params @ [ Helpers.ptyp_var_any ~loc unique_id, (NoVariance, NoInjectivity) ]
+    in
     let core_type_params = List.map t_params ~f:(fun (x, _) -> x) in
     type_declaration
       ~name:(Located.mk "t")

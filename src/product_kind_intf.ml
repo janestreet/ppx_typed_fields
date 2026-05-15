@@ -9,6 +9,12 @@ module Definitions = struct
        used to generate the constructor for each element. *)
     val name : int -> t -> label
 
+    (** Whether this element has the [typed_fields.non_value] attribute, indicating its
+        type is not of layout value. Such elements are omitted from [get], [set], and
+        [Packed]. The existence of any such element also causes [create] and
+        [create_local] to not be generated. *)
+    val is_non_value : t -> bool
+
     (* Retrieves the type of an element. This is the type that defines the type of each
        constructor in the t GADT. *)
     val to_type : t -> core_type

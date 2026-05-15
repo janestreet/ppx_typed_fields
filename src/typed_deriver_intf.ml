@@ -14,8 +14,10 @@ module Definitions = struct
         [include Typed_fields_lib.SN with type record := record and type t := t] or the
         fully generated partial signature if the number of parameter is above 5. *)
     val generate_include_signature
-      :  loc:location
+      :  has_non_value_fields:bool
+      -> loc:location
       -> params:(core_type * (variance * injectivity)) list
+      -> unit
       -> signature_item list
   end
 end
@@ -36,6 +38,14 @@ module type Typed_deriver = sig
     :  loc:Location.t
     -> params:(core_type * (variance * injectivity)) list
     -> core_type_params:core_type list
+    -> field_type:core_type
+    -> type_declaration
+
+  val generate_packed_any_t_prime_type_declaration
+    :  loc:Location.t
+    -> params:(core_type * (variance * injectivity)) list
+    -> core_type_params:core_type list
+    -> unique_parameter_id:string
     -> field_type:core_type
     -> type_declaration
 
@@ -66,6 +76,7 @@ module type Typed_deriver = sig
     -> unique_parameter_id:string
     -> ?arg_modes:Ppxlib_jane.Shim.Modes.t
     -> ?result_modes:Ppxlib_jane.Shim.Modes.t
+    -> ?unique_param_is_any:bool
     -> var_arrow_type:core_type
     -> constr_arrow_type:core_type
     -> function_body:expression
