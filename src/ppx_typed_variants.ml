@@ -672,7 +672,11 @@ module Gen_sig = struct
               ; psig_type Recursive [ typ ]
               ; psig_type Nonrecursive [ internal_gadt_rename ]
               ]
-              @ Typed_deriver_variants.generate_include_signature ~loc ~params))
+              @ Typed_deriver_variants.generate_include_signature
+                  ~loc
+                  ~params
+                  ~has_non_value_fields:false
+                  ()))
       in
       Some type_, generate_singleton_signatures ~loc ~td_case:unstripped_td_case
   ;;

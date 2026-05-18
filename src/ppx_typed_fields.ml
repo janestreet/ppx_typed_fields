@@ -588,7 +588,11 @@ module Gen_sig = struct
                  ; psig_type Recursive [ typ ]
                  ; psig_type Nonrecursive [ internal_gadt_rename ]
                  ]
-                 @ Typed_deriver_fields.generate_include_signature ~loc ~params)))
+                 @ Typed_deriver_fields.generate_include_signature
+                     ~loc
+                     ~params
+                     ~has_non_value_fields:false
+                     ())))
       , [] )
     | Tuple (tuple_types, params) ->
       let ({ gadt_t = typ; upper; constructor_declarations = _; internal_gadt_rename }
@@ -617,7 +621,11 @@ module Gen_sig = struct
                  ; psig_type Recursive [ typ ]
                  ; psig_type Nonrecursive [ internal_gadt_rename ]
                  ]
-                 @ Typed_deriver_fields.generate_include_signature ~loc ~params)))
+                 @ Typed_deriver_fields.generate_include_signature
+                     ~loc
+                     ~params
+                     ~has_non_value_fields:false
+                     ())))
       , get_singleton_modules singleton_modules )
     | Opaque (true, params) ->
       ( Some
@@ -649,6 +657,12 @@ module Gen_sig = struct
           ~loc
           ~elements_to_convert:fields
       in
+      let has_non_value_fields =
+        (* We use [List.fold] instead of [List.exists] so we mark all attributes as used
+        *)
+        List.fold fields ~init:false ~f:(fun acc (field, _) ->
+          Record_generator.is_non_value field || acc)
+      in
       ( Some
           (pmty_signature
              (signature
@@ -656,7 +670,11 @@ module Gen_sig = struct
                  ; psig_type Recursive [ typ ]
                  ; psig_type Nonrecursive [ internal_gadt_rename ]
                  ]
-                 @ Typed_deriver_fields.generate_include_signature ~loc ~params)))
+                 @ Typed_deriver_fields.generate_include_signature
+                     ~loc
+                     ~params
+                     ~has_non_value_fields
+                     ())))
       , get_singleton_modules singleton_modules )
     | Unknown | Opaque (false, _) -> None, []
   ;;

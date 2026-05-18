@@ -6,6 +6,15 @@ type t = label_declaration
 let name _ field = field.pld_name.txt
 let to_type field = field.pld_type
 
+(** Attached to label declarations for fields whose type is not of layout value. Fields
+    with this attribute are omitted from [get] and [set], since those functions require
+    the field type to be representable. *)
+let non_value_attribute =
+  Attribute.declare_flag "typed_fields.non_value" Attribute.Context.label_declaration
+;;
+
+let is_non_value field = Attribute.has_flag ~mark_as_seen:true non_value_attribute field
+
 let get_rhs_expression ~loc ~index:_ ~element:{ pld_name; _ } ~number_of_elements:_ =
   let open (val Syntax.builder loc) in
   pexp_field [%expr record] (Located.mk (Lident pld_name.txt))

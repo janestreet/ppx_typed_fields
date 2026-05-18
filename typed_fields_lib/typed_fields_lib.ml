@@ -9,30 +9,30 @@ include Typed_fields_lib_intf
 
 module Unit = struct
   type nonrec derived_on = unit
-  type _ t = |
+  type ('a : any) t = |
   type creator = { f : 'a. 'a t @ local -> 'a }
 
-  let unreachable_code = function
-    | (_ : _ t) -> .
+  let unreachable_code : type (a : any). a t -> _ = function
+    | (_ : a t) -> .
   ;;
 
   let names = []
-  let name : type a. a t -> string = unreachable_code
-  let path : type a. a t -> string list = unreachable_code
-  let __ord : type a. a t -> int list = unreachable_code
-  let get : type a. a t -> derived_on -> a = unreachable_code
+  let name : type (a : any). a t -> string = unreachable_code
+  let path : type (a : any). a t -> string list = unreachable_code
+  let __ord : type (a : any). a t -> int list = unreachable_code
+  let get : type (a : any). a t -> derived_on -> a = unreachable_code
   let set : type a. a t -> derived_on -> a -> derived_on = fun t _ _ -> unreachable_code t
   let create ({ f = _ } : creator) : derived_on = ()
-  let create_local (local_ ({ f = _ } : creator)) : derived_on = exclave_ ()
+  let create_local ({ f = _ } : creator @ local) : derived_on = exclave_ ()
   let globalize0 = unreachable_code
-  let globalize _ t = globalize0 t
+  let globalize (type a : any) (_ : a -> a) (t : a t) = globalize0 t
 
   module Type_ids = struct
-    let type_id : type a. a t -> a Type_equal.Id.t = unreachable_code
+    let type_id : type (a : any). a t -> a Type_equal.Id.t = unreachable_code
   end
 
   module Packed = struct
-    type 'a field = 'a t
+    type ('a : any) field = 'a t
 
     type t' : value mod contended portable = T : 'a field -> t'
     [@@unsafe_allow_any_mode_crossing]
@@ -62,9 +62,74 @@ module Unit = struct
       | (_ : t) -> .
     ;;
 
-    let pack : type a. a field -> t = unreachable_code
-    let pack__local : type a. a field @ local -> t = unreachable_code
+    let pack (type a) (x : a field) : t = unreachable_code x
+    let pack__local (type a) (x : a field) : t = unreachable_code x
     let globalize { f = T field } = globalize0 field
+
+    let sexp_of_t packed =
+      match packed with
+      | (_ : t) -> .
+    ;;
+
+    let sexp_of_t__stack packed =
+      match packed with
+      | (_ : t) -> .
+    ;;
+
+    let t_of_sexp sexp =
+      raise_s
+        (Sexp.List
+           [ Sexp.Atom "Unit has no fields, so cannot convert sexp to field."; sexp ])
+    ;;
+
+    include%template Comparator.Make [@mode portable] (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
+
+  module Packed_any = struct
+    type ('a : any) field = 'a t
+
+    type t' : value mod contended portable = T : ('a : any). 'a field -> t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : t' } [@@unboxed]
+
+    let all = []
+
+    let compare { f = T x1 } { f = T x2 } =
+      Base.List.compare Base.Int.compare (__ord x1) (__ord x2)
+    ;;
+
+    let compare__local { f = T x1 } { f = T x2 } =
+      Base.List.compare__local Base.Int.compare__local (__ord x1) (__ord x2)
+    ;;
+
+    let equal p1 p2 = compare p1 p2 = 0
+    let equal__local p1 p2 = compare__local p1 p2 = 0
+
+    let hash_fold_t _ packed =
+      match packed with
+      | (_ : t) -> .
+    ;;
+
+    let hash packed =
+      match packed with
+      | (_ : t) -> .
+    ;;
+
+    let pack (type a : any) (x : a field) : t = unreachable_code x
+    let pack__local (type a : any) (x : a field) : t = unreachable_code x
+
+    let of_packed (packed : Packed.t) =
+      let { Packed.f = T field } = packed in
+      pack field
+    ;;
+
+    let globalize { f = T field } = { f = T (globalize0 field) }
 
     let sexp_of_t packed =
       match packed with
@@ -104,7 +169,7 @@ module %{this n "Singleton"} (%{this n "T"} : sig
 struct
   type nonrec %{params n "'t%i"} derived_on = %{params n "'t%i"} %{this n "T"}.t
 
-  type (%{each n "'t%i,"} 'r) t =
+  type (%{each n "'t%i,"} 'r : any) t =
     | T : (%{each n "'t%i,"} %{params n "'t%i"} %{this n "T"}.t) t
 
   type %{params n "'t%i"} creator = { f : 'a. (%{each n "'t%i,"} 'a) t @ local -> 'a }
@@ -131,11 +196,11 @@ struct
     = t
   ;;
 
-  let globalize0 (type %{each n "t%i "} r) (T : (%{each n "t%i,"} r) t) =
+  let globalize0 (type %{each n "t%i "} (r : any)) (T : (%{each n "t%i,"} r) t) =
     (T : (%{each n "t%i,"} r) t)
   ;;
 
-  let globalize %{each n "_%i "} _ t = globalize0 t
+  let globalize %{each n "_%i "} (type (r : any)) (_ : r -> r) (t : (%{each n "'t%i,"} r) t) = globalize0 t
   let create { f } = f T
   let create_local { f } = f T
 
@@ -144,14 +209,14 @@ struct
       (Type_equal.Id.create [@mode portable]) ~name:"this" (fun _ -> Sexp.Atom "<opaque>")
     ;;
 
-    let type_id (type a) (T : (%{each n "Type_id_T%i.t,"} a) t)
+    let type_id (type (a : any)) (T : (%{each n "Type_id_T%i.t,"} a) t)
       : a Type_equal.Id.t
       = type_id
     ;;
   end
 
   module Packed = struct
-    type (%{each n "'t%i,"} 'r) field = (%{each n "'t%i,"} 'r) t
+    type (%{each n "'t%i,"} 'r : any) field = (%{each n "'t%i,"} 'r) t
     type %{params n "'t%i"} t' : value mod contended portable =
       T : (%{each n "'t%i,"} 'r) field -> %{params n "'t%i"} t'
     [@@unsafe_allow_any_mode_crossing
@@ -179,6 +244,41 @@ struct
         let sexp_of_t = sexp_of_t
       end)
   end
+
+  module Packed_any = struct
+    type (%{each n "'t%i,"} 'r : any) field = (%{each n "'t%i,"} 'r) t
+    type %{params n "'t%i"} t' : value mod contended portable =
+      T : %{each n "'t%i "} ('r : any). (%{each n "'t%i,"} 'r) field -> %{params n "'t%i"} t'
+    [@@unsafe_allow_any_mode_crossing
+      ]
+
+    type t = { f : %{poly n "'t%i"} %{params n "'t%i"} t' } [@@unboxed]
+
+    let compare _ _ = 0
+    let compare__local _ _ = 0
+    let equal _ _ = true
+    let equal__local _ _ = true
+    let hash_fold_t state _ = Int.hash_fold_t state 0
+    let hash t = Hash.of_fold hash_fold_t t
+    let all = [ { f = T T } ]
+    let sexp_of_t _ = Sexp.Atom "this"
+    let sexp_of_t__stack _ = exclave_ Sexp.Atom "this"
+    let t_of_sexp _ = { f = T T }
+    let globalize _ = { f = T T }
+    let pack _ = { f = T T }
+    let pack__local _ = exclave_ { f = T T }
+
+    let of_packed (packed : Packed.t) =
+      let { Packed.f = T field } = packed in
+      pack field
+    ;;
+
+    include%template Comparator.Make [@mode portable] (struct
+        type nonrec t = t
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
 end
 
       |}]
@@ -191,7 +291,7 @@ module Singleton (T : sig
   end) =
 struct
   type nonrec derived_on = T.t
-  type 'r t = T : T.t t
+  type ('r : any) t = T : T.t t
   type creator = { f : 'a. 'a t @ local -> 'a }
 
   let names = [ "this" ]
@@ -200,8 +300,8 @@ struct
   let __ord _ = [ 0 ]
   let get (type a) (T : a t) (t : derived_on) : a = t
   let set (type a) (T : a t) (_ : derived_on) (t : a) : derived_on = t
-  let globalize0 (type r) (T : r t) : r t = T
-  let globalize _ t = globalize0 t
+  let globalize0 (type r : any) (T : r t) : r t = T
+  let globalize (type r : any) (_ : r -> r) (t : r t) = globalize0 t
   let create { f } = f T
   let create_local { f } = f T
 
@@ -210,11 +310,11 @@ struct
       (Type_equal.Id.create [@mode portable]) ~name:"this" (fun _ -> Sexp.Atom "<opaque>")
     ;;
 
-    let type_id (type a) (T : a t) : a Type_equal.Id.t = type_id
+    let type_id (type a : any) (T : a t) : a Type_equal.Id.t = type_id
   end
 
   module Packed = struct
-    type 'r field = 'r t
+    type ('r : any) field = 'r t
 
     type t' : value mod contended portable = T : 'r field -> t'
     [@@unsafe_allow_any_mode_crossing]
@@ -242,6 +342,41 @@ struct
         let sexp_of_t = sexp_of_t
       end)
   end
+
+  module Packed_any = struct
+    type ('r : any) field = 'r t
+
+    type t' : value mod contended portable = T : ('r : any). 'r field -> t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : t' } [@@unboxed]
+
+    let compare _ _ = 0
+    let compare__local _ _ = 0
+    let equal _ _ = true
+    let equal__local _ _ = true
+    let hash_fold_t state _ = Int.hash_fold_t state 0
+    let hash t = Hash.of_fold hash_fold_t t
+    let all = [ { f = T T } ]
+    let sexp_of_t _ = Sexp.Atom "this"
+    let sexp_of_t__stack _ = exclave_ Sexp.Atom "this"
+    let t_of_sexp _ = { f = T T }
+    let globalize _ = { f = T T }
+    let pack _ = { f = T T }
+    let pack__local _ = exclave_ { f = T T }
+
+    let of_packed (packed : Packed.t) =
+      let { Packed.f = T field } = packed in
+      pack field
+    ;;
+
+    include%template Comparator.Make [@mode portable] (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
 end
 
 module Singleton1 (T1 : sig
@@ -249,7 +384,7 @@ module Singleton1 (T1 : sig
   end) =
 struct
   type nonrec 't1 derived_on = 't1 T1.t
-  type ('t1, 'r) t = T : ('t1, 't1 T1.t) t
+  type ('t1, 'r : any) t = T : ('t1, 't1 T1.t) t
   type 't1 creator = { f : 'a. ('t1, 'a) t @ local -> 'a }
 
   let names = [ "this" ]
@@ -258,8 +393,8 @@ struct
   let __ord _ = [ 0 ]
   let get (type t1 a) (T : (t1, a) t) (t : t1 derived_on) : a = t
   let set (type t1 a) (T : (t1, a) t) (_ : t1 derived_on) (t : a) : t1 derived_on = t
-  let globalize0 (type t1 r) (T : (t1, r) t) : (t1, r) t = T
-  let globalize _1 _ t = globalize0 t
+  let globalize0 (type t1 (r : any)) (T : (t1, r) t) : (t1, r) t = T
+  let globalize _1 (type r : any) (_ : r -> r) (t : ('t1, r) t) = globalize0 t
   let create { f } = f T
   let create_local { f } = f T
 
@@ -268,11 +403,11 @@ struct
       (Type_equal.Id.create [@mode portable]) ~name:"this" (fun _ -> Sexp.Atom "<opaque>")
     ;;
 
-    let type_id (type a) (T : (Type_id_T1.t, a) t) : a Type_equal.Id.t = type_id
+    let type_id (type a : any) (T : (Type_id_T1.t, a) t) : a Type_equal.Id.t = type_id
   end
 
   module Packed = struct
-    type ('t1, 'r) field = ('t1, 'r) t
+    type ('t1, 'r : any) field = ('t1, 'r) t
 
     type 't1 t' : value mod contended portable = T : ('t1, 'r) field -> 't1 t'
     [@@unsafe_allow_any_mode_crossing]
@@ -300,6 +435,42 @@ struct
         let sexp_of_t = sexp_of_t
       end)
   end
+
+  module Packed_any = struct
+    type ('t1, 'r : any) field = ('t1, 'r) t
+
+    type 't1 t' : value mod contended portable =
+      | T : 't1 ('r : any). ('t1, 'r) field -> 't1 t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : 't1. 't1 t' } [@@unboxed]
+
+    let compare _ _ = 0
+    let compare__local _ _ = 0
+    let equal _ _ = true
+    let equal__local _ _ = true
+    let hash_fold_t state _ = Int.hash_fold_t state 0
+    let hash t = Hash.of_fold hash_fold_t t
+    let all = [ { f = T T } ]
+    let sexp_of_t _ = Sexp.Atom "this"
+    let sexp_of_t__stack _ = exclave_ Sexp.Atom "this"
+    let t_of_sexp _ = { f = T T }
+    let globalize _ = { f = T T }
+    let pack _ = { f = T T }
+    let pack__local _ = exclave_ { f = T T }
+
+    let of_packed (packed : Packed.t) =
+      let { Packed.f = T field } = packed in
+      pack field
+    ;;
+
+    include%template Comparator.Make [@mode portable] (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
 end
 
 module Singleton2 (T2 : sig
@@ -307,7 +478,7 @@ module Singleton2 (T2 : sig
   end) =
 struct
   type nonrec ('t1, 't2) derived_on = ('t1, 't2) T2.t
-  type ('t1, 't2, 'r) t = T : ('t1, 't2, ('t1, 't2) T2.t) t
+  type ('t1, 't2, 'r : any) t = T : ('t1, 't2, ('t1, 't2) T2.t) t
   type ('t1, 't2) creator = { f : 'a. ('t1, 't2, 'a) t @ local -> 'a }
 
   let names = [ "this" ]
@@ -322,8 +493,8 @@ struct
     t
   ;;
 
-  let globalize0 (type t1 t2 r) (T : (t1, t2, r) t) : (t1, t2, r) t = T
-  let globalize _1 _2 _ t = globalize0 t
+  let globalize0 (type t1 t2 (r : any)) (T : (t1, t2, r) t) : (t1, t2, r) t = T
+  let globalize _1 _2 (type r : any) (_ : r -> r) (t : ('t1, 't2, r) t) = globalize0 t
   let create { f } = f T
   let create_local { f } = f T
 
@@ -332,13 +503,14 @@ struct
       (Type_equal.Id.create [@mode portable]) ~name:"this" (fun _ -> Sexp.Atom "<opaque>")
     ;;
 
-    let type_id (type a) (T : (Type_id_T1.t, Type_id_T2.t, a) t) : a Type_equal.Id.t =
+    let type_id (type a : any) (T : (Type_id_T1.t, Type_id_T2.t, a) t) : a Type_equal.Id.t
+      =
       type_id
     ;;
   end
 
   module Packed = struct
-    type ('t1, 't2, 'r) field = ('t1, 't2, 'r) t
+    type ('t1, 't2, 'r : any) field = ('t1, 't2, 'r) t
 
     type ('t1, 't2) t' : value mod contended portable =
       | T : ('t1, 't2, 'r) field -> ('t1, 't2) t'
@@ -367,6 +539,42 @@ struct
         let sexp_of_t = sexp_of_t
       end)
   end
+
+  module Packed_any = struct
+    type ('t1, 't2, 'r : any) field = ('t1, 't2, 'r) t
+
+    type ('t1, 't2) t' : value mod contended portable =
+      | T : 't1 't2 ('r : any). ('t1, 't2, 'r) field -> ('t1, 't2) t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : 't1 't2. ('t1, 't2) t' } [@@unboxed]
+
+    let compare _ _ = 0
+    let compare__local _ _ = 0
+    let equal _ _ = true
+    let equal__local _ _ = true
+    let hash_fold_t state _ = Int.hash_fold_t state 0
+    let hash t = Hash.of_fold hash_fold_t t
+    let all = [ { f = T T } ]
+    let sexp_of_t _ = Sexp.Atom "this"
+    let sexp_of_t__stack _ = exclave_ Sexp.Atom "this"
+    let t_of_sexp _ = { f = T T }
+    let globalize _ = { f = T T }
+    let pack _ = { f = T T }
+    let pack__local _ = exclave_ { f = T T }
+
+    let of_packed (packed : Packed.t) =
+      let { Packed.f = T field } = packed in
+      pack field
+    ;;
+
+    include%template Comparator.Make [@mode portable] (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
 end
 
 module Singleton3 (T3 : sig
@@ -374,7 +582,7 @@ module Singleton3 (T3 : sig
   end) =
 struct
   type nonrec ('t1, 't2, 't3) derived_on = ('t1, 't2, 't3) T3.t
-  type ('t1, 't2, 't3, 'r) t = T : ('t1, 't2, 't3, ('t1, 't2, 't3) T3.t) t
+  type ('t1, 't2, 't3, 'r : any) t = T : ('t1, 't2, 't3, ('t1, 't2, 't3) T3.t) t
   type ('t1, 't2, 't3) creator = { f : 'a. ('t1, 't2, 't3, 'a) t @ local -> 'a }
 
   let names = [ "this" ]
@@ -389,8 +597,12 @@ struct
     t
   ;;
 
-  let globalize0 (type t1 t2 t3 r) (T : (t1, t2, t3, r) t) : (t1, t2, t3, r) t = T
-  let globalize _1 _2 _3 _ t = globalize0 t
+  let globalize0 (type t1 t2 t3 (r : any)) (T : (t1, t2, t3, r) t) : (t1, t2, t3, r) t = T
+
+  let globalize _1 _2 _3 (type r : any) (_ : r -> r) (t : ('t1, 't2, 't3, r) t) =
+    globalize0 t
+  ;;
+
   let create { f } = f T
   let create_local { f } = f T
 
@@ -400,7 +612,7 @@ struct
       (Type_equal.Id.create [@mode portable]) ~name:"this" (fun _ -> Sexp.Atom "<opaque>")
     ;;
 
-    let type_id (type a) (T : (Type_id_T1.t, Type_id_T2.t, Type_id_T3.t, a) t)
+    let type_id (type a : any) (T : (Type_id_T1.t, Type_id_T2.t, Type_id_T3.t, a) t)
       : a Type_equal.Id.t
       =
       type_id
@@ -408,7 +620,7 @@ struct
   end
 
   module Packed = struct
-    type ('t1, 't2, 't3, 'r) field = ('t1, 't2, 't3, 'r) t
+    type ('t1, 't2, 't3, 'r : any) field = ('t1, 't2, 't3, 'r) t
 
     type ('t1, 't2, 't3) t' : value mod contended portable =
       | T : ('t1, 't2, 't3, 'r) field -> ('t1, 't2, 't3) t'
@@ -437,6 +649,42 @@ struct
         let sexp_of_t = sexp_of_t
       end)
   end
+
+  module Packed_any = struct
+    type ('t1, 't2, 't3, 'r : any) field = ('t1, 't2, 't3, 'r) t
+
+    type ('t1, 't2, 't3) t' : value mod contended portable =
+      | T : 't1 't2 't3 ('r : any). ('t1, 't2, 't3, 'r) field -> ('t1, 't2, 't3) t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : 't1 't2 't3. ('t1, 't2, 't3) t' } [@@unboxed]
+
+    let compare _ _ = 0
+    let compare__local _ _ = 0
+    let equal _ _ = true
+    let equal__local _ _ = true
+    let hash_fold_t state _ = Int.hash_fold_t state 0
+    let hash t = Hash.of_fold hash_fold_t t
+    let all = [ { f = T T } ]
+    let sexp_of_t _ = Sexp.Atom "this"
+    let sexp_of_t__stack _ = exclave_ Sexp.Atom "this"
+    let t_of_sexp _ = { f = T T }
+    let globalize _ = { f = T T }
+    let pack _ = { f = T T }
+    let pack__local _ = exclave_ { f = T T }
+
+    let of_packed (packed : Packed.t) =
+      let { Packed.f = T field } = packed in
+      pack field
+    ;;
+
+    include%template Comparator.Make [@mode portable] (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
 end
 
 module Singleton4 (T4 : sig
@@ -445,7 +693,7 @@ module Singleton4 (T4 : sig
 struct
   type nonrec ('t1, 't2, 't3, 't4) derived_on = ('t1, 't2, 't3, 't4) T4.t
 
-  type ('t1, 't2, 't3, 't4, 'r) t =
+  type ('t1, 't2, 't3, 't4, 'r : any) t =
     | T : ('t1, 't2, 't3, 't4, ('t1, 't2, 't3, 't4) T4.t) t
 
   type ('t1, 't2, 't3, 't4) creator = { f : 'a. ('t1, 't2, 't3, 't4, 'a) t @ local -> 'a }
@@ -474,11 +722,16 @@ struct
     t
   ;;
 
-  let globalize0 (type t1 t2 t3 t4 r) (T : (t1, t2, t3, t4, r) t) : (t1, t2, t3, t4, r) t =
+  let globalize0 (type t1 t2 t3 t4 (r : any)) (T : (t1, t2, t3, t4, r) t)
+    : (t1, t2, t3, t4, r) t
+    =
     T
   ;;
 
-  let globalize _1 _2 _3 _4 _ t = globalize0 t
+  let globalize _1 _2 _3 _4 (type r : any) (_ : r -> r) (t : ('t1, 't2, 't3, 't4, r) t) =
+    globalize0 t
+  ;;
+
   let create { f } = f T
   let create_local { f } = f T
 
@@ -491,7 +744,7 @@ struct
     ;;
 
     let type_id
-      (type a)
+      (type a : any)
       (T : (Type_id_T1.t, Type_id_T2.t, Type_id_T3.t, Type_id_T4.t, a) t)
       : a Type_equal.Id.t
       =
@@ -500,7 +753,7 @@ struct
   end
 
   module Packed = struct
-    type ('t1, 't2, 't3, 't4, 'r) field = ('t1, 't2, 't3, 't4, 'r) t
+    type ('t1, 't2, 't3, 't4, 'r : any) field = ('t1, 't2, 't3, 't4, 'r) t
 
     type ('t1, 't2, 't3, 't4) t' : value mod contended portable =
       | T : ('t1, 't2, 't3, 't4, 'r) field -> ('t1, 't2, 't3, 't4) t'
@@ -529,6 +782,45 @@ struct
         let sexp_of_t = sexp_of_t
       end)
   end
+
+  module Packed_any = struct
+    type ('t1, 't2, 't3, 't4, 'r : any) field = ('t1, 't2, 't3, 't4, 'r) t
+
+    type ('t1, 't2, 't3, 't4) t' : value mod contended portable =
+      | T :
+          't1 't2 't3 't4 ('r : any).
+          ('t1, 't2, 't3, 't4, 'r) field
+          -> ('t1, 't2, 't3, 't4) t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : 't1 't2 't3 't4. ('t1, 't2, 't3, 't4) t' } [@@unboxed]
+
+    let compare _ _ = 0
+    let compare__local _ _ = 0
+    let equal _ _ = true
+    let equal__local _ _ = true
+    let hash_fold_t state _ = Int.hash_fold_t state 0
+    let hash t = Hash.of_fold hash_fold_t t
+    let all = [ { f = T T } ]
+    let sexp_of_t _ = Sexp.Atom "this"
+    let sexp_of_t__stack _ = exclave_ Sexp.Atom "this"
+    let t_of_sexp _ = { f = T T }
+    let globalize _ = { f = T T }
+    let pack _ = { f = T T }
+    let pack__local _ = exclave_ { f = T T }
+
+    let of_packed (packed : Packed.t) =
+      let { Packed.f = T field } = packed in
+      pack field
+    ;;
+
+    include%template Comparator.Make [@mode portable] (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
 end
 
 module Singleton5 (T5 : sig
@@ -537,7 +829,7 @@ module Singleton5 (T5 : sig
 struct
   type nonrec ('t1, 't2, 't3, 't4, 't5) derived_on = ('t1, 't2, 't3, 't4, 't5) T5.t
 
-  type ('t1, 't2, 't3, 't4, 't5, 'r) t =
+  type ('t1, 't2, 't3, 't4, 't5, 'r : any) t =
     | T : ('t1, 't2, 't3, 't4, 't5, ('t1, 't2, 't3, 't4, 't5) T5.t) t
 
   type ('t1, 't2, 't3, 't4, 't5) creator =
@@ -567,13 +859,25 @@ struct
     t
   ;;
 
-  let globalize0 (type t1 t2 t3 t4 t5 r) (T : (t1, t2, t3, t4, t5, r) t)
+  let globalize0 (type t1 t2 t3 t4 t5 (r : any)) (T : (t1, t2, t3, t4, t5, r) t)
     : (t1, t2, t3, t4, t5, r) t
     =
     T
   ;;
 
-  let globalize _1 _2 _3 _4 _5 _ t = globalize0 t
+  let globalize
+    _1
+    _2
+    _3
+    _4
+    _5
+    (type r : any)
+    (_ : r -> r)
+    (t : ('t1, 't2, 't3, 't4, 't5, r) t)
+    =
+    globalize0 t
+  ;;
+
   let create { f } = f T
   let create_local { f } = f T
 
@@ -592,7 +896,7 @@ struct
     ;;
 
     let type_id
-      (type a)
+      (type a : any)
       (T : (Type_id_T1.t, Type_id_T2.t, Type_id_T3.t, Type_id_T4.t, Type_id_T5.t, a) t)
       : a Type_equal.Id.t
       =
@@ -601,7 +905,7 @@ struct
   end
 
   module Packed = struct
-    type ('t1, 't2, 't3, 't4, 't5, 'r) field = ('t1, 't2, 't3, 't4, 't5, 'r) t
+    type ('t1, 't2, 't3, 't4, 't5, 'r : any) field = ('t1, 't2, 't3, 't4, 't5, 'r) t
 
     type ('t1, 't2, 't3, 't4, 't5) t' : value mod contended portable =
       | T : ('t1, 't2, 't3, 't4, 't5, 'r) field -> ('t1, 't2, 't3, 't4, 't5) t'
@@ -630,6 +934,45 @@ struct
         let sexp_of_t = sexp_of_t
       end)
   end
+
+  module Packed_any = struct
+    type ('t1, 't2, 't3, 't4, 't5, 'r : any) field = ('t1, 't2, 't3, 't4, 't5, 'r) t
+
+    type ('t1, 't2, 't3, 't4, 't5) t' : value mod contended portable =
+      | T :
+          't1 't2 't3 't4 't5 ('r : any).
+          ('t1, 't2, 't3, 't4, 't5, 'r) field
+          -> ('t1, 't2, 't3, 't4, 't5) t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : 't1 't2 't3 't4 't5. ('t1, 't2, 't3, 't4, 't5) t' } [@@unboxed]
+
+    let compare _ _ = 0
+    let compare__local _ _ = 0
+    let equal _ _ = true
+    let equal__local _ _ = true
+    let hash_fold_t state _ = Int.hash_fold_t state 0
+    let hash t = Hash.of_fold hash_fold_t t
+    let all = [ { f = T T } ]
+    let sexp_of_t _ = Sexp.Atom "this"
+    let sexp_of_t__stack _ = exclave_ Sexp.Atom "this"
+    let t_of_sexp _ = { f = T T }
+    let globalize _ = { f = T T }
+    let pack _ = { f = T T }
+    let pack__local _ = exclave_ { f = T T }
+
+    let of_packed (packed : Packed.t) =
+      let { Packed.f = T field } = packed in
+      pack field
+    ;;
+
+    include%template Comparator.Make [@mode portable] (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
 end
 
 (*$
@@ -638,12 +981,12 @@ end
       {|
 
 module %{this n "S_of_S"} (M : %{this n "S"}) %{each n "(T%i : T)"} : S
- with type 'a t = (%{each n "T%i.t,"} 'a) M.t
+ with type ('a : any) t = (%{each n "T%i.t,"} 'a) M.t
   and type derived_on = %{params n "T%i.t"} M.derived_on =
 struct
   include M
 
-  type 'a t = (%{each n "T%i.t,"} 'a) M.t
+  type ('a : any) t = (%{each n "T%i.t,"} 'a) M.t
   type derived_on = %{params n "T%i.t"} M.derived_on
   type creator = { f : 'a. 'a t @ local -> 'a }
 
@@ -656,7 +999,7 @@ struct
     M.create m_creator [@nontail]
   ;;
 
-  let create_local (local_ { f } : creator) = exclave_
+  let create_local ({ f } : creator @ local) = exclave_
     let m_creator_f
       : type a. (%{each n "T%i.t,"} a) M.t @ local -> a
       = fun field -> f field
@@ -665,12 +1008,12 @@ struct
     M.create_local m_creator
   ;;
 
-  let globalize _ (t @ local) = globalize0 t
+  let globalize (type (a : any)) (_ : a -> a) (t : a t) = globalize0 t
 
   module Type_ids = Type_ids %{each n "(T%i)"}
 
   module Packed = struct
-    type 'a field = 'a t
+    type ('a : any) field = 'a t
     type t' : value mod contended portable = T : 'a field -> t'
     [@@unsafe_allow_any_mode_crossing
       ]
@@ -707,6 +1050,50 @@ struct
         let sexp_of_t = sexp_of_t
       end)
   end
+
+  module Packed_any = struct
+    type ('a : any) field = 'a t
+    type t' : value mod contended portable = T : ('a : any). 'a field -> t'
+    [@@unsafe_allow_any_mode_crossing
+      ]
+    type t = { f : t' } [@@unboxed]
+
+    let m_of_packed_any { f = T field } = M.Packed_any.pack field
+    let m_of_packed_any__local { f = T field } = exclave_ M.Packed_any.pack__local field
+    let packed_any_of_m { M.Packed_any.f = T field } = { f = T field }
+    let compare a b = M.Packed_any.compare (m_of_packed_any a) (m_of_packed_any b)
+
+    let compare__local a b =
+      M.Packed_any.compare__local (m_of_packed_any__local a) (m_of_packed_any__local b) [@nontail]
+    ;;
+
+    let equal a b = M.Packed_any.equal (m_of_packed_any a) (m_of_packed_any b)
+
+    let equal__local a b =
+      M.Packed_any.equal__local (m_of_packed_any__local a) (m_of_packed_any__local b) [@nontail]
+    ;;
+
+    let hash_fold_t state t = M.Packed_any.hash_fold_t state (m_of_packed_any t)
+    let hash t = Hash.of_fold hash_fold_t t
+    let all = List.map M.Packed_any.all ~f:packed_any_of_m
+    let sexp_of_t t = M.Packed_any.sexp_of_t (m_of_packed_any t)
+    let sexp_of_t__stack t = exclave_ M.Packed_any.sexp_of_t__stack (m_of_packed_any__local t)
+    let t_of_sexp sexp = packed_any_of_m (M.Packed_any.t_of_sexp sexp)
+    let globalize { f = T field } = { f = T (globalize0 field) }
+    let pack (type (a : any)) (field : a field) = { f = T field }
+    let pack__local (type (a : any)) (field : a field) = exclave_ { f = T field }
+
+    let of_packed (packed : Packed.t) =
+      let { Packed.f = T field } = packed in
+      pack field
+    ;;
+
+    include%template Comparator.Make [@mode portable] (struct
+        type nonrec t = t
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
 end
 
       |}]
@@ -715,10 +1102,11 @@ end
 *)
 
 module S_of_S1 (M : S1) (T1 : T) :
-  S with type 'a t = (T1.t, 'a) M.t and type derived_on = T1.t M.derived_on = struct
+  S with type ('a : any) t = (T1.t, 'a) M.t and type derived_on = T1.t M.derived_on =
+struct
   include M
 
-  type 'a t = (T1.t, 'a) M.t
+  type ('a : any) t = (T1.t, 'a) M.t
   type derived_on = T1.t M.derived_on
   type creator = { f : 'a. 'a t @ local -> 'a }
 
@@ -728,18 +1116,18 @@ module S_of_S1 (M : S1) (T1 : T) :
     M.create m_creator [@nontail]
   ;;
 
-  let create_local (local_ ({ f } : creator)) = exclave_
+  let create_local ({ f } : creator @ local) = exclave_
     let m_creator_f : type a. (T1.t, a) M.t @ local -> a = fun field -> f field in
     let m_creator = { M.f = m_creator_f } in
     M.create_local m_creator
   ;;
 
-  let globalize _ (t @ local) = globalize0 t
+  let globalize (type a : any) (_ : a -> a) (t : a t) = globalize0 t
 
   module Type_ids = Type_ids (T1)
 
   module Packed = struct
-    type 'a field = 'a t
+    type ('a : any) field = 'a t
 
     type t' : value mod contended portable = T : 'a field -> t'
     [@@unsafe_allow_any_mode_crossing]
@@ -778,14 +1166,69 @@ module S_of_S1 (M : S1) (T1 : T) :
         let sexp_of_t = sexp_of_t
       end)
   end
+
+  module Packed_any = struct
+    type ('a : any) field = 'a t
+
+    type t' : value mod contended portable = T : ('a : any). 'a field -> t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : t' } [@@unboxed]
+
+    let m_of_packed_any { f = T field } = M.Packed_any.pack field
+    let m_of_packed_any__local { f = T field } = exclave_ M.Packed_any.pack__local field
+    let packed_any_of_m { M.Packed_any.f = T field } = { f = T field }
+    let compare a b = M.Packed_any.compare (m_of_packed_any a) (m_of_packed_any b)
+
+    let compare__local a b =
+      M.Packed_any.compare__local
+        (m_of_packed_any__local a)
+        (m_of_packed_any__local b) [@nontail]
+    ;;
+
+    let equal a b = M.Packed_any.equal (m_of_packed_any a) (m_of_packed_any b)
+
+    let equal__local a b =
+      M.Packed_any.equal__local
+        (m_of_packed_any__local a)
+        (m_of_packed_any__local b) [@nontail]
+    ;;
+
+    let hash_fold_t state t = M.Packed_any.hash_fold_t state (m_of_packed_any t)
+    let hash t = Hash.of_fold hash_fold_t t
+    let all = List.map M.Packed_any.all ~f:packed_any_of_m
+    let sexp_of_t t = M.Packed_any.sexp_of_t (m_of_packed_any t)
+
+    let sexp_of_t__stack t = exclave_
+      M.Packed_any.sexp_of_t__stack (m_of_packed_any__local t)
+    ;;
+
+    let t_of_sexp sexp = packed_any_of_m (M.Packed_any.t_of_sexp sexp)
+    let globalize { f = T field } = { f = T (globalize0 field) }
+    let pack (type a : any) (field : a field) = { f = T field }
+    let pack__local (type a : any) (field : a field) = exclave_ { f = T field }
+
+    let of_packed (packed : Packed.t) =
+      let { Packed.f = T field } = packed in
+      pack field
+    ;;
+
+    include%template Comparator.Make [@mode portable] (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
 end
 
 module S_of_S2 (M : S2) (T1 : T) (T2 : T) :
-  S with type 'a t = (T1.t, T2.t, 'a) M.t and type derived_on = (T1.t, T2.t) M.derived_on =
-struct
+  S
+  with type ('a : any) t = (T1.t, T2.t, 'a) M.t
+   and type derived_on = (T1.t, T2.t) M.derived_on = struct
   include M
 
-  type 'a t = (T1.t, T2.t, 'a) M.t
+  type ('a : any) t = (T1.t, T2.t, 'a) M.t
   type derived_on = (T1.t, T2.t) M.derived_on
   type creator = { f : 'a. 'a t @ local -> 'a }
 
@@ -795,18 +1238,18 @@ struct
     M.create m_creator [@nontail]
   ;;
 
-  let create_local (local_ ({ f } : creator)) = exclave_
+  let create_local ({ f } : creator @ local) = exclave_
     let m_creator_f : type a. (T1.t, T2.t, a) M.t @ local -> a = fun field -> f field in
     let m_creator = { M.f = m_creator_f } in
     M.create_local m_creator
   ;;
 
-  let globalize _ (t @ local) = globalize0 t
+  let globalize (type a : any) (_ : a -> a) (t : a t) = globalize0 t
 
   module Type_ids = Type_ids (T1) (T2)
 
   module Packed = struct
-    type 'a field = 'a t
+    type ('a : any) field = 'a t
 
     type t' : value mod contended portable = T : 'a field -> t'
     [@@unsafe_allow_any_mode_crossing]
@@ -837,6 +1280,60 @@ struct
     let globalize { f = T field } = { f = T (globalize0 field) }
     let pack field = { f = T field }
     let pack__local field = exclave_ { f = T field }
+
+    include%template Comparator.Make [@mode portable] (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
+
+  module Packed_any = struct
+    type ('a : any) field = 'a t
+
+    type t' : value mod contended portable = T : ('a : any). 'a field -> t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : t' } [@@unboxed]
+
+    let m_of_packed_any { f = T field } = M.Packed_any.pack field
+    let m_of_packed_any__local { f = T field } = exclave_ M.Packed_any.pack__local field
+    let packed_any_of_m { M.Packed_any.f = T field } = { f = T field }
+    let compare a b = M.Packed_any.compare (m_of_packed_any a) (m_of_packed_any b)
+
+    let compare__local a b =
+      M.Packed_any.compare__local
+        (m_of_packed_any__local a)
+        (m_of_packed_any__local b) [@nontail]
+    ;;
+
+    let equal a b = M.Packed_any.equal (m_of_packed_any a) (m_of_packed_any b)
+
+    let equal__local a b =
+      M.Packed_any.equal__local
+        (m_of_packed_any__local a)
+        (m_of_packed_any__local b) [@nontail]
+    ;;
+
+    let hash_fold_t state t = M.Packed_any.hash_fold_t state (m_of_packed_any t)
+    let hash t = Hash.of_fold hash_fold_t t
+    let all = List.map M.Packed_any.all ~f:packed_any_of_m
+    let sexp_of_t t = M.Packed_any.sexp_of_t (m_of_packed_any t)
+
+    let sexp_of_t__stack t = exclave_
+      M.Packed_any.sexp_of_t__stack (m_of_packed_any__local t)
+    ;;
+
+    let t_of_sexp sexp = packed_any_of_m (M.Packed_any.t_of_sexp sexp)
+    let globalize { f = T field } = { f = T (globalize0 field) }
+    let pack (type a : any) (field : a field) = { f = T field }
+    let pack__local (type a : any) (field : a field) = exclave_ { f = T field }
+
+    let of_packed (packed : Packed.t) =
+      let { Packed.f = T field } = packed in
+      pack field
+    ;;
 
     include%template Comparator.Make [@mode portable] (struct
         type nonrec t = t
@@ -849,11 +1346,11 @@ end
 
 module S_of_S3 (M : S3) (T1 : T) (T2 : T) (T3 : T) :
   S
-  with type 'a t = (T1.t, T2.t, T3.t, 'a) M.t
+  with type ('a : any) t = (T1.t, T2.t, T3.t, 'a) M.t
    and type derived_on = (T1.t, T2.t, T3.t) M.derived_on = struct
   include M
 
-  type 'a t = (T1.t, T2.t, T3.t, 'a) M.t
+  type ('a : any) t = (T1.t, T2.t, T3.t, 'a) M.t
   type derived_on = (T1.t, T2.t, T3.t) M.derived_on
   type creator = { f : 'a. 'a t @ local -> 'a }
 
@@ -865,7 +1362,7 @@ module S_of_S3 (M : S3) (T1 : T) (T2 : T) (T3 : T) :
     M.create m_creator [@nontail]
   ;;
 
-  let create_local (local_ ({ f } : creator)) = exclave_
+  let create_local ({ f } : creator @ local) = exclave_
     let m_creator_f : type a. (T1.t, T2.t, T3.t, a) M.t @ local -> a =
       fun field -> f field
     in
@@ -873,12 +1370,12 @@ module S_of_S3 (M : S3) (T1 : T) (T2 : T) (T3 : T) :
     M.create_local m_creator
   ;;
 
-  let globalize _ (t @ local) = globalize0 t
+  let globalize (type a : any) (_ : a -> a) (t : a t) = globalize0 t
 
   module Type_ids = Type_ids (T1) (T2) (T3)
 
   module Packed = struct
-    type 'a field = 'a t
+    type ('a : any) field = 'a t
 
     type t' : value mod contended portable = T : 'a field -> t'
     [@@unsafe_allow_any_mode_crossing]
@@ -909,6 +1406,60 @@ module S_of_S3 (M : S3) (T1 : T) (T2 : T) (T3 : T) :
     let globalize { f = T field } = { f = T (globalize0 field) }
     let pack field = { f = T field }
     let pack__local field = exclave_ { f = T field }
+
+    include%template Comparator.Make [@mode portable] (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
+
+  module Packed_any = struct
+    type ('a : any) field = 'a t
+
+    type t' : value mod contended portable = T : ('a : any). 'a field -> t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : t' } [@@unboxed]
+
+    let m_of_packed_any { f = T field } = M.Packed_any.pack field
+    let m_of_packed_any__local { f = T field } = exclave_ M.Packed_any.pack__local field
+    let packed_any_of_m { M.Packed_any.f = T field } = { f = T field }
+    let compare a b = M.Packed_any.compare (m_of_packed_any a) (m_of_packed_any b)
+
+    let compare__local a b =
+      M.Packed_any.compare__local
+        (m_of_packed_any__local a)
+        (m_of_packed_any__local b) [@nontail]
+    ;;
+
+    let equal a b = M.Packed_any.equal (m_of_packed_any a) (m_of_packed_any b)
+
+    let equal__local a b =
+      M.Packed_any.equal__local
+        (m_of_packed_any__local a)
+        (m_of_packed_any__local b) [@nontail]
+    ;;
+
+    let hash_fold_t state t = M.Packed_any.hash_fold_t state (m_of_packed_any t)
+    let hash t = Hash.of_fold hash_fold_t t
+    let all = List.map M.Packed_any.all ~f:packed_any_of_m
+    let sexp_of_t t = M.Packed_any.sexp_of_t (m_of_packed_any t)
+
+    let sexp_of_t__stack t = exclave_
+      M.Packed_any.sexp_of_t__stack (m_of_packed_any__local t)
+    ;;
+
+    let t_of_sexp sexp = packed_any_of_m (M.Packed_any.t_of_sexp sexp)
+    let globalize { f = T field } = { f = T (globalize0 field) }
+    let pack (type a : any) (field : a field) = { f = T field }
+    let pack__local (type a : any) (field : a field) = exclave_ { f = T field }
+
+    let of_packed (packed : Packed.t) =
+      let { Packed.f = T field } = packed in
+      pack field
+    ;;
 
     include%template Comparator.Make [@mode portable] (struct
         type nonrec t = t
@@ -921,11 +1472,11 @@ end
 
 module S_of_S4 (M : S4) (T1 : T) (T2 : T) (T3 : T) (T4 : T) :
   S
-  with type 'a t = (T1.t, T2.t, T3.t, T4.t, 'a) M.t
+  with type ('a : any) t = (T1.t, T2.t, T3.t, T4.t, 'a) M.t
    and type derived_on = (T1.t, T2.t, T3.t, T4.t) M.derived_on = struct
   include M
 
-  type 'a t = (T1.t, T2.t, T3.t, T4.t, 'a) M.t
+  type ('a : any) t = (T1.t, T2.t, T3.t, T4.t, 'a) M.t
   type derived_on = (T1.t, T2.t, T3.t, T4.t) M.derived_on
   type creator = { f : 'a. 'a t @ local -> 'a }
 
@@ -937,7 +1488,7 @@ module S_of_S4 (M : S4) (T1 : T) (T2 : T) (T3 : T) (T4 : T) :
     M.create m_creator [@nontail]
   ;;
 
-  let create_local (local_ ({ f } : creator)) = exclave_
+  let create_local ({ f } : creator @ local) = exclave_
     let m_creator_f : type a. (T1.t, T2.t, T3.t, T4.t, a) M.t @ local -> a =
       fun field -> f field
     in
@@ -945,12 +1496,12 @@ module S_of_S4 (M : S4) (T1 : T) (T2 : T) (T3 : T) (T4 : T) :
     M.create_local m_creator
   ;;
 
-  let globalize _ (t @ local) = globalize0 t
+  let globalize (type a : any) (_ : a -> a) (t : a t) = globalize0 t
 
   module Type_ids = Type_ids (T1) (T2) (T3) (T4)
 
   module Packed = struct
-    type 'a field = 'a t
+    type ('a : any) field = 'a t
 
     type t' : value mod contended portable = T : 'a field -> t'
     [@@unsafe_allow_any_mode_crossing]
@@ -989,15 +1540,69 @@ module S_of_S4 (M : S4) (T1 : T) (T2 : T) (T3 : T) (T4 : T) :
         let sexp_of_t = sexp_of_t
       end)
   end
+
+  module Packed_any = struct
+    type ('a : any) field = 'a t
+
+    type t' : value mod contended portable = T : ('a : any). 'a field -> t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : t' } [@@unboxed]
+
+    let m_of_packed_any { f = T field } = M.Packed_any.pack field
+    let m_of_packed_any__local { f = T field } = exclave_ M.Packed_any.pack__local field
+    let packed_any_of_m { M.Packed_any.f = T field } = { f = T field }
+    let compare a b = M.Packed_any.compare (m_of_packed_any a) (m_of_packed_any b)
+
+    let compare__local a b =
+      M.Packed_any.compare__local
+        (m_of_packed_any__local a)
+        (m_of_packed_any__local b) [@nontail]
+    ;;
+
+    let equal a b = M.Packed_any.equal (m_of_packed_any a) (m_of_packed_any b)
+
+    let equal__local a b =
+      M.Packed_any.equal__local
+        (m_of_packed_any__local a)
+        (m_of_packed_any__local b) [@nontail]
+    ;;
+
+    let hash_fold_t state t = M.Packed_any.hash_fold_t state (m_of_packed_any t)
+    let hash t = Hash.of_fold hash_fold_t t
+    let all = List.map M.Packed_any.all ~f:packed_any_of_m
+    let sexp_of_t t = M.Packed_any.sexp_of_t (m_of_packed_any t)
+
+    let sexp_of_t__stack t = exclave_
+      M.Packed_any.sexp_of_t__stack (m_of_packed_any__local t)
+    ;;
+
+    let t_of_sexp sexp = packed_any_of_m (M.Packed_any.t_of_sexp sexp)
+    let globalize { f = T field } = { f = T (globalize0 field) }
+    let pack (type a : any) (field : a field) = { f = T field }
+    let pack__local (type a : any) (field : a field) = exclave_ { f = T field }
+
+    let of_packed (packed : Packed.t) =
+      let { Packed.f = T field } = packed in
+      pack field
+    ;;
+
+    include%template Comparator.Make [@mode portable] (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
 end
 
 module S_of_S5 (M : S5) (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) :
   S
-  with type 'a t = (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) M.t
+  with type ('a : any) t = (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) M.t
    and type derived_on = (T1.t, T2.t, T3.t, T4.t, T5.t) M.derived_on = struct
   include M
 
-  type 'a t = (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) M.t
+  type ('a : any) t = (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) M.t
   type derived_on = (T1.t, T2.t, T3.t, T4.t, T5.t) M.derived_on
   type creator = { f : 'a. 'a t @ local -> 'a }
 
@@ -1009,7 +1614,7 @@ module S_of_S5 (M : S5) (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) :
     M.create m_creator [@nontail]
   ;;
 
-  let create_local (local_ ({ f } : creator)) = exclave_
+  let create_local ({ f } : creator @ local) = exclave_
     let m_creator_f : type a. (T1.t, T2.t, T3.t, T4.t, T5.t, a) M.t @ local -> a =
       fun field -> f field
     in
@@ -1017,12 +1622,12 @@ module S_of_S5 (M : S5) (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) :
     M.create_local m_creator
   ;;
 
-  let globalize _ (t @ local) = globalize0 t
+  let globalize (type a : any) (_ : a -> a) (t : a t) = globalize0 t
 
   module Type_ids = Type_ids (T1) (T2) (T3) (T4) (T5)
 
   module Packed = struct
-    type 'a field = 'a t
+    type ('a : any) field = 'a t
 
     type t' : value mod contended portable = T : 'a field -> t'
     [@@unsafe_allow_any_mode_crossing]
@@ -1053,6 +1658,60 @@ module S_of_S5 (M : S5) (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) :
     let globalize { f = T field } = { f = T (globalize0 field) }
     let pack field = { f = T field }
     let pack__local field = exclave_ { f = T field }
+
+    include%template Comparator.Make [@mode portable] (struct
+        type nonrec t = t
+
+        let compare = compare
+        let sexp_of_t = sexp_of_t
+      end)
+  end
+
+  module Packed_any = struct
+    type ('a : any) field = 'a t
+
+    type t' : value mod contended portable = T : ('a : any). 'a field -> t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : t' } [@@unboxed]
+
+    let m_of_packed_any { f = T field } = M.Packed_any.pack field
+    let m_of_packed_any__local { f = T field } = exclave_ M.Packed_any.pack__local field
+    let packed_any_of_m { M.Packed_any.f = T field } = { f = T field }
+    let compare a b = M.Packed_any.compare (m_of_packed_any a) (m_of_packed_any b)
+
+    let compare__local a b =
+      M.Packed_any.compare__local
+        (m_of_packed_any__local a)
+        (m_of_packed_any__local b) [@nontail]
+    ;;
+
+    let equal a b = M.Packed_any.equal (m_of_packed_any a) (m_of_packed_any b)
+
+    let equal__local a b =
+      M.Packed_any.equal__local
+        (m_of_packed_any__local a)
+        (m_of_packed_any__local b) [@nontail]
+    ;;
+
+    let hash_fold_t state t = M.Packed_any.hash_fold_t state (m_of_packed_any t)
+    let hash t = Hash.of_fold hash_fold_t t
+    let all = List.map M.Packed_any.all ~f:packed_any_of_m
+    let sexp_of_t t = M.Packed_any.sexp_of_t (m_of_packed_any t)
+
+    let sexp_of_t__stack t = exclave_
+      M.Packed_any.sexp_of_t__stack (m_of_packed_any__local t)
+    ;;
+
+    let t_of_sexp sexp = packed_any_of_m (M.Packed_any.t_of_sexp sexp)
+    let globalize { f = T field } = { f = T (globalize0 field) }
+    let pack (type a : any) (field : a field) = { f = T field }
+    let pack__local (type a : any) (field : a field) = exclave_ { f = T field }
+
+    let of_packed (packed : Packed.t) =
+      let { Packed.f = T field } = packed in
+      pack field
+    ;;
 
     include%template Comparator.Make [@mode portable] (struct
         type nonrec t = t

@@ -170,28 +170,44 @@ module Definitions = struct
            (supported_constructor_declaration * Type_kind.granularity) list
       -> expression
 
-    val globalize_packed_function_body
-      :  loc:location
+    type globalize_packed_function_body :=
+      loc:location
       -> elements_to_convert:
            (supported_constructor_declaration * Type_kind.granularity) list
       -> expression
 
+    val globalize_packed_function_body : globalize_packed_function_body
+    val globalize_packed_any_function_body : globalize_packed_function_body
+
     (** Generates the body for the all function inside of packed.
 
         [T Constr1 ; T Name] *)
-    val all_body
-      :  loc:location
+    type all_body :=
+      loc:location
       -> constructor_declarations:
            ((supported_constructor_declaration * Type_kind.granularity)
            * constructor_declaration)
              list
       -> expression
 
-    val pack_body
-      :  loc:location
+    val all_body : all_body
+    val all_body_any : all_body
+
+    type pack_body :=
+      loc:location
       -> elements_to_convert:
            (supported_constructor_declaration * Type_kind.granularity) list
       -> local:bool
+      -> expression
+
+    val pack_body : pack_body
+    val pack_body_any : pack_body
+
+    type sexp_of_t_body :=
+      loc:location
+      -> elements_to_convert:
+           (supported_constructor_declaration * Type_kind.granularity) list
+      -> stack:bool
       -> expression
 
     (** Generates the body for the sexp_of_t function inside of packed.
@@ -201,11 +217,14 @@ module Definitions = struct
           | Constr1 -> Sexplib.Sexp.Atom "Constr1"
           | ...
         ]} *)
-    val sexp_of_t_body
-      :  loc:location
+    val sexp_of_t_body : sexp_of_t_body
+
+    val sexp_of_t_body_any : sexp_of_t_body
+
+    type t_of_sexp_body :=
+      loc:location
       -> elements_to_convert:
            (supported_constructor_declaration * Type_kind.granularity) list
-      -> stack:bool
       -> expression
 
     (** Generates the body for the t_of_sexp function inside of packed.
@@ -215,11 +234,9 @@ module Definitions = struct
           | Sexplib.Sexp.Atom "Constr1" -> Constr1
           | ...
         ]} *)
-    val t_of_sexp_body
-      :  loc:location
-      -> elements_to_convert:
-           (supported_constructor_declaration * Type_kind.granularity) list
-      -> expression
+    val t_of_sexp_body : t_of_sexp_body
+
+    val t_of_sexp_body_any : t_of_sexp_body
 
     (** Generates the body of the get function.
 

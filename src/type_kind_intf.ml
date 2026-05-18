@@ -27,6 +27,9 @@ module Definitions = struct
   module type S = sig
     type t
 
+    (** Whether this element has the [typed_fields.non_value] attribute. *)
+    val is_non_value : t -> bool
+
     (** The structure items will be inserted after the type type definitions and before
         any other items. *)
     val extra_structure_items_to_insert : location -> structure_item list
@@ -168,10 +171,22 @@ module Definitions = struct
       -> elements_to_convert:(t * granularity) list
       -> expression
 
-    (** Generates the body for the all function inside of packed.
+    val globalize_packed_any_function_body
+      :  loc:location
+      -> elements_to_convert:(t * granularity) list
+      -> expression
 
-        [T Constr1 ; T Name] *)
+    (** Generates the body for the [Packed.all] function. E.g.:
+        {[
+          [ T Constr1; T Name ]
+        ]} *)
     val all_body
+      :  loc:location
+      -> constructor_declarations:((t * granularity) * constructor_declaration) list
+      -> expression
+
+    (** Generates the body for the [Packed_any.all] function. *)
+    val all_body_any
       :  loc:location
       -> constructor_declarations:((t * granularity) * constructor_declaration) list
       -> expression
@@ -182,8 +197,13 @@ module Definitions = struct
       -> local:bool
       -> expression
 
-    (** Generates the body for the sexp_of_t function inside of packed.
+    val pack_body_any
+      :  loc:location
+      -> elements_to_convert:(t * granularity) list
+      -> local:bool
+      -> expression
 
+    (** Generates the body for the [Packed.sexp_of_t] function. E.g.:
         {[
           match t with
           | Constr1 -> Sexplib.Sexp.Atom "Constr1"
@@ -195,14 +215,26 @@ module Definitions = struct
       -> stack:bool
       -> expression
 
-    (** Generates the body for the t_of_sexp function inside of packed.
+    (** Generates the body for the [Packed_any.sexp_of_t] function. *)
+    val sexp_of_t_body_any
+      :  loc:location
+      -> elements_to_convert:(t * granularity) list
+      -> stack:bool
+      -> expression
 
+    (** Generates the body for the [Packed.t_of_sexp] function. E.g.:
         {[
           match t with
           | Sexplib.Sexp.Atom "Constr1" -> Constr1
           | ...
         ]} *)
     val t_of_sexp_body
+      :  loc:location
+      -> elements_to_convert:(t * granularity) list
+      -> expression
+
+    (** Generates the body for the [Packed_any.t_of_sexp] function. *)
+    val t_of_sexp_body_any
       :  loc:location
       -> elements_to_convert:(t * granularity) list
       -> expression

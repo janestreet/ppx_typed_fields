@@ -3,6 +3,8 @@ open Ppxlib
 
 type t = core_type
 
+let is_non_value (_ : t) = false
+
 (* The structure items will be inserted after the type type definitions and before any
    other items. *)
 let extra_structure_items_to_insert _ = []
@@ -94,20 +96,52 @@ let globalize_packed_function_body ~loc ~elements_to_convert =
     ~elements_to_convert
 ;;
 
+let globalize_packed_any_function_body ~loc ~elements_to_convert =
+  Product_kind_generator.globalize_packed_any_function_body
+    (module Tuple_generator)
+    ~loc
+    ~elements_to_convert
+;;
+
 let all_body ~loc ~constructor_declarations =
   Product_kind_generator.all_body (module Tuple_generator) ~loc ~constructor_declarations
+;;
+
+let all_body_any ~loc ~constructor_declarations =
+  Product_kind_generator.all_body_any
+    (module Tuple_generator)
+    ~loc
+    ~constructor_declarations
 ;;
 
 let pack_body ~loc ~elements_to_convert =
   Product_kind_generator.pack_body (module Tuple_generator) ~loc ~elements_to_convert
 ;;
 
+let pack_body_any ~loc ~elements_to_convert =
+  Product_kind_generator.pack_body_any (module Tuple_generator) ~loc ~elements_to_convert
+;;
+
 let sexp_of_t_body ~loc ~elements_to_convert =
   Product_kind_generator.sexp_of_t_body (module Tuple_generator) ~loc ~elements_to_convert
 ;;
 
+let sexp_of_t_body_any ~loc ~elements_to_convert =
+  Product_kind_generator.sexp_of_t_body_any
+    (module Tuple_generator)
+    ~loc
+    ~elements_to_convert
+;;
+
 let t_of_sexp_body ~loc ~elements_to_convert =
   Product_kind_generator.t_of_sexp_body (module Tuple_generator) ~loc ~elements_to_convert
+;;
+
+let t_of_sexp_body_any ~loc ~elements_to_convert =
+  Product_kind_generator.t_of_sexp_body_any
+    (module Tuple_generator)
+    ~loc
+    ~elements_to_convert
 ;;
 
 let deep_functor_structure ~loc ~elements_to_convert ~module_expression =

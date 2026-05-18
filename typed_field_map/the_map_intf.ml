@@ -78,7 +78,7 @@ module type S = sig
 
     module To_other_map
         (A : S_for_other_map)
-        (M : S_plain with type 'a Key.t = 'a Key.t and type 'a Data.t = 'a A.s) : sig
+        (M : S_plain with type ('a : any) Key.t = 'a Key.t and type 'a Data.t = 'a A.s) : sig
       val run : t -> M.t A.t
     end
   end

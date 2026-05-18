@@ -6,7 +6,9 @@ let gen_sig_t ~loc ~params =
   let unique_id =
     Type_kind.generate_unique_id (Type_kind.generate_core_type_params params)
   in
-  let t_params = params @ [ ptyp_var unique_id, (NoVariance, NoInjectivity) ] in
+  let t_params =
+    params @ [ Helpers.ptyp_var_any unique_id ~loc, (NoVariance, NoInjectivity) ]
+  in
   let t =
     psig_type
       Nonrecursive
@@ -38,7 +40,7 @@ let deriving_compare_equals_attribute ~loc =
 
 (** Generates a partial signature without the upper level t and without the upper level
     record. *)
-let gen_partial_sig ~loc ~params ~t_name =
+let gen_partial_sig ~loc ~params ~t_name ~has_non_value_fields =
   let open (val Syntax.builder loc) in
   let unique_parameter_id =
     Type_kind.generate_unique_id (Type_kind.generate_core_type_params params)
@@ -126,7 +128,7 @@ let gen_partial_sig ~loc ~params ~t_name =
     psig_module
       (module_declaration (Some "Type_ids" |> Located.mk) signature_with_functors)
   in
-  let packed =
+  let generate_packed_sig ~module_name ~generate_t_prime_type_declaration ~extra_items =
     let signature =
       let field_type_declaration =
         let td =
@@ -140,13 +142,7 @@ let gen_partial_sig ~loc ~params ~t_name =
       in
       let field_type = ptyp_constr (Lident "field" |> Located.mk) t_params in
       let t_prime_type_declaration =
-        let td =
-          Typed_deriver.generate_packed_t_prime_type_declaration
-            ~loc
-            ~params
-            ~core_type_params
-            ~field_type
-        in
+        let td = generate_t_prime_type_declaration ~field_type in
         let td =
           { td with
             ptype_attributes =
@@ -183,37 +179,52 @@ let gen_partial_sig ~loc ~params ~t_name =
       in
       pmty_signature
         (signature
-           [ field_type_declaration
-           ; t_prime_type_declaration
-           ; t_type_declaration
-           ; pack
-           ; pack__local
-           ; sexp_of_t
-           ; sexp_of_t__stack
-           ; t_of_sexp
-           ; all
-           ])
+           ([ field_type_declaration
+            ; t_prime_type_declaration
+            ; t_type_declaration
+            ; pack
+            ; pack__local
+            ]
+            @ extra_items
+            @ [ sexp_of_t; sexp_of_t__stack; t_of_sexp; all ]))
     in
-    psig_module (module_declaration (Some "Packed" |> Located.mk) signature)
+    psig_module (module_declaration (Some module_name |> Located.mk) signature)
+  in
+  let packed =
+    generate_packed_sig
+      ~module_name:"Packed"
+      ~generate_t_prime_type_declaration:(fun ~field_type ->
+        Typed_deriver.generate_packed_t_prime_type_declaration
+          ~loc
+          ~params
+          ~core_type_params
+          ~field_type)
+      ~extra_items:[]
+  in
+  let packed_any =
+    generate_packed_sig
+      ~module_name:"Packed_any"
+      ~generate_t_prime_type_declaration:(fun ~field_type ->
+        Typed_deriver.generate_packed_any_t_prime_type_declaration
+          ~loc
+          ~params
+          ~core_type_params
+          ~unique_parameter_id
+          ~field_type)
+      ~extra_items:[ [%sigi: val of_packed : Packed.t -> t] ]
   in
   [ [%sigi:
       include
         [%m
       pmty_signature
         (signature
-           [ creator
-           ; name
-           ; path
-           ; ord
-           ; get
-           ; set
-           ; create
-           ; create_local
-           ; type_ids
-           ; globalize0
-           ; packed
-           ; names
-           ])] @@ portable]
+           (let if_all_value l = if has_non_value_fields then [] else l in
+            [ if_all_value [ creator ]
+            ; [ name; path; ord ]
+            ; if_all_value [ get; set; create; create_local ]
+            ; [ type_ids; globalize0; packed; packed_any; names ]
+            ]
+            |> List.concat))] @@ portable]
   ]
 ;;
 
@@ -248,53 +259,136 @@ let generate_include_signature_for_opaque ~loc ~params =
           with type ('t1, 't2, 't3, 't4, 't5) derived_on :=
             ('t1, 't2, 't3, 't4, 't5) derived_on]
     ]
-  | _ -> gen_sig_t ~loc ~params @ gen_partial_sig ~loc ~params ~t_name:"t"
+  | _ ->
+    gen_sig_t ~loc ~params
+    @ gen_partial_sig ~loc ~params ~t_name:"t" ~has_non_value_fields:false
 ;;
 
-let generate_include_signature ~loc ~params =
-  match List.length params with
-  | 0 ->
-    [ [%sigi:
-        include
-          Typed_fields_lib.S with type 'a t := 'a t and type derived_on := derived_on]
-    ]
-  | 1 ->
-    [ [%sigi:
-        include
-          Typed_fields_lib.S1
-          with type ('t1, 'a) t := ('t1, 'a) t
-           and type 't1 derived_on := 't1 derived_on]
-    ]
-  | 2 ->
-    [ [%sigi:
-        include
-          Typed_fields_lib.S2
-          with type ('t1, 't2, 'a) t := ('t1, 't2, 'a) t
-           and type ('t1, 't2) derived_on := ('t1, 't2) derived_on]
-    ]
-  | 3 ->
-    [ [%sigi:
-        include
-          Typed_fields_lib.S3
-          with type ('t1, 't2, 't3, 'a) t := ('t1, 't2, 't3, 'a) t
-           and type ('t1, 't2, 't3) derived_on := ('t1, 't2, 't3) derived_on]
-    ]
-  | 4 ->
-    [ [%sigi:
-        include
-          Typed_fields_lib.S4
-          with type ('t1, 't2, 't3, 't4, 'a) t := ('t1, 't2, 't3, 't4, 'a) t
-           and type ('t1, 't2, 't3, 't4) derived_on := ('t1, 't2, 't3, 't4) derived_on]
-    ]
-  | 5 ->
-    [ [%sigi:
-        include
-          Typed_fields_lib.S5
-          with type ('t1, 't2, 't3, 't4, 't5, 'a) t := ('t1, 't2, 't3, 't4, 't5, 'a) t
-           and type ('t1, 't2, 't3, 't4, 't5) derived_on :=
-            ('t1, 't2, 't3, 't4, 't5) derived_on]
-    ]
-  | _ -> gen_partial_sig ~loc ~params ~t_name:"t"
+let generate_include_signature ~has_non_value_fields ~loc ~params () =
+  if has_non_value_fields
+  then (
+    (* When there are non-value fields, we use Common.S (which doesn't include
+       creator/create/create_local) and add get/set manually. *)
+    let common_sig =
+      match List.length params with
+      | 0 ->
+        [ [%sigi:
+            include
+              Typed_fields_lib.Common.S
+              with type ('a : any) t := 'a t
+               and type derived_on := derived_on]
+        ]
+      | 1 ->
+        [ [%sigi:
+            include
+              Typed_fields_lib.Common.S1
+              with type ('t1, 'a : any) t := ('t1, 'a) t
+               and type 't1 derived_on := 't1 derived_on]
+        ]
+      | 2 ->
+        [ [%sigi:
+            include
+              Typed_fields_lib.Common.S2
+              with type ('t1, 't2, 'a : any) t := ('t1, 't2, 'a) t
+               and type ('t1, 't2) derived_on := ('t1, 't2) derived_on]
+        ]
+      | 3 ->
+        [ [%sigi:
+            include
+              Typed_fields_lib.Common.S3
+              with type ('t1, 't2, 't3, 'a : any) t := ('t1, 't2, 't3, 'a) t
+               and type ('t1, 't2, 't3) derived_on := ('t1, 't2, 't3) derived_on]
+        ]
+      | 4 ->
+        [ [%sigi:
+            include
+              Typed_fields_lib.Common.S4
+              with type ('t1, 't2, 't3, 't4, 'a : any) t := ('t1, 't2, 't3, 't4, 'a) t
+               and type ('t1, 't2, 't3, 't4) derived_on := ('t1, 't2, 't3, 't4) derived_on]
+        ]
+      | 5 ->
+        [ [%sigi:
+            include
+              Typed_fields_lib.Common.S5
+              with type ('t1, 't2, 't3, 't4, 't5, 'a : any) t :=
+                ('t1, 't2, 't3, 't4, 't5, 'a) t
+               and type ('t1, 't2, 't3, 't4, 't5) derived_on :=
+                ('t1, 't2, 't3, 't4, 't5) derived_on]
+        ]
+      | _ -> gen_partial_sig ~loc ~params ~t_name:"t" ~has_non_value_fields
+    in
+    let open (val Syntax.builder loc) in
+    let core_type_params = Type_kind.generate_core_type_params params in
+    let unique_parameter_id = Type_kind.generate_unique_id core_type_params in
+    let t_params = core_type_params @ [ ptyp_var unique_parameter_id ] in
+    let t_type_constr = ptyp_constr (Lident "t" |> Located.mk) t_params in
+    let record_type_constr =
+      ptyp_constr (Lident Names.derived_on_name |> Located.mk) core_type_params
+    in
+    let unique_parameter_type_var = ptyp_var unique_parameter_id in
+    let get =
+      [%sigi:
+        val get
+          :  [%t t_type_constr] @ local
+          -> [%t record_type_constr]
+          -> [%t unique_parameter_type_var]]
+    in
+    let set =
+      [%sigi:
+        val set
+          :  [%t t_type_constr] @ local
+          -> [%t record_type_constr]
+          -> [%t unique_parameter_type_var]
+          -> [%t record_type_constr]]
+    in
+    common_sig @ [ get; set ])
+  else (
+    match List.length params with
+    | 0 ->
+      [ [%sigi:
+          include
+            Typed_fields_lib.S
+            with type ('a : any) t := 'a t
+             and type derived_on := derived_on]
+      ]
+    | 1 ->
+      [ [%sigi:
+          include
+            Typed_fields_lib.S1
+            with type ('t1, 'a : any) t := ('t1, 'a) t
+             and type 't1 derived_on := 't1 derived_on]
+      ]
+    | 2 ->
+      [ [%sigi:
+          include
+            Typed_fields_lib.S2
+            with type ('t1, 't2, 'a : any) t := ('t1, 't2, 'a) t
+             and type ('t1, 't2) derived_on := ('t1, 't2) derived_on]
+      ]
+    | 3 ->
+      [ [%sigi:
+          include
+            Typed_fields_lib.S3
+            with type ('t1, 't2, 't3, 'a : any) t := ('t1, 't2, 't3, 'a) t
+             and type ('t1, 't2, 't3) derived_on := ('t1, 't2, 't3) derived_on]
+      ]
+    | 4 ->
+      [ [%sigi:
+          include
+            Typed_fields_lib.S4
+            with type ('t1, 't2, 't3, 't4, 'a : any) t := ('t1, 't2, 't3, 't4, 'a) t
+             and type ('t1, 't2, 't3, 't4) derived_on := ('t1, 't2, 't3, 't4) derived_on]
+      ]
+    | 5 ->
+      [ [%sigi:
+          include
+            Typed_fields_lib.S5
+            with type ('t1, 't2, 't3, 't4, 't5, 'a : any) t :=
+              ('t1, 't2, 't3, 't4, 't5, 'a) t
+             and type ('t1, 't2, 't3, 't4, 't5) derived_on :=
+              ('t1, 't2, 't3, 't4, 't5) derived_on]
+      ]
+    | _ -> gen_partial_sig ~loc ~params ~t_name:"t" ~has_non_value_fields)
 ;;
 
 let generate_str_body
@@ -348,6 +442,7 @@ let generate_str_body
       ~core_type_params
       ~unique_parameter_id
       ~arg_modes:(Ppxlib_jane.Shim.Modes.local ~loc)
+      ~unique_param_is_any:true
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
@@ -367,6 +462,7 @@ let generate_str_body
       ~core_type_params
       ~unique_parameter_id
       ~arg_modes:(Ppxlib_jane.Shim.Modes.local ~loc)
+      ~unique_param_is_any:true
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
@@ -386,6 +482,7 @@ let generate_str_body
       ~core_type_params
       ~unique_parameter_id
       ~arg_modes:(Ppxlib_jane.Shim.Modes.local ~loc)
+      ~unique_param_is_any:true
       ~constr_arrow_type:arrow_type
       ~var_arrow_type:arrow_type
       ~function_body
@@ -537,6 +634,7 @@ let generate_str_body
                (Ldot (Lident [%string "T%{(index + 1)#Int}"], "t") |> Located.mk)
                []))
         ~unique_parameter_id
+        ~unique_param_is_any:true
         ~function_body
         ~arg_modes:(Ppxlib_jane.Shim.Modes.local ~loc)
         ~constr_arrow_type:
@@ -586,6 +684,7 @@ let generate_str_body
       ~unique_parameter_id
       ~arg_modes:(Ppxlib_jane.Shim.Modes.local ~loc)
       ~result_modes:[]
+      ~unique_param_is_any:true
       ~var_arrow_type
       ~constr_arrow_type
       ~function_body:
@@ -601,7 +700,17 @@ let generate_str_body
     in
     [%stri let globalize = [%e body]]
   in
-  let packed =
+  let generate_packed_str
+    ~module_name
+    ~generate_t_prime_type_declaration
+    ~all_body
+    ~pack_body
+    ~globalize_packed_body
+    ~sexp_of_t_body
+    ~t_of_sexp_body
+    ~unique_param_is_any
+    ~extra_items
+    =
     let packed_field =
       let td =
         Typed_deriver.generate_packed_field_type_declaration
@@ -613,13 +722,7 @@ let generate_str_body
       pstr_type Recursive [ td ]
     in
     let t_prime_type_declaration =
-      let td =
-        Typed_deriver.generate_packed_t_prime_type_declaration
-          ~loc
-          ~params
-          ~core_type_params
-          ~field_type
-      in
+      let td = generate_t_prime_type_declaration () in
       let td =
         { td with
           ptype_attributes = Typed_deriver.disable_warning_37 ~loc :: td.ptype_attributes
@@ -632,9 +735,7 @@ let generate_str_body
       pstr_type Recursive [ td ]
     in
     let all =
-      let all_list_expression =
-        Specific_generator.all_body ~loc ~constructor_declarations
-      in
+      let all_list_expression = all_body ~loc ~constructor_declarations in
       [%stri let all = [%e all_list_expression]]
     in
     let compare =
@@ -666,7 +767,7 @@ let generate_str_body
     in
     let hash = [%stri let hash t = Base.Hash.of_fold hash_fold_t t] in
     let pack ~local =
-      let function_body = Specific_generator.pack_body ~loc ~elements_to_convert ~local in
+      let function_body = pack_body ~loc ~elements_to_convert ~local in
       let arrow_type = ptyp_constr (Lident "t" |> Located.mk) [] in
       let modes = if local then Ppxlib_jane.Shim.Modes.local ~loc else [] in
       Typed_deriver.generate_new_typed_function
@@ -676,6 +777,7 @@ let generate_str_body
         ~unique_parameter_id
         ~arg_modes:modes
         ~result_modes:modes
+        ~unique_param_is_any
         ~constr_arrow_type:arrow_type
         ~var_arrow_type:arrow_type
         ~function_body
@@ -685,13 +787,11 @@ let generate_str_body
     let globalize_packed =
       [%stri
         let globalize : t @ local -> t =
-          [%e Specific_generator.globalize_packed_function_body ~loc ~elements_to_convert]
+          [%e globalize_packed_body ~loc ~elements_to_convert]
         ;;]
     in
     let sexp_of_packed ~stack =
-      let function_body =
-        Specific_generator.sexp_of_t_body ~loc ~elements_to_convert ~stack
-      in
+      let function_body = sexp_of_t_body ~loc ~elements_to_convert ~stack in
       let name = Names.stackify "sexp_of_t" ~stack in
       let pat =
         match stack with
@@ -701,7 +801,7 @@ let generate_str_body
       [%stri let [%p pvar name] = fun [%p pat] -> [%e function_body]]
     in
     let packed_of_sexp =
-      let function_body = Specific_generator.t_of_sexp_body ~loc ~elements_to_convert in
+      let function_body = t_of_sexp_body ~loc ~elements_to_convert in
       [%stri let t_of_sexp sexp = [%e function_body]]
     in
     let comparator =
@@ -715,27 +815,46 @@ let generate_str_body
     in
     pstr_module
       (module_binding
-         ~name:(Some "Packed" |> Located.mk)
+         ~name:(Some module_name |> Located.mk)
          ~expr:
            (pmod_structure
-              [ packed_field
-              ; t_prime_type_declaration
-              ; t_type_declaration
-              ; all
-              ; compare
-              ; compare__local
-              ; equal
-              ; equal__local
-              ; hash_fold_t
-              ; hash
-              ; pack ~local:false
-              ; pack ~local:true
-              ; globalize_packed
-              ; sexp_of_packed ~stack:false
-              ; sexp_of_packed ~stack:true
-              ; packed_of_sexp
-              ; comparator
-              ]))
+              ([ packed_field
+               ; t_prime_type_declaration
+               ; t_type_declaration
+               ; all
+               ; compare
+               ; compare__local
+               ; equal
+               ; equal__local
+               ; hash_fold_t
+               ; hash
+               ; pack ~local:false
+               ; pack ~local:true
+               ]
+               @ extra_items
+               @ [ globalize_packed
+                 ; sexp_of_packed ~stack:false
+                 ; sexp_of_packed ~stack:true
+                 ; packed_of_sexp
+                 ; comparator
+                 ])))
+  in
+  let packed =
+    generate_packed_str
+      ~module_name:"Packed"
+      ~generate_t_prime_type_declaration:(fun () ->
+        Typed_deriver.generate_packed_t_prime_type_declaration
+          ~loc
+          ~params
+          ~core_type_params
+          ~field_type)
+      ~all_body:Specific_generator.all_body
+      ~pack_body:Specific_generator.pack_body
+      ~globalize_packed_body:Specific_generator.globalize_packed_function_body
+      ~sexp_of_t_body:Specific_generator.sexp_of_t_body
+      ~t_of_sexp_body:Specific_generator.t_of_sexp_body
+      ~unique_param_is_any:false
+      ~extra_items:[]
   in
   let upper_rename =
     let td =
@@ -752,23 +871,43 @@ let generate_str_body
     in
     pstr_type Recursive [ td ]
   in
-  [ upper; t; upper_rename ]
-  @ Specific_generator.extra_structure_items_to_insert loc
-  @ [ creator_type
-    ; path
-    ; name
-    ; ord
-    ; get
-    ; set
-    ; create
-    ; create_local
-    ; type_ids
-    ; globalize0
-    ; globalize
-    ; packed
-    ; names
-    ; internal_gadt_rename
-    ]
+  let has_non_value_elements =
+    List.exists elements_to_convert ~f:(fun (element, _) ->
+      Specific_generator.is_non_value element)
+  in
+  let packed_any =
+    generate_packed_str
+      ~module_name:"Packed_any"
+      ~generate_t_prime_type_declaration:(fun () ->
+        Typed_deriver.generate_packed_any_t_prime_type_declaration
+          ~loc
+          ~params
+          ~core_type_params
+          ~unique_parameter_id
+          ~field_type)
+      ~all_body:Specific_generator.all_body_any
+      ~pack_body:Specific_generator.pack_body_any
+      ~globalize_packed_body:Specific_generator.globalize_packed_any_function_body
+      ~sexp_of_t_body:Specific_generator.sexp_of_t_body_any
+      ~t_of_sexp_body:Specific_generator.t_of_sexp_body_any
+      ~unique_param_is_any:true
+      ~extra_items:
+        [ [%stri
+            let of_packed (packed : Packed.t) =
+              let { Packed.f = T field } = packed in
+              pack field
+            ;;]
+        ]
+  in
+  let if_all_value l = if has_non_value_elements then [] else l in
+  [ [ upper; t; upper_rename ]
+  ; Specific_generator.extra_structure_items_to_insert loc
+  ; if_all_value [ creator_type ]
+  ; [ path; name; ord; get; set ]
+  ; if_all_value [ create; create_local ]
+  ; [ type_ids; globalize0; globalize; packed; packed_any; names; internal_gadt_rename ]
+  ]
+  |> List.concat
 ;;
 
 (** Generates a structure with the two submodules, Shallow, Deep and exposes the full

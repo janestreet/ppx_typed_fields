@@ -16,29 +16,35 @@ open Base
 
 (*$
   for n = 0 to 5 do
+    (* Universal quantifier prefix for functions: "'t1 't2 ... ('a : any)." *)
+    let forall_a =
+      let tvars = List.init n ~f:(fun i -> Printf.sprintf "'t%i" (i + 1)) in
+      let all = tvars @ [ "('a : any)" ] in
+      String.concat ~sep:" " all ^ "."
+    in
     [%string
       {|
 
 module type %{this n "S"} = sig @@ portable
-  type (%{each n "'t%i,"} 'a) t : value mod contended portable [@@deriving globalize]
+  type (%{each n "'t%i,"} 'a : any) t : value mod contended portable [@@deriving globalize]
   type %{params n "'t%i"} derived_on
 
   val names : string list
 
   (** The name of the field, e.g. "rgb" from the example above. *)
-  val name : _ t @ local -> string
+  val name : %{forall_a} (%{each n "'t%i,"} 'a) t @ local -> string
 
   (** The path of a field, e.g. ["rgb"] from the example above.
       The list will have multiple elements if the field is a subproduct.  *)
-  val path : _ t @ local -> string list
+  val path : %{forall_a} (%{each n "'t%i,"} 'a) t @ local -> string list
 
   (** Globalize without extra parameters. *)
-  val globalize0 : (%{each n "'t%i,"} 'a) t @ local -> (%{each n "'t%i,"} 'a) t
+  val globalize0 : %{forall_a} (%{each n "'t%i,"} 'a) t @ local -> (%{each n "'t%i,"} 'a) t
 
-  val __ord : _ t @ local -> int list
+  val __ord : %{forall_a} (%{each n "'t%i,"} 'a) t @ local -> int list
 
   module Type_ids %{each n "(T%i : T)"} : sig @@ portable
-    val type_id : (%{each n "T%i.t,"} 'a) t @ local -> 'a Type_equal.Id.t
+    val type_id : ('a : any). (%{each n "T%i.t,"} 'a) t @ local -> 'a Type_equal.Id.t
   end
 
   (** Packed is useful for making collections of 'a t's with different 'a's. *)
@@ -58,6 +64,26 @@ module type %{this n "S"} = sig @@ portable
     val%template pack : (%{each n "'t%i,"} 'a) field @ m -> t @ m
     [@@mode m = (local, global)]
   end
+
+  (** Packed_any is like Packed, but uses an any-kinded existential. *)
+  module Packed_any : sig
+    type (%{each n "'t%i,"} 'a : any) field := (%{each n "'t%i,"} 'a) t
+    type %{params n "'t%i"} t' : value mod contended portable =
+      T : %{each n "'t%i "} ('a : any). (%{each n "'t%i,"} 'a) field -> %{params n "'t%i"} t'
+    [@@unsafe_allow_any_mode_crossing
+      ]
+
+    type t = { f : %{poly n "'t%i"} %{params n "'t%i"} t' }
+    [@@deriving compare ~localize, enumerate, equal ~localize, globalize, hash, sexp ~stackify]
+    [@@unboxed]
+
+    include Comparator.S with type t := t
+
+    val of_packed : Packed.t -> t
+
+    val%template pack : %{forall_a} (%{each n "'t%i,"} 'a) field @ m -> t @ m
+    [@@mode m = (local, global)]
+  end
 end
 
     |}]
@@ -66,25 +92,25 @@ end
 *)
 
 module type S = sig @@ portable
-  type 'a t : value mod contended portable [@@deriving globalize]
+  type ('a : any) t : value mod contended portable [@@deriving globalize]
   type derived_on
 
   val names : string list
 
   (** The name of the field, e.g. "rgb" from the example above. *)
-  val name : _ t @ local -> string
+  val name : ('a : any). 'a t @ local -> string
 
   (** The path of a field, e.g. ["rgb"] from the example above. The list will have
       multiple elements if the field is a subproduct. *)
-  val path : _ t @ local -> string list
+  val path : ('a : any). 'a t @ local -> string list
 
   (** Globalize without extra parameters. *)
-  val globalize0 : 'a t @ local -> 'a t
+  val globalize0 : ('a : any). 'a t @ local -> 'a t
 
-  val __ord : _ t @ local -> int list
+  val __ord : ('a : any). 'a t @ local -> int list
 
   module Type_ids : sig @@ portable
-    val type_id : 'a t @ local -> 'a Type_equal.Id.t
+    val type_id : ('a : any). 'a t @ local -> 'a Type_equal.Id.t
   end
 
   (** Packed is useful for making collections of 'a t's with different 'a's. *)
@@ -103,28 +129,47 @@ module type S = sig @@ portable
 
     val%template pack : 'a field @ m -> t @ m [@@mode m = (local, global)]
   end
+
+  (** Packed_any is like Packed, but uses an any-kinded existential. *)
+  module Packed_any : sig
+    type ('a : any) field := 'a t
+
+    type t' : value mod contended portable = T : ('a : any). 'a field -> t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : t' }
+    [@@deriving
+      compare ~localize, enumerate, equal ~localize, globalize, hash, sexp ~stackify]
+    [@@unboxed]
+
+    include Comparator.S with type t := t
+
+    val of_packed : Packed.t -> t
+
+    val%template pack : ('a : any). 'a field @ m -> t @ m [@@mode m = (local, global)]
+  end
 end
 
 module type S1 = sig @@ portable
-  type ('t1, 'a) t : value mod contended portable [@@deriving globalize]
+  type ('t1, 'a : any) t : value mod contended portable [@@deriving globalize]
   type 't1 derived_on
 
   val names : string list
 
   (** The name of the field, e.g. "rgb" from the example above. *)
-  val name : _ t @ local -> string
+  val name : 't1 ('a : any). ('t1, 'a) t @ local -> string
 
   (** The path of a field, e.g. ["rgb"] from the example above. The list will have
       multiple elements if the field is a subproduct. *)
-  val path : _ t @ local -> string list
+  val path : 't1 ('a : any). ('t1, 'a) t @ local -> string list
 
   (** Globalize without extra parameters. *)
-  val globalize0 : ('t1, 'a) t @ local -> ('t1, 'a) t
+  val globalize0 : 't1 ('a : any). ('t1, 'a) t @ local -> ('t1, 'a) t
 
-  val __ord : _ t @ local -> int list
+  val __ord : 't1 ('a : any). ('t1, 'a) t @ local -> int list
 
   module Type_ids (T1 : T) : sig @@ portable
-    val type_id : (T1.t, 'a) t @ local -> 'a Type_equal.Id.t
+    val type_id : ('a : any). (T1.t, 'a) t @ local -> 'a Type_equal.Id.t
   end
 
   (** Packed is useful for making collections of 'a t's with different 'a's. *)
@@ -143,28 +188,49 @@ module type S1 = sig @@ portable
 
     val%template pack : ('t1, 'a) field @ m -> t @ m [@@mode m = (local, global)]
   end
+
+  (** Packed_any is like Packed, but uses an any-kinded existential. *)
+  module Packed_any : sig
+    type ('t1, 'a : any) field := ('t1, 'a) t
+
+    type 't1 t' : value mod contended portable =
+      | T : 't1 ('a : any). ('t1, 'a) field -> 't1 t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : 't1. 't1 t' }
+    [@@deriving
+      compare ~localize, enumerate, equal ~localize, globalize, hash, sexp ~stackify]
+    [@@unboxed]
+
+    include Comparator.S with type t := t
+
+    val of_packed : Packed.t -> t
+
+    val%template pack : 't1 ('a : any). ('t1, 'a) field @ m -> t @ m
+    [@@mode m = (local, global)]
+  end
 end
 
 module type S2 = sig @@ portable
-  type ('t1, 't2, 'a) t : value mod contended portable [@@deriving globalize]
+  type ('t1, 't2, 'a : any) t : value mod contended portable [@@deriving globalize]
   type ('t1, 't2) derived_on
 
   val names : string list
 
   (** The name of the field, e.g. "rgb" from the example above. *)
-  val name : _ t @ local -> string
+  val name : 't1 't2 ('a : any). ('t1, 't2, 'a) t @ local -> string
 
   (** The path of a field, e.g. ["rgb"] from the example above. The list will have
       multiple elements if the field is a subproduct. *)
-  val path : _ t @ local -> string list
+  val path : 't1 't2 ('a : any). ('t1, 't2, 'a) t @ local -> string list
 
   (** Globalize without extra parameters. *)
-  val globalize0 : ('t1, 't2, 'a) t @ local -> ('t1, 't2, 'a) t
+  val globalize0 : 't1 't2 ('a : any). ('t1, 't2, 'a) t @ local -> ('t1, 't2, 'a) t
 
-  val __ord : _ t @ local -> int list
+  val __ord : 't1 't2 ('a : any). ('t1, 't2, 'a) t @ local -> int list
 
   module Type_ids (T1 : T) (T2 : T) : sig @@ portable
-    val type_id : (T1.t, T2.t, 'a) t @ local -> 'a Type_equal.Id.t
+    val type_id : ('a : any). (T1.t, T2.t, 'a) t @ local -> 'a Type_equal.Id.t
   end
 
   (** Packed is useful for making collections of 'a t's with different 'a's. *)
@@ -184,28 +250,51 @@ module type S2 = sig @@ portable
 
     val%template pack : ('t1, 't2, 'a) field @ m -> t @ m [@@mode m = (local, global)]
   end
+
+  (** Packed_any is like Packed, but uses an any-kinded existential. *)
+  module Packed_any : sig
+    type ('t1, 't2, 'a : any) field := ('t1, 't2, 'a) t
+
+    type ('t1, 't2) t' : value mod contended portable =
+      | T : 't1 't2 ('a : any). ('t1, 't2, 'a) field -> ('t1, 't2) t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : 't1 't2. ('t1, 't2) t' }
+    [@@deriving
+      compare ~localize, enumerate, equal ~localize, globalize, hash, sexp ~stackify]
+    [@@unboxed]
+
+    include Comparator.S with type t := t
+
+    val of_packed : Packed.t -> t
+
+    val%template pack : 't1 't2 ('a : any). ('t1, 't2, 'a) field @ m -> t @ m
+    [@@mode m = (local, global)]
+  end
 end
 
 module type S3 = sig @@ portable
-  type ('t1, 't2, 't3, 'a) t : value mod contended portable [@@deriving globalize]
+  type ('t1, 't2, 't3, 'a : any) t : value mod contended portable [@@deriving globalize]
   type ('t1, 't2, 't3) derived_on
 
   val names : string list
 
   (** The name of the field, e.g. "rgb" from the example above. *)
-  val name : _ t @ local -> string
+  val name : 't1 't2 't3 ('a : any). ('t1, 't2, 't3, 'a) t @ local -> string
 
   (** The path of a field, e.g. ["rgb"] from the example above. The list will have
       multiple elements if the field is a subproduct. *)
-  val path : _ t @ local -> string list
+  val path : 't1 't2 't3 ('a : any). ('t1, 't2, 't3, 'a) t @ local -> string list
 
   (** Globalize without extra parameters. *)
-  val globalize0 : ('t1, 't2, 't3, 'a) t @ local -> ('t1, 't2, 't3, 'a) t
+  val globalize0
+    : 't1 't2 't3 ('a : any).
+    ('t1, 't2, 't3, 'a) t @ local -> ('t1, 't2, 't3, 'a) t
 
-  val __ord : _ t @ local -> int list
+  val __ord : 't1 't2 't3 ('a : any). ('t1, 't2, 't3, 'a) t @ local -> int list
 
   module Type_ids (T1 : T) (T2 : T) (T3 : T) : sig @@ portable
-    val type_id : (T1.t, T2.t, T3.t, 'a) t @ local -> 'a Type_equal.Id.t
+    val type_id : ('a : any). (T1.t, T2.t, T3.t, 'a) t @ local -> 'a Type_equal.Id.t
   end
 
   (** Packed is useful for making collections of 'a t's with different 'a's. *)
@@ -226,28 +315,53 @@ module type S3 = sig @@ portable
     val%template pack : ('t1, 't2, 't3, 'a) field @ m -> t @ m
     [@@mode m = (local, global)]
   end
+
+  (** Packed_any is like Packed, but uses an any-kinded existential. *)
+  module Packed_any : sig
+    type ('t1, 't2, 't3, 'a : any) field := ('t1, 't2, 't3, 'a) t
+
+    type ('t1, 't2, 't3) t' : value mod contended portable =
+      | T : 't1 't2 't3 ('a : any). ('t1, 't2, 't3, 'a) field -> ('t1, 't2, 't3) t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : 't1 't2 't3. ('t1, 't2, 't3) t' }
+    [@@deriving
+      compare ~localize, enumerate, equal ~localize, globalize, hash, sexp ~stackify]
+    [@@unboxed]
+
+    include Comparator.S with type t := t
+
+    val of_packed : Packed.t -> t
+
+    val%template pack : 't1 't2 't3 ('a : any). ('t1, 't2, 't3, 'a) field @ m -> t @ m
+    [@@mode m = (local, global)]
+  end
 end
 
 module type S4 = sig @@ portable
-  type ('t1, 't2, 't3, 't4, 'a) t : value mod contended portable [@@deriving globalize]
+  type ('t1, 't2, 't3, 't4, 'a : any) t : value mod contended portable
+  [@@deriving globalize]
+
   type ('t1, 't2, 't3, 't4) derived_on
 
   val names : string list
 
   (** The name of the field, e.g. "rgb" from the example above. *)
-  val name : _ t @ local -> string
+  val name : 't1 't2 't3 't4 ('a : any). ('t1, 't2, 't3, 't4, 'a) t @ local -> string
 
   (** The path of a field, e.g. ["rgb"] from the example above. The list will have
       multiple elements if the field is a subproduct. *)
-  val path : _ t @ local -> string list
+  val path : 't1 't2 't3 't4 ('a : any). ('t1, 't2, 't3, 't4, 'a) t @ local -> string list
 
   (** Globalize without extra parameters. *)
-  val globalize0 : ('t1, 't2, 't3, 't4, 'a) t @ local -> ('t1, 't2, 't3, 't4, 'a) t
+  val globalize0
+    : 't1 't2 't3 't4 ('a : any).
+    ('t1, 't2, 't3, 't4, 'a) t @ local -> ('t1, 't2, 't3, 't4, 'a) t
 
-  val __ord : _ t @ local -> int list
+  val __ord : 't1 't2 't3 't4 ('a : any). ('t1, 't2, 't3, 't4, 'a) t @ local -> int list
 
   module Type_ids (T1 : T) (T2 : T) (T3 : T) (T4 : T) : sig @@ portable
-    val type_id : (T1.t, T2.t, T3.t, T4.t, 'a) t @ local -> 'a Type_equal.Id.t
+    val type_id : ('a : any). (T1.t, T2.t, T3.t, T4.t, 'a) t @ local -> 'a Type_equal.Id.t
   end
 
   (** Packed is useful for making collections of 'a t's with different 'a's. *)
@@ -268,10 +382,36 @@ module type S4 = sig @@ portable
     val%template pack : ('t1, 't2, 't3, 't4, 'a) field @ m -> t @ m
     [@@mode m = (local, global)]
   end
+
+  (** Packed_any is like Packed, but uses an any-kinded existential. *)
+  module Packed_any : sig
+    type ('t1, 't2, 't3, 't4, 'a : any) field := ('t1, 't2, 't3, 't4, 'a) t
+
+    type ('t1, 't2, 't3, 't4) t' : value mod contended portable =
+      | T :
+          't1 't2 't3 't4 ('a : any).
+          ('t1, 't2, 't3, 't4, 'a) field
+          -> ('t1, 't2, 't3, 't4) t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : 't1 't2 't3 't4. ('t1, 't2, 't3, 't4) t' }
+    [@@deriving
+      compare ~localize, enumerate, equal ~localize, globalize, hash, sexp ~stackify]
+    [@@unboxed]
+
+    include Comparator.S with type t := t
+
+    val of_packed : Packed.t -> t
+
+    val%template pack
+      : 't1 't2 't3 't4 ('a : any).
+      ('t1, 't2, 't3, 't4, 'a) field @ m -> t @ m
+    [@@mode m = (local, global)]
+  end
 end
 
 module type S5 = sig @@ portable
-  type ('t1, 't2, 't3, 't4, 't5, 'a) t : value mod contended portable
+  type ('t1, 't2, 't3, 't4, 't5, 'a : any) t : value mod contended portable
   [@@deriving globalize]
 
   type ('t1, 't2, 't3, 't4, 't5) derived_on
@@ -279,21 +419,29 @@ module type S5 = sig @@ portable
   val names : string list
 
   (** The name of the field, e.g. "rgb" from the example above. *)
-  val name : _ t @ local -> string
+  val name
+    : 't1 't2 't3 't4 't5 ('a : any).
+    ('t1, 't2, 't3, 't4, 't5, 'a) t @ local -> string
 
   (** The path of a field, e.g. ["rgb"] from the example above. The list will have
       multiple elements if the field is a subproduct. *)
-  val path : _ t @ local -> string list
+  val path
+    : 't1 't2 't3 't4 't5 ('a : any).
+    ('t1, 't2, 't3, 't4, 't5, 'a) t @ local -> string list
 
   (** Globalize without extra parameters. *)
   val globalize0
-    :  ('t1, 't2, 't3, 't4, 't5, 'a) t @ local
-    -> ('t1, 't2, 't3, 't4, 't5, 'a) t
+    : 't1 't2 't3 't4 't5 ('a : any).
+    ('t1, 't2, 't3, 't4, 't5, 'a) t @ local -> ('t1, 't2, 't3, 't4, 't5, 'a) t
 
-  val __ord : _ t @ local -> int list
+  val __ord
+    : 't1 't2 't3 't4 't5 ('a : any).
+    ('t1, 't2, 't3, 't4, 't5, 'a) t @ local -> int list
 
   module Type_ids (T1 : T) (T2 : T) (T3 : T) (T4 : T) (T5 : T) : sig @@ portable
-    val type_id : (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) t @ local -> 'a Type_equal.Id.t
+    val type_id
+      : ('a : any).
+      (T1.t, T2.t, T3.t, T4.t, T5.t, 'a) t @ local -> 'a Type_equal.Id.t
   end
 
   (** Packed is useful for making collections of 'a t's with different 'a's. *)
@@ -312,6 +460,32 @@ module type S5 = sig @@ portable
     include Comparator.S with type t := t
 
     val%template pack : ('t1, 't2, 't3, 't4, 't5, 'a) field @ m -> t @ m
+    [@@mode m = (local, global)]
+  end
+
+  (** Packed_any is like Packed, but uses an any-kinded existential. *)
+  module Packed_any : sig
+    type ('t1, 't2, 't3, 't4, 't5, 'a : any) field := ('t1, 't2, 't3, 't4, 't5, 'a) t
+
+    type ('t1, 't2, 't3, 't4, 't5) t' : value mod contended portable =
+      | T :
+          't1 't2 't3 't4 't5 ('a : any).
+          ('t1, 't2, 't3, 't4, 't5, 'a) field
+          -> ('t1, 't2, 't3, 't4, 't5) t'
+    [@@unsafe_allow_any_mode_crossing]
+
+    type t = { f : 't1 't2 't3 't4 't5. ('t1, 't2, 't3, 't4, 't5) t' }
+    [@@deriving
+      compare ~localize, enumerate, equal ~localize, globalize, hash, sexp ~stackify]
+    [@@unboxed]
+
+    include Comparator.S with type t := t
+
+    val of_packed : Packed.t -> t
+
+    val%template pack
+      : 't1 't2 't3 't4 't5 ('a : any).
+      ('t1, 't2, 't3, 't4, 't5, 'a) field @ m -> t @ m
     [@@mode m = (local, global)]
   end
 end

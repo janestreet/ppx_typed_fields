@@ -5,6 +5,7 @@ type t = core_type
 
 let name index _ = [%string "t_%{(index + 1)#Int}"]
 let to_type = Fn.id
+let is_non_value (_ : t) = false
 
 let get_rhs_expression ~loc ~index ~element:_ ~number_of_elements =
   let open (val Syntax.builder loc) in

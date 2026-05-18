@@ -103,7 +103,7 @@ struct
 
     module To_other_map
         (A : S_for_other_map)
-        (M : S_plain with type 'a Key.t = 'a Key.t and type 'a Data.t = 'a A.s) =
+        (M : S_plain with type ('a : any) Key.t = 'a Key.t and type 'a Data.t = 'a A.s) =
     struct
       module Inner =
         Make_plain

@@ -11,7 +11,8 @@ let generate_packed_field_type_declaration
   =
   let open (val Syntax.builder loc) in
   let field_params =
-    params @ [ ptyp_var unique_parameter_id, (NoVariance, NoInjectivity) ]
+    params
+    @ [ Helpers.ptyp_var_any ~loc unique_parameter_id, (NoVariance, NoInjectivity) ]
   in
   type_declaration
     ~name:(Located.mk "field")
@@ -23,8 +24,31 @@ let generate_packed_field_type_declaration
     ()
 ;;
 
+let packed_t_prime_jkind_and_attrs ~loc =
+  let open (val Syntax.builder loc) in
+  let jkind_annotation =
+    { pjka_loc = loc
+    ; pjka_desc =
+        Pjk_mod
+          ( { pjka_loc = loc
+            ; pjka_desc = Pjk_abbreviation ({ txt = Lident "value"; loc }, [])
+            }
+          , [ Loc.make ~loc (Mode "contended")
+            ; Loc.make ~loc (Mode "non_float")
+            ; Loc.make ~loc (Mode "portable")
+            ] )
+    }
+  in
+  let attrs =
+    [ attribute ~name:(Loc.make ~loc "unsafe_allow_any_mode_crossing") ~payload:(PStr [])
+    ]
+  in
+  jkind_annotation, attrs
+;;
+
 let generate_packed_t_prime_type_declaration ~loc ~params ~core_type_params ~field_type =
   let open (val Syntax.builder loc) in
+  let jkind_annotation, attrs = packed_t_prime_jkind_and_attrs ~loc in
   type_declaration
     ~name:(Located.mk "t'")
     ~params
@@ -40,23 +64,52 @@ let generate_packed_t_prime_type_declaration ~loc ~params ~core_type_params ~fie
                   [ field_type |> Ppxlib_jane.Shim.Pcstr_tuple_arg.of_core_type ])
              ~res:(Some (ptyp_constr (Lident "t'" |> Located.mk) core_type_params))
          ])
-    ~jkind_annotation:
-      { pjka_loc = loc
-      ; pjka_desc =
-          Pjk_mod
-            ( { pjka_loc = loc
-              ; pjka_desc = Pjk_abbreviation { txt = Lident "value"; loc }
-              }
-            , [ Loc.make ~loc (Mode "contended")
-              ; Loc.make ~loc (Mode "non_float")
-              ; Loc.make ~loc (Mode "portable")
-              ] )
-      }
-    ~attrs:
-      [ attribute
-          ~name:(Loc.make ~loc "unsafe_allow_any_mode_crossing")
-          ~payload:(PStr [])
-      ]
+    ~jkind_annotation
+    ~attrs
+    ()
+;;
+
+let generate_packed_any_t_prime_type_declaration
+  ~loc
+  ~params
+  ~core_type_params
+  ~unique_parameter_id
+  ~field_type
+  =
+  let open (val Syntax.builder loc) in
+  let jkind_annotation, attrs = packed_t_prime_jkind_and_attrs ~loc in
+  (* To have the packed type variable be [any], all variables must be universally
+     quantified. *)
+  let param_vars =
+    List.filter_map core_type_params ~f:(fun param ->
+      match Ppxlib_jane.Shim.Core_type_desc.of_parsetree param.ptyp_desc with
+      | Ptyp_var (name, _) -> Some (Located.mk name, None)
+      | _ -> None)
+  in
+  let existential_var =
+    ( Located.mk unique_parameter_id
+    , Some
+        { pjka_loc = loc; pjka_desc = Pjk_abbreviation ({ txt = Lident "any"; loc }, []) }
+    )
+  in
+  let pcd_vars = param_vars @ [ existential_var ] in
+  let constructor =
+    Ppxlib_jane.Shim.Constructor_declaration.create
+      ~name:(Located.mk "T")
+      ~vars:pcd_vars
+      ~args:(Pcstr_tuple [ field_type |> Ppxlib_jane.Shim.Pcstr_tuple_arg.of_core_type ])
+      ~res:(Some (ptyp_constr (Lident "t'" |> Located.mk) core_type_params))
+      ~loc
+  in
+  type_declaration
+    ~name:(Located.mk "t'")
+    ~params
+    ~cstrs:[]
+    ~private_:Public
+    ~manifest:None
+    ~kind:(Ptype_variant [ constructor ])
+    ~jkind_annotation
+    ~attrs
     ()
 ;;
 
@@ -105,6 +158,7 @@ let generate_new_typed_function
   ~unique_parameter_id
   ?(arg_modes = [])
   ?(result_modes = [])
+  ?(unique_param_is_any = false)
   ~var_arrow_type
   ~constr_arrow_type
   ~function_body
@@ -118,7 +172,16 @@ let generate_new_typed_function
       | Ptyp_var (name, _) -> Some (Located.mk name, None)
       | _ -> None)
   in
-  let t_type_parameters = parameter_names @ [ Located.mk unique_parameter_id, None ] in
+  let unique_param_jkind =
+    if unique_param_is_any
+    then
+      Some
+        { pjka_loc = loc; pjka_desc = Pjk_abbreviation ({ txt = Lident "any"; loc }, []) }
+    else None
+  in
+  let t_type_parameters =
+    parameter_names @ [ Located.mk unique_parameter_id, unique_param_jkind ]
+  in
   let function_type =
     ptyp_poly
       t_type_parameters
@@ -142,7 +205,7 @@ let generate_new_typed_function
     let inner_new_type =
       pexp_newtype
         (Located.mk unique_parameter_id)
-        None
+        unique_param_jkind
         (pexp_constraint
            function_body
            (Some

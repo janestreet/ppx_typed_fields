@@ -3,6 +3,8 @@ open Ppxlib
 
 type t = label_declaration
 
+let is_non_value = Record_generator.is_non_value
+
 (* The structure items will be inserted after the type type definitions and before any
    other items. *)
 let extra_structure_items_to_insert _ = []
@@ -92,12 +94,34 @@ let globalize_packed_function_body ~loc ~elements_to_convert =
     ~elements_to_convert
 ;;
 
+let globalize_packed_any_function_body ~loc ~elements_to_convert =
+  Product_kind_generator.globalize_packed_any_function_body
+    (module Record_generator)
+    ~loc
+    ~elements_to_convert
+;;
+
 let all_body ~loc ~constructor_declarations =
   Product_kind_generator.all_body (module Record_generator) ~loc ~constructor_declarations
 ;;
 
+let all_body_any ~loc ~constructor_declarations =
+  Product_kind_generator.all_body_any
+    (module Record_generator)
+    ~loc
+    ~constructor_declarations
+;;
+
 let pack_body ~loc ~elements_to_convert ~local =
   Product_kind_generator.pack_body
+    (module Record_generator)
+    ~loc
+    ~elements_to_convert
+    ~local
+;;
+
+let pack_body_any ~loc ~elements_to_convert ~local =
+  Product_kind_generator.pack_body_any
     (module Record_generator)
     ~loc
     ~elements_to_convert
@@ -112,8 +136,23 @@ let sexp_of_t_body ~loc ~elements_to_convert ~stack =
     ~stack
 ;;
 
+let sexp_of_t_body_any ~loc ~elements_to_convert ~stack =
+  Product_kind_generator.sexp_of_t_body_any
+    (module Record_generator)
+    ~loc
+    ~elements_to_convert
+    ~stack
+;;
+
 let t_of_sexp_body ~loc ~elements_to_convert =
   Product_kind_generator.t_of_sexp_body
+    (module Record_generator)
+    ~loc
+    ~elements_to_convert
+;;
+
+let t_of_sexp_body_any ~loc ~elements_to_convert =
+  Product_kind_generator.t_of_sexp_body_any
     (module Record_generator)
     ~loc
     ~elements_to_convert

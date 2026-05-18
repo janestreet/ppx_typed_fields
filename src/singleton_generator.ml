@@ -14,6 +14,7 @@ type common_items =
   ; globalize : structure_item
   ; type_ids : structure_item
   ; packed : structure_item
+  ; packed_any : structure_item
   }
 
 let type_ids ~loc ~number_of_parameters ~unique_id =
@@ -56,7 +57,13 @@ let type_ids ~loc ~number_of_parameters ~unique_id =
         in
         pexp_fun Nolabel None pattern expression
       in
-      pexp_newtype (Located.mk unique_id) None expression
+      pexp_newtype
+        (Located.mk unique_id)
+        (Some
+           { pjka_loc = loc
+           ; pjka_desc = Pjk_abbreviation ({ txt = Lident "any"; loc }, [])
+           })
+        expression
     in
     let vb = value_binding ~pat:pattern ~expr:expression ~modes:[] in
     pstr_value Nonrecursive [ vb ]
@@ -84,7 +91,15 @@ let type_ids ~loc ~number_of_parameters ~unique_id =
   pstr_module (module_binding ~name:(Some "Type_ids" |> Located.mk) ~expr)
 ;;
 
-let packed ~loc ~core_type_params ~unique_id ~minimum_needed_parameters =
+let packed_generic
+  ~loc
+  ~core_type_params
+  ~unique_id
+  ~minimum_needed_parameters
+  ~module_name
+  ~t_prime_type_declaration
+  ~extra_items
+  =
   let open (val Syntax.builder loc) in
   let t_params = core_type_params @ [ ptyp_var unique_id ] in
   let t_type_constr = ptyp_constr (Lident "t" |> Located.mk) t_params in
@@ -100,13 +115,7 @@ let packed ~loc ~core_type_params ~unique_id ~minimum_needed_parameters =
     pstr_type Recursive [ td ]
   in
   let t_prime_type_declaration =
-    let td =
-      Typed_deriver.generate_packed_t_prime_type_declaration
-        ~loc
-        ~params:minimum_needed_parameters
-        ~core_type_params
-        ~field_type
-    in
+    let td = t_prime_type_declaration ~field_type in
     let td =
       { td with
         ptype_attributes = Typed_deriver.disable_warning_37 ~loc :: td.ptype_attributes
@@ -135,26 +144,67 @@ let packed ~loc ~core_type_params ~unique_id ~minimum_needed_parameters =
   let pack__local = [%stri let pack__local _ = exclave_ { f = T T }] in
   pstr_module
     (module_binding
-       ~name:(Some "Packed" |> Located.mk)
+       ~name:(Some module_name |> Located.mk)
        ~expr:
          (pmod_structure
-            [ packed_field
-            ; t_prime_type_declaration
-            ; t_type_declaration
-            ; compare
-            ; compare__local
-            ; equal
-            ; equal__local
-            ; hash_fold_t
-            ; hash
-            ; all
-            ; globalize
-            ; sexp_of_t
-            ; sexp_of_t__stack
-            ; t_of_sexp
-            ; pack
-            ; pack__local
-            ]))
+            ([ packed_field
+             ; t_prime_type_declaration
+             ; t_type_declaration
+             ; compare
+             ; compare__local
+             ; equal
+             ; equal__local
+             ; hash_fold_t
+             ; hash
+             ; all
+             ; globalize
+             ; sexp_of_t
+             ; sexp_of_t__stack
+             ; t_of_sexp
+             ; pack
+             ; pack__local
+             ]
+             @ extra_items)))
+;;
+
+let packed ~loc ~core_type_params ~unique_id ~minimum_needed_parameters =
+  packed_generic
+    ~loc
+    ~core_type_params
+    ~unique_id
+    ~minimum_needed_parameters
+    ~module_name:"Packed"
+    ~t_prime_type_declaration:(fun ~field_type ->
+      Typed_deriver.generate_packed_t_prime_type_declaration
+        ~loc
+        ~params:minimum_needed_parameters
+        ~core_type_params
+        ~field_type)
+    ~extra_items:[]
+;;
+
+let packed_any ~loc ~core_type_params ~unique_id ~minimum_needed_parameters =
+  let open (val Syntax.builder loc) in
+  packed_generic
+    ~loc
+    ~core_type_params
+    ~unique_id
+    ~minimum_needed_parameters
+    ~module_name:"Packed_any"
+    ~t_prime_type_declaration:(fun ~field_type ->
+      Typed_deriver.generate_packed_any_t_prime_type_declaration
+        ~loc
+        ~params:minimum_needed_parameters
+        ~core_type_params
+        ~unique_parameter_id:unique_id
+        ~field_type)
+    ~extra_items:
+      [ [%stri
+          let of_packed (packed : Packed.t) =
+            let { Packed.f = T field } = packed in
+            pack field
+          ;;]
+      ]
 ;;
 
 let common ~loc ~minimum_needed_parameters ~core_type_params ~ctype ~unique_id =
@@ -179,7 +229,8 @@ let common ~loc ~minimum_needed_parameters ~core_type_params ~ctype ~unique_id =
       ~res:(Some (ptyp_constr (Lident "t" |> Located.mk) (core_type_params @ [ ctype ])))
   in
   let t_params =
-    minimum_needed_parameters @ [ ptyp_var unique_id, (NoVariance, NoInjectivity) ]
+    minimum_needed_parameters
+    @ [ Helpers.ptyp_var_any ~loc unique_id, (NoVariance, NoInjectivity) ]
   in
   let t_type_declaration =
     let td =
@@ -273,6 +324,9 @@ let common ~loc ~minimum_needed_parameters ~core_type_params ~ctype ~unique_id =
     type_ids ~loc ~number_of_parameters:(List.length minimum_needed_parameters) ~unique_id
   in
   let packed = packed ~loc ~core_type_params ~unique_id ~minimum_needed_parameters in
+  let packed_any =
+    packed_any ~loc ~core_type_params ~unique_id ~minimum_needed_parameters
+  in
   { upper
   ; t_type_declaration
   ; internal_gadt_declaration
@@ -284,6 +338,7 @@ let common ~loc ~minimum_needed_parameters ~core_type_params ~ctype ~unique_id =
   ; globalize
   ; type_ids
   ; packed
+  ; packed_any
   ; names
   }
 ;;
